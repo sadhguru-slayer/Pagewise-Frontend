@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-[#08080a] text-zinc-100 antialiased selection:bg-[#4ECDC4]/30 selection:text-[#4ECDC4];
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #08080a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+/* Tiptap / Rich Editor & Preview List Styles */
+.tiptap ul,
+.resume-rich-editor ul,
+.tiptap-content ul {
+  list-style-type: disc !important;
+  margin-left: 1.25rem !important;
+  padding-left: 0.25rem !important;
+}
+
+.tiptap ol,
+.resume-rich-editor ol,
+.tiptap-content ol {
+  list-style-type: decimal !important;
+  margin-left: 1.25rem !important;
+  padding-left: 0.25rem !important;
+}
+
+.tiptap li,
+.resume-rich-editor li,
+.tiptap-content li {
+  margin-bottom: 0.15rem;
+}
+
+/* Editor Prose Focus */
+.tiptap:focus {
+  outline: none;
+}
+
+/* Subtle Grid Background */
+.subtle-grid {
+  background-image:
+    linear-gradient(to right,  rgba(255,255,255,0.032) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.032) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
