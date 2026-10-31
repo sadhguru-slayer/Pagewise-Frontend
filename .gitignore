@@ -32,5 +32,14 @@ Thumbs.db
 # Deployment
 .vercel/
 
-# Misc
 *.tsbuildinfo
+
+node_modules/
+.next/
+out/
+.env*
+!.env.example
+.vercel/
+dist/
+build/
+.DS_Store
