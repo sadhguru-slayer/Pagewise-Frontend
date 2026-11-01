@@ -20,8 +20,8 @@ const newsreader = Newsreader({
 });
 
 export const metadata = {
-  title: 'Resumo — Standalone Professional Resume Studio',
-  description: 'Pixel-perfect, multi-sheet A4 resume builder with rich text formatting, customizable layouts, and instant PDF export.',
+  title: 'PageWise Studio — Resume Craft with Precision & Deep ATS Intelligence',
+  description: 'Industrial-grade resume craft with deep ATS analysis, cross-resume intelligence, live A4 multi-sheet visual editing, and dual PDF & DOCX export.',
 };
 
 export default function RootLayout({ children }) {

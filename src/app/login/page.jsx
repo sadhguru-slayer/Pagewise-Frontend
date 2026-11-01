@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { FileText, Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
+import { Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -45,69 +46,70 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-[#090a0f] text-zinc-100">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-[#090B10] text-[#F1F3F9]">
       {/* Background glow effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-blue-600/10 blur-[120px] rounded-full" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-amber-600/10 blur-[130px] rounded-full" />
       </div>
 
       <div className="w-full max-w-md z-10">
         {/* Header Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform">
-              <FileText className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-              Resumo
-            </span>
+          <Link href="/" className="inline-flex items-center justify-center group">
+            <BrandLockup size={32} showTagline={true} />
           </Link>
-          <h1 className="mt-6 text-2xl font-bold text-white tracking-tight">Welcome back</h1>
-          <p className="mt-1.5 text-sm text-zinc-400">Log in to manage and export your professional resumes</p>
+          <h1 className="mt-6 text-2xl font-extrabold text-[#F1F3F9] tracking-tight">Studio Sign In</h1>
+          <p className="mt-1.5 text-xs text-[#7E869B]">Access your master resume architectures and ATS audits</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#12141c]/90 border border-zinc-800/80 rounded-2xl p-7 shadow-2xl backdrop-blur-xl">
+        <div
+          className="border rounded-2xl p-7 shadow-2xl backdrop-blur-xl"
+          style={{
+            background: BRAND_CONFIG.colors.surfaceCard,
+            borderColor: BRAND_CONFIG.colors.borderSubtle,
+          }}
+        >
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[#7E869B] font-mono">
                   Password
                 </label>
               </div>
               <div className="relative">
-                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
                 />
               </div>
             </div>
@@ -115,7 +117,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-xl text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
+              style={{
+                background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
+                boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
+              }}
             >
               {loading ? (
                 <>
@@ -125,16 +131,16 @@ export default function LoginPage() {
               ) : (
                 <>
                   <span>Sign In</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-zinc-800/80 text-center">
-            <p className="text-sm text-zinc-400">
+          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
+            <p className="text-xs text-[#7E869B]">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-blue-400 hover:text-blue-300 font-semibold hover:underline">
+              <Link href="/register" className="text-amber-400 hover:text-amber-300 font-semibold hover:underline">
                 Sign up free
               </Link>
             </p>
@@ -143,8 +149,8 @@ export default function LoginPage() {
 
         {/* Back to Home */}
         <div className="text-center mt-6">
-          <Link href="/" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-            ← Back to Resumo Home
+          <Link href="/" className="text-xs text-[#7E869B] hover:text-[#F1F3F9] transition-colors">
+            ← Back to PageWise Studio
           </Link>
         </div>
       </div>
