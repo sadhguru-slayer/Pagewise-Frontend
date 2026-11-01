@@ -118,6 +118,49 @@ export const authApi = {
       window.location.href = '/login';
     }
   },
+
+  // Forgot password flow (unauthenticated)
+  async requestPasswordReset(email) {
+    return fetchApi('/auth/request-password-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async verifyResetOTP(email, otp) {
+    return fetchApi('/auth/verify-reset-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  },
+
+  async resetPassword(reset_token, new_password) {
+    return fetchApi('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ reset_token, new_password }),
+    });
+  },
+
+  // Profile password reset flow (authenticated)
+  async profileRequestResetOTP() {
+    return fetchApi('/auth/profile/request-reset-otp', {
+      method: 'POST',
+    });
+  },
+
+  async profileVerifyResetOTP(otp) {
+    return fetchApi('/auth/profile/verify-reset-otp', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    });
+  },
+
+  async profileResetPassword(reset_token, new_password) {
+    return fetchApi('/auth/profile/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ reset_token, new_password }),
+    });
+  },
 };
 
 // ─── Resumes API ─────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import {
   User,
   Shield,
   Key,
+  KeyRound,
   AlertTriangle,
   CheckCircle2,
   Calendar,
@@ -17,6 +18,9 @@ import {
   LogOut,
   Type,
   Sparkles,
+  RefreshCw,
+  X,
+  Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
@@ -47,6 +51,15 @@ export default function SettingsPage() {
   const [allowBoldText, setAllowBoldText] = useState(getAllowBoldPref(user));
   const [isUpdatingPrefs, setIsUpdatingPrefs] = useState(false);
 
+  // Profile Password Reset (OTP Flow: reset -> otp -> show otp form -> verify -> reset password)
+  const [pwStage, setPwStage] = useState('INIT'); // 'INIT' | 'OTP_FORM' | 'NEW_PW_FORM'
+  const [profileOtp, setProfileOtp] = useState('');
+  const [profileResetToken, setProfileResetToken] = useState('');
+  const [profileNewPassword, setProfileNewPassword] = useState('');
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwCountdown, setPwCountdown] = useState(0);
+
   // Re-synchronize state when auth loads or user profile updates
   useEffect(() => {
     if (user) {
@@ -62,10 +75,14 @@ export default function SettingsPage() {
     }
   }, [loading, isAuthenticated, router]);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  // Resend timer countdown
+  useEffect(() => {
+    let timer;
+    if (pwCountdown > 0) {
+      timer = setTimeout(() => setPwCountdown(pwCountdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [pwCountdown]);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -102,29 +119,81 @@ export default function SettingsPage() {
     }
   };
 
-  const handleUpdatePassword = (e) => {
+  // Step 1: User initiates reset inside profile -> request OTP
+  const handleRequestProfileOtp = async () => {
+    setPwLoading(true);
+    try {
+      const res = await authApi.profileRequestResetOTP();
+      toast.success(res?.message || 'Security code dispatched to your email!');
+      setPwStage('OTP_FORM');
+      setPwCountdown(60);
+    } catch (err) {
+      toast.error(err.message || 'Failed to dispatch security code.');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  // Step 2: Show OTP form -> user enters OTP -> verify OTP
+  const handleVerifyProfileOtp = async (e) => {
     e.preventDefault();
-    if (!currentPassword || !newPassword) {
-      toast.error('Please fill all password fields');
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
+    const cleanOtp = profileOtp.trim();
+    if (!cleanOtp || cleanOtp.length < 4) {
+      toast.error('Please enter the 6-digit verification code.');
       return;
     }
 
-    setIsUpdatingPassword(true);
-    setTimeout(() => {
-      setIsUpdatingPassword(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      confirmPassword('');
-      toast.success('Password changed successfully');
-    }, 800);
+    setPwLoading(true);
+    try {
+      const res = await authApi.profileVerifyResetOTP(cleanOtp);
+      if (!res?.reset_token) {
+        throw new Error('Verification failed. Please re-enter the code.');
+      }
+      setProfileResetToken(res.reset_token);
+      toast.success('Code verified. Set your new password below.');
+      setPwStage('NEW_PW_FORM');
+    } catch (err) {
+      toast.error(err.message || 'Invalid or expired verification code.');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  // Step 3: Enter new password -> Reset Password
+  const handleResetProfilePassword = async (e) => {
+    e.preventDefault();
+    if (!profileNewPassword || profileNewPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long.');
+      return;
+    }
+    if (profileNewPassword !== profileConfirmPassword) {
+      toast.error('Passwords do not match. Please re-type.');
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      const res = await authApi.profileResetPassword(profileResetToken, profileNewPassword);
+      toast.success(res?.message || 'Password changed successfully!');
+      // Reset state back to initial clean state
+      setPwStage('INIT');
+      setProfileOtp('');
+      setProfileResetToken('');
+      setProfileNewPassword('');
+      setProfileConfirmPassword('');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update password.');
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const handleCancelPasswordReset = () => {
+    setPwStage('INIT');
+    setProfileOtp('');
+    setProfileResetToken('');
+    setProfileNewPassword('');
+    setProfileConfirmPassword('');
   };
 
   const memberSince = user?.created_at
@@ -174,7 +243,7 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Account &amp; Preferences</h1>
           <p className="text-xs text-[#6b7280] mt-1">
-            Manage your personal profile, credentials, and Resumo workspace settings.
+            Manage your personal profile, authentication credentials, and Resumo studio settings.
           </p>
         </div>
 
@@ -260,56 +329,212 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Change Password Card */}
-        <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-            <Key className="w-3.5 h-3.5 text-[#f97316]" />
-            <span>Change Password</span>
-          </h3>
-
-          <form onSubmit={handleUpdatePassword} className="space-y-3 max-w-md">
+        {/* Change Password Card — Authenticated OTP Flow */}
+        <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-5">
+          <div className="flex items-center justify-between">
             <div>
-              <label className="block text-[11px] text-zinc-400 mb-1">Current Password</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-[#090b13] border border-white/[0.08] focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
-              />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-amber-500" />
+                <span>Security &amp; Password Management</span>
+              </h3>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Multi-step OTP verification ensures your account credentials remain strictly protected.
+              </p>
             </div>
+            {pwStage !== 'INIT' && (
+              <button
+                type="button"
+                onClick={handleCancelPasswordReset}
+                className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-white/[0.05] transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Cancel</span>
+              </button>
+            )}
+          </div>
 
-            <div>
-              <label className="block text-[11px] text-zinc-400 mb-1">New Password (min. 6 characters)</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-[#090b13] border border-white/[0.08] focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
-              />
+          {/* STAGE 1: Request OTP */}
+          {pwStage === 'INIT' && (
+            <div className="p-5 rounded-xl bg-black/40 border border-white/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-amber-400" />
+                  <span>Reset Profile Password</span>
+                </h4>
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-lg">
+                  Click the button to receive a 6-digit one-time security code sent to{' '}
+                  <strong className="text-zinc-200">{user?.email}</strong> to authenticate and reset your password.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRequestProfileOtp}
+                disabled={pwLoading}
+                className="shrink-0 px-4 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer hover:opacity-95"
+                style={{
+                  background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
+                  boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
+                }}
+              >
+                {pwLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Sending Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Request Reset OTP</span>
+                  </>
+                )}
+              </button>
             </div>
+          )}
 
-            <div>
-              <label className="block text-[11px] text-zinc-400 mb-1">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-[#090b13] border border-white/[0.08] focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
-              />
-            </div>
+          {/* STAGE 2: Show OTP Form */}
+          {pwStage === 'OTP_FORM' && (
+            <form onSubmit={handleVerifyProfileOtp} className="p-5 rounded-xl bg-black/40 border border-amber-500/20 space-y-4 max-w-md">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">
+                  Step 2 of 3: Verify Security Code
+                </span>
+                <p className="text-xs text-zinc-300">
+                  Enter the 6-digit verification code sent to <strong className="text-white">{user?.email}</strong>.
+                </p>
+              </div>
 
-            <button
-              type="submit"
-              disabled={isUpdatingPassword}
-              className="mt-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold rounded-xl border border-white/[0.08] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {isUpdatingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-              <span>Update Password</span>
-            </button>
-          </form>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  maxLength={8}
+                  value={profileOtp}
+                  onChange={(e) => setProfileOtp(e.target.value.replace(/\s+/g, ''))}
+                  placeholder="123456"
+                  required
+                  autoFocus
+                  className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/[0.12] rounded-xl text-base tracking-[0.3em] font-mono font-bold text-amber-400 placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all text-center"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-zinc-500">Didn&apos;t receive code?</span>
+                <button
+                  type="button"
+                  onClick={handleRequestProfileOtp}
+                  disabled={pwLoading || pwCountdown > 0}
+                  className="inline-flex items-center gap-1 font-semibold text-amber-400 hover:text-amber-300 disabled:opacity-50 transition-colors"
+                >
+                  <RefreshCw className={`w-3 h-3 ${pwLoading ? 'animate-spin' : ''}`} />
+                  <span>{pwCountdown > 0 ? `Resend in ${pwCountdown}s` : 'Resend Code'}</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={pwLoading}
+                  className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer hover:opacity-95"
+                  style={{
+                    background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
+                    boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
+                  }}
+                >
+                  {pwLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Verify OTP</span>
+                      <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelPasswordReset}
+                  className="px-4 py-2.5 rounded-xl text-xs text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.08] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STAGE 3: Show New Password Form */}
+          {pwStage === 'NEW_PW_FORM' && (
+            <form onSubmit={handleResetProfilePassword} className="p-5 rounded-xl bg-black/40 border border-emerald-500/20 space-y-4 max-w-md">
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Identity verified. Enter your new account password below.</span>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-zinc-400 mb-1">New Password (min. 6 characters)</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    value={profileNewPassword}
+                    onChange={(e) => setProfileNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    autoFocus
+                    className="w-full pl-10 pr-4 py-2 bg-[#090b13] border border-white/[0.08] focus:border-amber-500 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-zinc-400 mb-1">Confirm New Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    value={profileConfirmPassword}
+                    onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full pl-10 pr-4 py-2 bg-[#090b13] border border-white/[0.08] focus:border-amber-500 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={pwLoading}
+                  className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer hover:opacity-95"
+                  style={{
+                    background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
+                    boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
+                  }}
+                >
+                  {pwLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Password...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Reset Password</span>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelPasswordReset}
+                  className="px-4 py-2.5 rounded-xl text-xs text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.08] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Plan / Quota Info */}
