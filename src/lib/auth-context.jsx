@@ -41,8 +41,14 @@ export function AuthProvider({ children }) {
     return res;
   };
 
-  const register = async (name, email, password) => {
-    const res = await authApi.register({ name, email, password });
+  const loginWithOtp = async (email, otp) => {
+    const res = await authApi.verifyLoginOTP(email, otp);
+    setUser(res.user);
+    return res;
+  };
+
+  const register = async (name, email, password, register_token = null) => {
+    const res = await authApi.register({ name, email, password, register_token });
     setUser(res.user);
     return res;
   };
@@ -59,6 +65,7 @@ export function AuthProvider({ children }) {
         loading,
         isAuthenticated: !!user,
         login,
+        loginWithOtp,
         register,
         logout,
         refreshUser: loadUser,

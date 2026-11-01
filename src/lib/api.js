@@ -76,10 +76,44 @@ export async function fetchApi(endpoint, options = {}) {
 
 // ─── Auth API ────────────────────────────────────────────────────────────────
 export const authApi = {
-  async register({ name, email, password }) {
+  // Anti-spam registration email verification
+  async requestRegisterOTP(email) {
+    return fetchApi('/auth/request-register-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async verifyRegisterOTP(email, otp) {
+    return fetchApi('/auth/verify-register-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  },
+
+  async register({ name, email, password, register_token }) {
     const data = await fetchApi('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, register_token }),
+    });
+    if (data?.access_token) {
+      setToken(data.access_token);
+    }
+    return data;
+  },
+
+  // Passwordless login with OTP
+  async requestLoginOTP(email) {
+    return fetchApi('/auth/request-login-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async verifyLoginOTP(email, otp) {
+    const data = await fetchApi('/auth/verify-login-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
     });
     if (data?.access_token) {
       setToken(data.access_token);
