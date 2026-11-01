@@ -346,7 +346,7 @@ function BuilderContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#090b13] text-[#e2e8f0] flex flex-col overflow-hidden select-none">
+    <div className="h-screen max-h-screen bg-[#090b13] text-[#e2e8f0] flex flex-col overflow-hidden select-none">
       {/* ─── STUDIO HEADER ─────────────────────────────────────────────────── */}
       <header className="h-12 border-b border-white/[0.07] bg-[#111420]/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between shrink-0 z-30">
         {/* Left: Back + Resume Name + Save Status */}
@@ -555,7 +555,7 @@ function BuilderContent() {
       </header>
 
       {/* ─── 3-PANEL WORKSPACE WITH LEETCODE-STYLE RESIZERS ─────────────────── */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative min-h-0">
         {/* ── 1. LEFT PANEL: MENU & SECTIONS ──────────────────────────────── */}
         {isLeftCollapsed ? (
           <div className="w-11 bg-[#090b13] border-r border-white/[0.07] flex flex-col items-center py-3 gap-2 shrink-0 z-10">
@@ -598,7 +598,7 @@ function BuilderContent() {
         ) : (
           <div
             style={{ width: `${leftWidth}px` }}
-            className={`border-r border-white/[0.07] bg-[#111420] flex flex-col shrink-0 ${
+            className={`h-full border-r border-white/[0.07] bg-[#111420] flex flex-col shrink-0 min-h-0 overflow-hidden ${
               mobileView === 'preview' ? 'hidden lg:flex' : 'flex'
             }`}
           >
@@ -650,7 +650,7 @@ function BuilderContent() {
             </div>
 
             {/* Left Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+            <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-4">
               {leftTab === 'sections' && (
                 <>
                   <SectionManager />
@@ -720,7 +720,7 @@ function BuilderContent() {
             style={{
               width: isPreviewCollapsed ? '100%' : `${editorWidth}px`,
             }}
-            className={`flex flex-col bg-[#0d0f18] border-r border-white/[0.07] overflow-hidden shrink-0 ${
+            className={`h-full flex flex-col bg-[#0d0f18] border-r border-white/[0.07] overflow-hidden shrink-0 min-h-0 ${
               isPreviewCollapsed ? 'flex-1' : ''
             } ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex'}`}
           >
@@ -758,7 +758,7 @@ function BuilderContent() {
           </div>
         ) : (
           <div
-            className={`flex-1 bg-[#111420] flex flex-col overflow-hidden ${
+            className={`h-full flex-1 bg-[#111420] flex flex-col overflow-hidden min-h-0 ${
               mobileView === 'editor' ? 'hidden lg:flex' : 'flex'
             }`}
           >

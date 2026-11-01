@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -23,17 +23,44 @@ import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
 import { authApi } from '@/lib/api';
 
+function getAllowBoldPref(usr) {
+  if (!usr?.preferences_json) return false;
+  let prefs = usr.preferences_json;
+  if (typeof prefs === 'string') {
+    try {
+      prefs = JSON.parse(prefs);
+    } catch {
+      return false;
+    }
+  }
+  return Boolean(prefs?.allow_bold_text);
+}
+
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, logout, isAuthenticated, loading } = useAuth();
+  const { user, logout, isAuthenticated, loading, refreshUser } = useAuth();
 
   const [name, setName] = useState(user?.name || '');
   const [isUpdatingName, setIsUpdatingName] = useState(false);
 
   // Resume formatting preferences
-  const initialBoldPref = Boolean(user?.preferences_json?.allow_bold_text);
-  const [allowBoldText, setAllowBoldText] = useState(initialBoldPref);
+  const [allowBoldText, setAllowBoldText] = useState(getAllowBoldPref(user));
   const [isUpdatingPrefs, setIsUpdatingPrefs] = useState(false);
+
+  // Re-synchronize state when auth loads or user profile updates
+  useEffect(() => {
+    if (user) {
+      if (user.name) setName(user.name);
+      setAllowBoldText(getAllowBoldPref(user));
+    }
+  }, [user]);
+
+  // Auth guard
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [loading, isAuthenticated, router]);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -50,7 +77,8 @@ export default function SettingsPage() {
     }
     setIsUpdatingName(true);
     try {
-      await authApi.updatePreferences({ name: name.trim(), allowBoldText });
+      await authApi.updatePreferences({ name: name.trim() });
+      if (refreshUser) await refreshUser();
       toast.success('Profile name updated!');
     } catch (err) {
       toast.error('Failed to update name: ' + err.message);
@@ -64,6 +92,7 @@ export default function SettingsPage() {
     setIsUpdatingPrefs(true);
     try {
       await authApi.updatePreferences({ allowBoldText: newValue });
+      if (refreshUser) await refreshUser();
       toast.success(newValue ? 'Enabled bold text in AI generation' : 'Set unbolded clean text default');
     } catch (err) {
       toast.error('Failed to update preferences: ' + err.message);

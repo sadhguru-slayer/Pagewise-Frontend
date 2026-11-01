@@ -312,7 +312,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
   );
 
   return (
-    <div className="flex flex-col items-center w-full h-full">
+    <div className="flex flex-col items-center w-full h-full min-h-0 overflow-hidden">
       {/* ── 1. Top Accuracy & Page Count Live Metric Bar ────────────────────── */}
       <div className="w-full max-w-[794px] mb-3 px-3 py-2 rounded-xl bg-[#0c0e18] border border-white/10 flex items-center justify-between text-xs flex-wrap gap-2 shadow-sm shrink-0">
         <div className="flex items-center gap-2">
@@ -417,7 +417,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
             if (onSelectSection) onSelectSection(null);
           }
         }}
-        className="flex flex-col items-center overflow-auto w-full flex-1 bg-[#0d0f18] py-6 px-4 cursor-default"
+        className="flex flex-col items-center overflow-y-auto w-full flex-1 bg-[#0d0f18] py-6 px-4 cursor-default min-h-0"
       >
         {/* Width-measuring container */}
         <div ref={containerRef} className="w-full flex justify-center">

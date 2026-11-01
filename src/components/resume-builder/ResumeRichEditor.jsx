@@ -592,7 +592,7 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0f18] overflow-hidden">
+    <div className="flex flex-col h-full bg-[#0d0f18] overflow-hidden min-h-0">
       <style>{`
         .tiptap-editor-wrap .tiptap ul {
           list-style-type: disc !important;
@@ -892,7 +892,7 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
       )}
 
       {/* Scrollable Rich Text Editing Canvas */}
-      <div className="tiptap-editor-wrap flex-1 overflow-y-auto">
+      <div className="tiptap-editor-wrap flex-1 overflow-y-auto min-h-0">
         <EditorContent editor={editor} />
       </div>
     </div>

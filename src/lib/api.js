@@ -103,12 +103,12 @@ export const authApi = {
   },
 
   async updatePreferences({ name, allowBoldText }) {
+    const payload = {};
+    if (name !== undefined) payload.name = name;
+    if (allowBoldText !== undefined) payload.allow_bold_text = allowBoldText;
     return fetchApi('/auth/preferences', {
       method: 'PUT',
-      body: JSON.stringify({
-        name: name || null,
-        allow_bold_text: allowBoldText,
-      }),
+      body: JSON.stringify(payload),
     });
   },
 
