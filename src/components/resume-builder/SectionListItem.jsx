@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { GripVertical, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useModal } from "@/lib/modal-context";
 
 export default function SectionListItem({
   section,
@@ -13,6 +14,7 @@ export default function SectionListItem({
   onRename,
   onToggleVisibility,
 }) {
+  const modal = useModal();
   const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(section.title ?? "");
   const inputRef = useRef(null);
@@ -64,9 +66,16 @@ export default function SectionListItem({
     }
   };
 
-  const handleDelete = (e) => {
+  const handleDelete = async (e) => {
     e.stopPropagation();
-    if (window.confirm(`Delete section "${section.title}"? This cannot be undone.`)) {
+    const ok = await modal.confirm({
+      title: 'Delete Section?',
+      message: `Delete section "${section.title}"? This cannot be undone.`,
+      confirmText: 'Delete Section',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (ok) {
       onDelete(section.id);
     }
   };

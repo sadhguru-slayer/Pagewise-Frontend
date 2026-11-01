@@ -271,16 +271,21 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
             {/* Section links */}
             {section.links?.length > 0 && (
               <div className="links-bar">
-                {section.links.map((link) => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {link.label || link.url}
-                  </a>
-                ))}
+                {section.links.map((link) => {
+                  const url = link.url?.startsWith('http://') || link.url?.startsWith('https://') || link.url?.startsWith('mailto:')
+                    ? link.url
+                    : `https://${link.url}`;
+                  return (
+                    <a
+                      key={link.id}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {link.label || link.url}
+                    </a>
+                  );
+                })}
               </div>
             )}
 

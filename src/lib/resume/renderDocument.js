@@ -1,4 +1,4 @@
-import { renderTiptapJson } from './renderTiptap';
+import { renderTiptapJson } from './renderTiptap.js';
 
 // Exact A4 Dimensions at standard 96 DPI: 210mm x 297mm
 export const A4_WIDTH_MM = 210;
@@ -30,6 +30,17 @@ export function getContactLineHtml(header) {
         ? `<a href="${header.github.startsWith('http') ? header.github : 'https://github.com/' + header.github}" target="_blank" rel="noopener noreferrer">GitHub</a>`
         : '',
     ].filter(Boolean);
+
+    if (Array.isArray(header.customLinks)) {
+      for (const link of header.customLinks) {
+        if (link?.url) {
+          const url = link.url.startsWith('http') || link.url.startsWith('mailto:') ? link.url : 'https://' + link.url;
+          const label = link.label || link.url;
+          parts.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+        }
+      }
+    }
+
     line = parts.join(' · ');
   } else if (!line.includes('<a ')) {
     line = line.replace(
@@ -222,6 +233,8 @@ export function buildResumeScopedCss(settings = {}, header = {}) {
       color: ${accentColor};
       font-size: ${Math.max(7, bodyFontSize - 0.5)}pt;
       text-decoration: underline;
+      display: inline-block;
+      margin-right: 8pt;
     }
     .pdf-page-container .section-divider-line {
       border: none;
@@ -235,18 +248,27 @@ export function buildResumeScopedCss(settings = {}, header = {}) {
  * Full CSS for standalone HTML document rendered by Playwright in export worker.
  */
 export function buildResumeStandalonePdfCss(settings = {}, header = {}) {
+  const marginTop = settings.marginTop ?? 15;
+  const marginRight = settings.marginRight ?? 15;
+  const marginBottom = settings.marginBottom ?? 15;
+  const marginLeft = settings.marginLeft ?? 15;
+
   return `
     @page {
-      size: A4;
-      margin: 0;
+      size: 210mm 297mm;
+      margin: ${marginTop}mm ${marginRight}mm ${marginBottom}mm ${marginLeft}mm;
     }
     html, body {
-      width: 210mm;
+      width: 100%;
       margin: 0;
       padding: 0;
       background: #ffffff;
     }
     ${buildResumeScopedCss(settings, header)}
+    .pdf-page-container {
+      width: 100% !important;
+      padding: 0 !important;
+    }
   `;
 }
 
@@ -293,10 +315,12 @@ export function renderResumeInnerHtml({ header, sections, settings = {} }) {
           ? `<div class="links-bar">
               ${section.links
                 .filter((l) => l.url)
-                .map(
-                  (l) =>
-                    `<a href="${l.url}" target="_blank" rel="noopener noreferrer">${l.label || l.url}</a>`
-                )
+                .map((l) => {
+                  const url = l.url.startsWith('http://') || l.url.startsWith('https://') || l.url.startsWith('mailto:')
+                    ? l.url
+                    : `https://${l.url}`;
+                  return `<a href="${url}" target="_blank" rel="noopener noreferrer">${l.label || l.url}</a>`;
+                })
                 .join('')}
             </div>`
           : '';

@@ -7,6 +7,7 @@ import { useResumeStore } from '@/lib/resume/store';
 import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';
 import { exportsApi } from '@/lib/api';
 import { BRAND_CONFIG } from '@/lib/brand';
+import Modal from '@/components/ui/Modal';
 
 export default function ExportMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -169,78 +170,64 @@ export default function ExportMenu() {
         )}
       </div>
 
-      {/* Export Confirmation / File Naming Modal */}
-      {isExportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div
-            className="w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4"
-            style={{
-              background: '#0F121A',
-              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-            }}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-              <div className="flex items-center gap-2">
-                <Download className="w-4 h-4 text-amber-500" />
-                <h3 className="text-sm font-bold text-white">
-                  Export as {exportType === 'pdf' ? 'PDF' : exportType === 'png' ? 'Image' : 'HTML'}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsExportModalOpen(false)}
-                className="text-[#7E869B] hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      {/* Export Confirmation / File Naming Modal (Mounted to body via React Portal to prevent header containing block trapping) */}
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => !isProcessing && setIsExportModalOpen(false)}
+        title={`Export as ${exportType === 'pdf' ? 'PDF' : exportType === 'png' ? 'Image' : 'HTML'}`}
+        icon={Download}
+        size="sm"
+        hideCloseButton={isProcessing}
+        closeOnBackdrop={!isProcessing}
+        closeOnEscape={!isProcessing}
+      >
+        <form onSubmit={handleExecuteExport} className="space-y-4">
+          <div>
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-[#7E869B] mb-1.5">
+              Confirm Export File Name
+            </label>
+            <div className="flex items-center">
+              <input
+                type="text"
+                value={exportFilename}
+                onChange={(e) => setExportFilename(e.target.value)}
+                required
+                autoFocus
+                placeholder="My Resume"
+                className="flex-1 px-3 py-2 rounded-l-xl text-xs text-white bg-black/40 border border-white/[0.08] focus:border-amber-500 focus:outline-none transition-colors"
+              />
+              <span className="px-3 py-2 rounded-r-xl text-xs font-mono bg-white/[0.05] border border-l-0 border-white/[0.08] text-[#7E869B]">
+                .{exportType}
+              </span>
             </div>
-
-            <form onSubmit={handleExecuteExport} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-[#7E869B] mb-1.5">
-                  Confirm Export File Name
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    value={exportFilename}
-                    onChange={(e) => setExportFilename(e.target.value)}
-                    required
-                    placeholder="My Resume"
-                    className="flex-1 px-3 py-2 rounded-l-xl text-xs text-white bg-black/40 border border-white/[0.08] focus:border-amber-500 focus:outline-none"
-                  />
-                  <span className="px-3 py-2 rounded-r-xl text-xs font-mono bg-white/[0.05] border border-l-0 border-white/[0.08] text-[#7E869B]">
-                    .{exportType}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/[0.08]">
-                <button
-                  type="button"
-                  onClick={() => setIsExportModalOpen(false)}
-                  className="px-3 py-1.5 text-xs text-[#7E869B] hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <span>Download File</span>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.08]">
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => setIsExportModalOpen(false)}
+              className="px-3 py-1.5 text-xs text-[#7E869B] hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isProcessing}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <span>Download File</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </>
   );
 }

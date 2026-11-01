@@ -286,6 +286,16 @@ export const resumesApi = {
     });
   },
 
+  async analyzeStandaloneAts({ resumeId, currentResumeOverride = null }) {
+    return fetchApi('/resumes/analyze-ats', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume_id: resumeId || null,
+        current_resume_override: currentResumeOverride,
+      }),
+    });
+  },
+
   async cloneResume(resumeId, { newName, targetJobTitle, targetCompany, targetJobDescription, targetAtsScore } = {}) {
     return fetchApi(`/resumes/${resumeId}/clone`, {
       method: 'POST',

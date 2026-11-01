@@ -10,6 +10,8 @@ import { RESUME_TEMPLATES as builtInTemplates } from '@/lib/resume/templates';
 import { defaultHeader, defaultSections, defaultSettings } from '@/lib/resume/defaults';
 import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
+import Modal from '@/components/ui/Modal';
+import { useModal } from '@/lib/modal-context';
 
 import {
   Home,
@@ -228,6 +230,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, logout, isAuthenticated } = useAuth();
+  const modal = useModal();
 
   const [activeTab, setActiveTab] = useState('home');
   const [templateSubTab, setTemplateSubTab] = useState('formats'); // 'formats' | 'saved'
@@ -244,9 +247,6 @@ export default function DashboardPage() {
   const [newResumeName, setNewResumeName] = useState('Senior Engineer Resume');
   const [selectedTemplateKey, setSelectedTemplateKey] = useState(builtInTemplates[0].id);
   const [creatingResume, setCreatingResume] = useState(false);
-  const [resumeToDelete, setResumeToDelete] = useState(null);
-  const [templateToDelete, setTemplateToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [exportingId, setExportingId] = useState(null);
 
   // Authentication Guard
@@ -316,35 +316,66 @@ export default function DashboardPage() {
     }
   };
 
-  // Delete Resume Action
-  const confirmDeleteResume = async () => {
-    if (!resumeToDelete) return;
+  // Delete Resume Action (Centralized Modal)
+  const handleDeleteResume = async (resume) => {
+    if (!resume) return;
+    const ok = await modal.confirm({
+      title: 'Delete Resume Architecture?',
+      message: `Are you sure you want to permanently delete "${resume.name}"? All sections, tailoring, and styling will be lost. This cannot be undone.`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     try {
-      setIsDeleting(true);
-      await resumesApi.delete(resumeToDelete.id);
+      await resumesApi.delete(resume.id);
       toast.success('Resume deleted');
-      setResumeToDelete(null);
       loadDashboardData();
     } catch (err) {
       toast.error('Failed to delete resume: ' + err.message);
-    } finally {
-      setIsDeleting(false);
     }
   };
 
-  // Delete Template Action
-  const confirmDeleteTemplate = async () => {
-    if (!templateToDelete) return;
+  // Delete Template Action (Centralized Modal)
+  const handleDeleteTemplate = async (template) => {
+    if (!template) return;
+    const ok = await modal.confirm({
+      title: 'Delete Custom Preset?',
+      message: `Are you sure you want to delete "${template.name}"? This custom preset style will be permanently removed.`,
+      confirmText: 'Delete Preset',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     try {
-      setIsDeleting(true);
-      await templatesApi.delete(templateToDelete.id);
-      toast.success('Custom template deleted');
-      setTemplateToDelete(null);
+      await templatesApi.delete(template.id);
+      toast.success('Custom preset deleted');
       loadDashboardData();
     } catch (err) {
       toast.error('Failed to delete template: ' + err.message);
-    } finally {
-      setIsDeleting(false);
+    }
+  };
+
+  // Delete Export Record Action (Centralized Modal — replaces browser confirm)
+  const handleDeleteExport = async (exp) => {
+    if (!exp) return;
+    const ok = await modal.confirm({
+      title: 'Delete Export Record?',
+      message: `Are you sure you want to delete the export record for "${exp.file_name}"? This file will be removed from your export archive.`,
+      confirmText: 'Delete Export',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      await exportsApi.delete(exp.id);
+      toast.success('Export file deleted');
+      loadDashboardData();
+    } catch (err) {
+      toast.error('Failed to delete export: ' + err.message);
     }
   };
 
@@ -396,10 +427,15 @@ export default function DashboardPage() {
   );
 
   const resumeCount = usageStats?.resume_count ?? resumes.length;
+  const totalResumes = usageStats?.total_resumes_generated ?? resumeCount;
   const targetedCount = usageStats?.targeted_resume_count ?? resumes.filter((r) => r.target_job_title).length;
   const exportCount = usageStats?.export_count ?? exportsList.length;
-  const jdAnalysesCount = usageStats?.jd_analyses_count ?? targetedCount;
+  const totalExports = usageStats?.total_exports_generated ?? exportCount;
   const templateCount = builtInTemplates.length + userTemplates.length;
+  const totalCustomTemplates = usageStats?.total_templates_created ?? userTemplates.length;
+  const wiserJobHelps = usageStats?.wiser_job_helps_count ?? targetedCount;
+  const wiserAtsChecks = usageStats?.wiser_ats_checks_count ?? 0;
+  const wiserTotal = usageStats?.wiser_total_invocations ?? (wiserJobHelps + wiserAtsChecks);
 
   const recentResumes = [...resumes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 4);
 
@@ -477,28 +513,28 @@ export default function DashboardPage() {
                   icon={FileText}
                   value={resumeCount}
                   label="Master Resumes"
-                  subtext="Crafted & Versioned"
+                  subtext={`${totalResumes} all-time crafted`}
                   highlightColor="#D97706"
                 />
                 <MetricCard
-                  icon={Target}
-                  value={targetedCount}
-                  label="Targeted Clones"
-                  subtext="Bound to specific JDs"
-                  highlightColor="#10B981"
+                  icon={Sparkles}
+                  value={wiserTotal}
+                  label="Wiser AI Actions"
+                  subtext={`${wiserJobHelps} JD + ${wiserAtsChecks} ATS checks`}
+                  highlightColor="#F59E0B"
                 />
                 <MetricCard
                   icon={Palette}
                   value={templateCount}
                   label="Available Formats"
-                  subtext={`${builtInTemplates.length} Standard + ${userTemplates.length} Custom`}
-                  highlightColor="#F59E0B"
+                  subtext={`${builtInTemplates.length} Standard + ${userTemplates.length} Custom (${totalCustomTemplates} total)`}
+                  highlightColor="#10B981"
                 />
                 <MetricCard
                   icon={Download}
                   value={exportCount}
-                  label="Verified Exports"
-                  subtext="PDF & DOCX Generated"
+                  label="Active Exports"
+                  subtext={`${totalExports} lifetime generated`}
                   highlightColor="#E2E8F0"
                 />
               </div>
@@ -608,7 +644,7 @@ export default function DashboardPage() {
                               )}
                             </button>
                             <button
-                              onClick={() => setResumeToDelete(resume)}
+                              onClick={() => handleDeleteResume(resume)}
                               title="Delete resume"
                               className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                             >
@@ -754,7 +790,7 @@ export default function DashboardPage() {
                               )}
                             </button>
                             <button
-                              onClick={() => setResumeToDelete(resume)}
+                              onClick={() => handleDeleteResume(resume)}
                               title="Delete resume"
                               className="p-2 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                             >
@@ -936,7 +972,7 @@ export default function DashboardPage() {
                               Create with Preset
                             </button>
                             <button
-                              onClick={() => setTemplateToDelete(tpl)}
+                              onClick={() => handleDeleteTemplate(tpl)}
                               className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                               title="Delete preset"
                             >
@@ -1050,17 +1086,7 @@ export default function DashboardPage() {
                                   <span>Download</span>
                                 </button>
                                 <button
-                                  onClick={async () => {
-                                    if (confirm(`Delete export record for "${exp.file_name}"?`)) {
-                                      try {
-                                        await exportsApi.delete(exp.id);
-                                        toast.success('Export file deleted');
-                                        loadDashboardData();
-                                      } catch (err) {
-                                        toast.error('Failed to delete export: ' + err.message);
-                                      }
-                                    }
-                                  }}
+                                  onClick={() => handleDeleteExport(exp)}
                                   className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                                   title="Delete record"
                                 >
@@ -1091,7 +1117,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Resource Allocations */}
+                {/* 1. Resource Allocations (Active vs Lifetime Soft-Deleted) */}
                 <div
                   className="rounded-2xl p-6 space-y-5"
                   style={{
@@ -1100,37 +1126,114 @@ export default function DashboardPage() {
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
-                      Active Workspace Quotas
-                    </h2>
+                    <div>
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                        Workspace Resource Quotas
+                      </h2>
+                      <p className="text-[11px] text-[#7E869B] mt-0.5">
+                        Active assets in studio vs lifetime creation history
+                      </p>
+                    </div>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                      v2.5 Unlimited Beta
+                      Soft-Delete Tracked
                     </span>
                   </div>
 
                   <div className="space-y-4 pt-2">
-                    <ResourceBar label="Master Resumes Created" value={resumeCount} max={25} unit="resumes" />
-                    <ResourceBar label="JD-Targeted Resumes" value={targetedCount} max={20} unit="branches" />
-                    <ResourceBar label="PDF & DOCX Exports Generated" value={exportCount} max={50} unit="files" />
-                    <ResourceBar label="Custom Presets Saved" value={userTemplates.length} max={15} unit="presets" />
+                    <ResourceBar
+                      label={`Master Resumes (${resumeCount} active · ${totalResumes} all-time)`}
+                      value={resumeCount}
+                      max={25}
+                      unit="resumes"
+                    />
+                    <ResourceBar
+                      label={`JD-Targeted Branches (${targetedCount} active)`}
+                      value={targetedCount}
+                      max={20}
+                      unit="branches"
+                    />
+                    <ResourceBar
+                      label={`Verified Exports (${exportCount} active · ${totalExports} lifetime generated)`}
+                      value={exportCount}
+                      max={50}
+                      unit="files"
+                    />
+                    <ResourceBar
+                      label={`Custom Style Presets (${userTemplates.length} active · ${totalCustomTemplates} saved)`}
+                      value={userTemplates.length}
+                      max={15}
+                      unit="presets"
+                    />
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed">
-                    💡 All ATS checks, cross-resume intelligence extractions, and PDF exports remain uncapped on your account during the v2.5 release sequence.
+                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs text-[#9DA4B7] leading-relaxed">
+                    📦 <strong className="text-white">Soft-Delete Preservation:</strong> Even when a resume, export, or preset is removed from your active list, your historical generation footprint is permanently recorded.
                   </div>
                 </div>
 
-                {/* System Activity Feed */}
+                {/* 2. Wiser AI Intelligence & Quota Tracking */}
                 <div
-                  className="rounded-2xl p-6 space-y-4"
+                  className="rounded-2xl p-6 space-y-5"
                   style={{
                     background: BRAND_CONFIG.colors.surfaceCard,
                     border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
                   }}
                 >
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
-                    Recent Modifications
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-orange-400" />
+                        <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                          Wiser AI Quota Tracking
+                        </h2>
+                      </div>
+                      <p className="text-[11px] text-[#7E869B] mt-0.5">
+                        Autonomous career AI engine metrics
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 font-semibold">
+                      Subscription Meter
+                    </span>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    <ResourceBar
+                      label="Wiser Job Helps (JD + ATS Matching Runs)"
+                      value={wiserJobHelps}
+                      max={50}
+                      unit="runs"
+                    />
+                    <ResourceBar
+                      label="Wiser ATS Audits (Standalone Checks)"
+                      value={wiserAtsChecks}
+                      max={50}
+                      unit="audits"
+                    />
+                    <ResourceBar
+                      label="Total Wiser AI Invocations"
+                      value={wiserTotal}
+                      max={100}
+                      unit="actions"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-300 leading-relaxed">
+                    ⚡ <strong className="text-white">Subscription Ready:</strong> Wiser is our specialized AI that elevates your resumes. All Wiser Job Helps and Standalone ATS checks are tracked here to power upcoming subscription tier limits.
+                  </div>
+                </div>
+              </div>
+
+              {/* System Activity Feed */}
+              <div
+                className="rounded-2xl p-6 space-y-4"
+                style={{
+                  background: BRAND_CONFIG.colors.surfaceCard,
+                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                }}
+              >
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                  Recent Modifications
+                </h2>
 
                   {resumes.length === 0 ? (
                     <p className="text-xs text-[#7E869B]">No recent activity recorded.</p>
@@ -1160,185 +1263,96 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-            </div>
           )}
         </main>
       </div>
 
       {/* ── MODAL: CREATE RESUME ────────────────────────────────────────────── */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div
-            className="w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-5"
-            style={{
-              background: '#0F121A',
-              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-            }}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-              <div className="flex items-center gap-2">
-                <FilePlus className="w-4 h-4 text-amber-500" />
-                <h3 className="text-base font-bold text-white">Create New Resume Architecture</h3>
-              </div>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="text-[#7E869B] hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => !creatingResume && setIsCreateModalOpen(false)}
+        title="Create New Resume Architecture"
+        icon={FilePlus}
+        size="lg"
+        hideCloseButton={creatingResume}
+        closeOnBackdrop={!creatingResume}
+        closeOnEscape={!creatingResume}
+      >
+        <form onSubmit={handleCreateResume} className="space-y-4">
+          <div>
+            <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-1.5">
+              Resume Title
+            </label>
+            <input
+              type="text"
+              value={newResumeName}
+              onChange={(e) => setNewResumeName(e.target.value)}
+              placeholder="e.g. Senior Backend Engineer - Stripe"
+              required
+              autoFocus
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-colors"
+              style={{
+                background: BRAND_CONFIG.colors.surfaceCard,
+                border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+              }}
+            />
+          </div>
 
-            <form onSubmit={handleCreateResume} className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-1.5">
-                  Resume Title
-                </label>
-                <input
-                  type="text"
-                  value={newResumeName}
-                  onChange={(e) => setNewResumeName(e.target.value)}
-                  placeholder="e.g. Senior Backend Engineer - Stripe"
-                  required
-                  className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-colors"
+          <div>
+            <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-2">
+              Choose Layout Template
+            </label>
+            <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+              {builtInTemplates.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  onClick={() => setSelectedTemplateKey(tpl.id)}
+                  className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                    selectedTemplateKey === tpl.id
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'hover:border-white/20'
+                  }`}
                   style={{
                     background: BRAND_CONFIG.colors.surfaceCard,
-                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                    borderColor: selectedTemplateKey === tpl.id ? undefined : BRAND_CONFIG.colors.borderSubtle,
                   }}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-2">
-                  Choose Layout Template
-                </label>
-                <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                  {builtInTemplates.map((tpl) => (
-                    <div
-                      key={tpl.id}
-                      onClick={() => setSelectedTemplateKey(tpl.id)}
-                      className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                        selectedTemplateKey === tpl.id
-                          ? 'border-amber-500 bg-amber-500/10'
-                          : 'hover:border-white/20'
-                      }`}
-                      style={{
-                        background: BRAND_CONFIG.colors.surfaceCard,
-                        borderColor: selectedTemplateKey === tpl.id ? undefined : BRAND_CONFIG.colors.borderSubtle,
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs text-white line-clamp-1">{tpl.name}</span>
-                        {selectedTemplateKey === tpl.id && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-                      </div>
-                      <p className="text-[10px] text-[#7E869B] line-clamp-2">{tpl.tag || tpl.category}</p>
-                    </div>
-                  ))}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-xs text-white line-clamp-1">{tpl.name}</span>
+                    {selectedTemplateKey === tpl.id && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                  </div>
+                  <p className="text-[10px] text-[#7E869B] line-clamp-2">{tpl.tag || tpl.category}</p>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-3.5 py-2 text-xs text-[#7E869B] hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingResume}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {creatingResume ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <span>Launch Studio</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: CONFIRM DELETE RESUME ───────────────────────────────────── */}
-      {resumeToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div
-            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4"
-            style={{
-              background: '#0F121A',
-              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Delete Resume?</h3>
-            </div>
-            <p className="text-xs text-[#7E869B] leading-relaxed">
-              Are you sure you want to delete <strong className="text-white">&quot;{resumeToDelete.name}&quot;</strong>? This cannot be undone.
-            </p>
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                onClick={() => setResumeToDelete(null)}
-                className="px-3 py-1.5 text-xs text-[#7E869B] hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteResume}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
-              </button>
+              ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ── MODAL: CONFIRM DELETE TEMPLATE ─────────────────────────────────── */}
-      {templateToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div
-            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4"
-            style={{
-              background: '#0F121A',
-              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Delete Custom Preset?</h3>
-            </div>
-            <p className="text-xs text-[#7E869B] leading-relaxed">
-              Delete custom preset <strong className="text-white">&quot;{templateToDelete.name}&quot;</strong>?
-            </p>
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                onClick={() => setTemplateToDelete(null)}
-                className="px-3 py-1.5 text-xs text-[#7E869B] hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteTemplate}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Preset'}
-              </button>
-            </div>
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
+            <button
+              type="button"
+              disabled={creatingResume}
+              onClick={() => setIsCreateModalOpen(false)}
+              className="px-3.5 py-2 text-xs text-[#7E869B] hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={creatingResume}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {creatingResume ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <span>Launch Studio</span>
+              )}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* ── MODAL: IMPORT PDF ──────────────────────────────────────────────── */}
       {isImportModalOpen && (

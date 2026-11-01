@@ -15,8 +15,10 @@ import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
 import { formatRelativeTime } from '@/lib/resume/utils';
 import { resumesApi } from '@/lib/api';
+import { useModal } from '@/lib/modal-context';
 
 export default function ResumeSwitcher() {
+  const modal = useModal();
   const [isOpen, setIsOpen] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState(null);
   const [isLoadingList, setIsLoadingList] = useState(false);
@@ -76,9 +78,13 @@ export default function ResumeSwitcher() {
     }
 
     if (isDirty) {
-      const confirmed = window.confirm(
-        'You have unsaved changes on the current resume. Switch anyway?'
-      );
+      const confirmed = await modal.confirm({
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes on the current resume. Switch anyway and discard unsaved modifications?',
+        confirmText: 'Discard & Switch',
+        cancelText: 'Keep Editing',
+        variant: 'warning',
+      });
       if (!confirmed) return;
     }
 
@@ -99,11 +105,15 @@ export default function ResumeSwitcher() {
     setIsOpen(false);
   };
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
     if (isDirty) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Start a new resume anyway?'
-      );
+      const confirmed = await modal.confirm({
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes on the current resume. Start a new blank resume anyway?',
+        confirmText: 'Discard & Create New',
+        cancelText: 'Keep Editing',
+        variant: 'warning',
+      });
       if (!confirmed) return;
     }
     createNewResume();
@@ -119,9 +129,13 @@ export default function ResumeSwitcher() {
 
   const handleDelete = async (e, rId, rTitle) => {
     e.stopPropagation();
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${rTitle}"? This cannot be undone.`
-    );
+    const confirmed = await modal.confirm({
+      title: 'Delete Resume Architecture?',
+      message: `Are you sure you want to delete "${rTitle}"? This cannot be undone.`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
     if (!confirmed) return;
 
     setIsDeletingId(rId);

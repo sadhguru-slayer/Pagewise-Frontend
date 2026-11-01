@@ -38,6 +38,7 @@ import {
   BookmarkPlus,
   MoreVertical,
   Download,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
@@ -433,16 +434,16 @@ function BuilderContent() {
 
         {/* Right Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* JD & ATS button */}
+          {/* Wiser AI (JD Matching & Standalone ATS) button */}
           <button
             onClick={() => setIsJdModalOpen(true)}
             className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 border border-orange-500/20 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Paste Job Description to run Strict ATS analysis & cross-resume point enhancements"
+            title="Launch Wiser AI: Standalone ATS Audit & Job-Targeted ATS Match"
           >
-            <Target className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">JD &amp; ATS</span>
+            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+            <span className="hidden sm:inline">Wiser AI</span>
             <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded font-mono">
-              v2.5
+              ATS
             </span>
           </button>
 
