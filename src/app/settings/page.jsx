@@ -243,7 +243,7 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Account &amp; Preferences</h1>
           <p className="text-xs text-[#6b7280] mt-1">
-            Manage your personal profile, authentication credentials, and Resumo studio settings.
+            Manage your personal profile, authentication credentials, and PageWise Studio settings.
           </p>
         </div>
 
@@ -544,7 +544,7 @@ export default function SettingsPage() {
               <span className="text-[10px] font-mono uppercase tracking-wider text-[#f97316]">
                 Current Tier
               </span>
-              <h3 className="text-base font-bold text-white mt-0.5">Resumo Studio v2.5 Beta</h3>
+              <h3 className="text-base font-bold text-white mt-0.5">PageWise Studio v2.5 Beta</h3>
             </div>
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
