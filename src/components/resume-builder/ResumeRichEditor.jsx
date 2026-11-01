@@ -9,7 +9,8 @@ import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal, RefreshCw, Sparkles, Check, Plus, ArrowDownToLine, Wand2, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
 
 const Icon = ({ d, size = 14 }) => (
@@ -415,11 +416,123 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   const updateSectionSettings = useResumeStore((s) => s.updateSectionSettings);
   const renameSection = useResumeStore((s) => s.renameSection);
   const updateSectionDivider = useResumeStore((s) => s.updateSectionDivider);
+  const activeJdAnalysis = useResumeStore((s) => s.activeJdAnalysis);
 
   const resolvedSectionId = propSectionId || storeActiveSectionId || (sections[0]?.id);
   const section = sections.find((s) => s.id === resolvedSectionId);
   const initialContent = section?.content ?? section?.contentHtml ?? '';
   const isInternalUpdateRef = useRef(false);
+
+  const [showJdEnhancePanel, setShowJdEnhancePanel] = useState(false);
+
+  // Retrieve JD recommendations for the active section
+  const currentSectionEnhancements = activeJdAnalysis?.section_enhancements?.find(
+    (s) =>
+      s.section_id === resolvedSectionId ||
+      s.section_title?.toLowerCase().trim() === section?.title?.toLowerCase().trim()
+  );
+  const suggestions = currentSectionEnhancements?.suggestions || [];
+
+  // Helper: Auto-apply a specific recommendation into section with pattern-matching
+  const handleAutoApplySuggestion = (sug) => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    const orig = (sug.original_text || '').trim();
+
+    // 1. Direct exact HTML string replacement
+    if (orig && currentHtml.includes(orig)) {
+      const updatedHtml = currentHtml.replace(orig, sug.enhanced_html);
+      editor.commands.setContent(updatedHtml);
+      toast.success('Auto-applied: Matched and replaced in-place!');
+      return;
+    }
+
+    // 2. DOM-based intelligent fuzzy matching
+    if (typeof window !== 'undefined' && window.DOMParser) {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(currentHtml, 'text/html');
+        const origClean = orig.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+        if (origClean.length > 8) {
+          // Find all candidates (li, p, heading tags)
+          const elements = Array.from(doc.body.querySelectorAll('li, p, h1, h2, h3, h4, h5, h6'));
+          let bestMatch = null;
+          let bestScore = 0;
+
+          for (const el of elements) {
+            const elText = el.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+            if (!elText) continue;
+
+            // Direct substring check
+            if (elText.includes(origClean) || origClean.includes(elText)) {
+              bestMatch = el;
+              bestScore = 1.0;
+              break;
+            }
+
+            // Word overlap check
+            const origWords = origClean.split(/\s+/).filter((w) => w.length > 3);
+            if (origWords.length > 0) {
+              const matchedWords = origWords.filter((w) => elText.includes(w));
+              const score = matchedWords.length / origWords.length;
+              if (score > 0.4 && score > bestScore) {
+                bestScore = score;
+                bestMatch = el;
+              }
+            }
+          }
+
+          if (bestMatch && bestScore >= 0.4) {
+            // Found node to replace!
+            let enhancedClean = sug.enhanced_html.trim();
+            const isLi = bestMatch.tagName.toLowerCase() === 'li';
+
+            if (isLi) {
+              // Strip outer <li> if present since bestMatch is already <li>
+              const tempDoc = parser.parseFromString(enhancedClean, 'text/html');
+              const innerLi = tempDoc.body.querySelector('li');
+              bestMatch.innerHTML = innerLi ? innerLi.innerHTML : tempDoc.body.innerHTML;
+            } else {
+              const tempDoc = parser.parseFromString(enhancedClean, 'text/html');
+              bestMatch.innerHTML = tempDoc.body.innerHTML;
+            }
+
+            editor.commands.setContent(doc.body.innerHTML);
+            toast.success('Auto-applied: Targeted weak bullet and replaced in-place!');
+            return;
+          }
+        }
+
+        // 3. If no matching node found, integrate into existing list structure
+        const lastUl = doc.body.querySelector('ul:last-of-type') || doc.body.querySelector('ul');
+        if (lastUl) {
+          const tempDoc = parser.parseFromString(sug.enhanced_html, 'text/html');
+          const innerLi = tempDoc.body.querySelector('li');
+          const newLi = doc.createElement('li');
+          newLi.innerHTML = innerLi ? innerLi.innerHTML : tempDoc.body.innerHTML;
+          lastUl.appendChild(newLi);
+          editor.commands.setContent(doc.body.innerHTML);
+          toast.success('Auto-applied: Integrated as a new bullet point in your list!');
+          return;
+        }
+      } catch (err) {
+        console.warn('DOMParser auto-apply fallback:', err);
+      }
+    }
+
+    // 4. Default clean append at end
+    editor.commands.focus('end');
+    editor.commands.insertContent(sug.enhanced_html);
+    toast.success('Auto-applied: Enhanced accomplishment added!');
+  };
+
+  // Helper: Apply recommendation at cursor
+  const handleApplyAtCursor = (sug) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(sug.enhanced_html).run();
+    toast.success('Inserted at cursor position');
+  };
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -684,6 +797,99 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
 
       {/* Formatting Toolbar */}
       <RichTextToolbar editor={editor} />
+
+      {/* JD Enhance Active Recommendations Strip */}
+      {suggestions.length > 0 && (
+        <div className="bg-[#121520] border-b border-amber-500/25 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="text-[#F1F3F9] font-medium text-[11px]">
+              <strong className="text-amber-400">{suggestions.length}</strong> JD Enhance suggestion{suggestions.length > 1 ? 's' : ''} available
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowJdEnhancePanel(!showJdEnhancePanel)}
+            className="px-2.5 py-1 rounded text-[11px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>{showJdEnhancePanel ? 'Hide Suggestions' : 'View Suggestions'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Expandable JD Enhance Panel with Auto Apply and Apply on Cursor */}
+      {showJdEnhancePanel && suggestions.length > 0 && (
+        <div className="bg-[#0C0E16] border-b border-amber-500/25 p-3.5 max-h-80 overflow-y-auto space-y-3 shrink-0">
+          <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] text-xs">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              JD Enhance Recommendations
+            </span>
+            <span className="text-[10px] text-[#7E869B]">
+              Role: {activeJdAnalysis?.job_analysis?.title || 'Target Job'}
+            </span>
+          </div>
+
+          {suggestions.map((sug, idx) => (
+            <div
+              key={idx}
+              className="p-3 rounded-xl bg-[#111420] border border-white/[0.07] hover:border-amber-500/30 transition-all space-y-2.5"
+            >
+              {sug.original_text && (
+                <div className="text-[11px] text-[#7E869B]">
+                  <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500">
+                    Replaces Target Point:
+                  </span>
+                  <p className="line-through text-zinc-400 mt-0.5 italic">
+                    {sug.original_text}
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <span className="text-[9px] uppercase font-mono tracking-wider text-amber-400">
+                  Enhanced Version (Google XYZ Standard):
+                </span>
+                <div
+                  className="text-xs text-[#F1F3F9] mt-1 bg-black/40 p-2.5 rounded-lg border border-white/[0.05] leading-relaxed font-sans"
+                  dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
+                />
+              </div>
+
+              {sug.reasoning && (
+                <p className="text-[10px] text-[#7E869B] italic">
+                  💡 {sug.reasoning}
+                </p>
+              )}
+
+              {/* Action Buttons: Auto-apply vs Apply on Cursor */}
+              <div className="flex items-center justify-end gap-2 pt-1 border-t border-white/[0.04]">
+                <button
+                  type="button"
+                  onClick={() => handleApplyAtCursor(sug)}
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer"
+                  title="Insert this bullet at your current cursor position"
+                >
+                  <ArrowDownToLine className="w-3 h-3 text-zinc-400" />
+                  <span>Apply on Cursor</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAutoApplySuggestion(sug)}
+                  className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm shadow-amber-600/20"
+                  title="Target and replace the weak statement in-place without overwriting other content"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>Auto Apply</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Scrollable Rich Text Editing Canvas */}
       <div className="tiptap-editor-wrap flex-1 overflow-y-auto">

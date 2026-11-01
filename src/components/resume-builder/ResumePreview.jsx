@@ -131,16 +131,26 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
     >
       {/* ── Resume Header (Clickable like in Canva) ──────────────────── */}
       <div
-        onClick={() => onSelectHeader && onSelectHeader()}
-        className="resume-header group relative rounded-sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (activeSectionId === 'header') {
+            setActiveSectionId(null);
+          } else {
+            setActiveSectionId('header');
+            if (onSelectHeader) onSelectHeader();
+          }
+        }}
+        className={`resume-header group relative rounded-sm ${
+          activeSectionId === 'header' ? 'active-section ring-2 ring-blue-500 bg-blue-50/15' : ''
+        }`}
         style={{
           textAlign: header?.alignment ?? 'center',
           marginBottom: '4pt',
         }}
-        title="Click to edit Resume Header"
+        title="Click to edit Resume Header (click again to unselect)"
       >
         <span className="absolute top-0 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow pointer-events-none font-sans font-medium z-10">
-          Edit Header ✎
+          {activeSectionId === 'header' ? 'Editing Header (Click to unselect)' : 'Edit Header ✎'}
         </span>
         <h1
           className="header-name"
@@ -199,9 +209,15 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
           <div
             key={section.id}
             data-section-id={section.id}
-            onClick={() => {
-              setActiveSectionId(section.id);
-              if (onSelectSection) onSelectSection(section.id);
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isCurrentActive) {
+                setActiveSectionId(null);
+                if (onSelectSection) onSelectSection(null);
+              } else {
+                setActiveSectionId(section.id);
+                if (onSelectSection) onSelectSection(section.id);
+              }
             }}
             className={`section-container group relative rounded-sm ${
               isCurrentActive ? 'active-section' : ''
@@ -209,15 +225,14 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
             style={{
               marginBottom: `${settings?.sectionSpacing ?? 1}pt`,
             }}
-            title="Click to edit this section"
+            title={isCurrentActive ? "Selected (click again to unselect)" : "Click to edit this section"}
           >
             <span
               className={`absolute top-0 right-1 transition-opacity ${
                 isCurrentActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
               } bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow pointer-events-none font-sans font-medium flex items-center gap-1 z-10`}
             >
-              <span>{isCurrentActive ? 'Editing' : 'Click to Edit'}</span>
-              <span>✎</span>
+              <span>{isCurrentActive ? 'Click to Unselect ✕' : 'Click to Edit ✎'}</span>
             </span>
 
             {/* Section heading */}
@@ -395,7 +410,15 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
       />
 
       {/* ── 3. Visual Responsive Workspace Canvas ────────────────────────────── */}
-      <div className="flex flex-col items-center overflow-auto w-full flex-1 bg-[#0d0f18] py-6 px-4">
+      <div
+        onClick={() => {
+          if (activeSectionId) {
+            setActiveSectionId(null);
+            if (onSelectSection) onSelectSection(null);
+          }
+        }}
+        className="flex flex-col items-center overflow-auto w-full flex-1 bg-[#0d0f18] py-6 px-4 cursor-default"
+      >
         {/* Width-measuring container */}
         <div ref={containerRef} className="w-full flex justify-center">
           {/* Scaled A4 wrapper */}

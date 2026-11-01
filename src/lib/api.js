@@ -102,6 +102,16 @@ export const authApi = {
     return fetchApi('/auth/me');
   },
 
+  async updatePreferences({ name, allowBoldText }) {
+    return fetchApi('/auth/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: name || null,
+        allow_bold_text: allowBoldText,
+      }),
+    });
+  },
+
   logout() {
     clearToken();
     if (typeof window !== 'undefined') {
@@ -186,6 +196,71 @@ export const resumesApi = {
     }
     return data;
   },
+
+  async analyzeJobDescription({ resumeId, jobDescription, currentResumeOverride = null }) {
+    return fetchApi('/resumes/analyze-jd', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume_id: resumeId || null,
+        job_description: jobDescription,
+        current_resume_override: currentResumeOverride,
+        include_all_user_resumes: true,
+      }),
+    });
+  },
+
+  async cloneResume(resumeId, { newName, targetJobTitle, targetCompany, targetJobDescription, targetAtsScore } = {}) {
+    return fetchApi(`/resumes/${resumeId}/clone`, {
+      method: 'POST',
+      body: JSON.stringify({
+        new_name: newName || null,
+        target_job_title: targetJobTitle || null,
+        target_company: targetCompany || null,
+        target_job_description: targetJobDescription || null,
+        target_ats_score: targetAtsScore || null,
+      }),
+    });
+  },
+
+  async getUsageStats() {
+    return fetchApi('/resumes/usage-stats');
+  },
+
+  async updateJobTarget(resumeId, { targetJobTitle, targetCompany, targetJobDescription, targetAtsScore }) {
+    return fetchApi(`/resumes/${resumeId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        target_job_title: targetJobTitle,
+        target_company: targetCompany,
+        target_job_description: targetJobDescription,
+        target_ats_score: targetAtsScore,
+      }),
+    });
+  },
+};
+
+// ─── Templates API ────────────────────────────────────────────────────────────
+export const templatesApi = {
+  async list() {
+    return fetchApi('/templates');
+  },
+
+  async save({ name, description, settingsJson, headerStyleJson, sectionDefaultsJson }) {
+    return fetchApi('/templates', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        description: description || null,
+        settings_json: settingsJson || {},
+        header_style_json: headerStyleJson || {},
+        section_defaults_json: sectionDefaultsJson || {},
+      }),
+    });
+  },
+
+  async delete(templateId) {
+    return fetchApi(`/templates/${templateId}`, { method: 'DELETE' });
+  },
 };
 
 // ─── Exports API ─────────────────────────────────────────────────────────────
@@ -196,6 +271,28 @@ export const exportsApi = {
 
   async exportPdf({ resumeId, name, html }) {
     return fetchApi('/exports/pdf', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume_id: resumeId,
+        name,
+        html,
+      }),
+    });
+  },
+
+  async exportImage({ resumeId, name, html }) {
+    return fetchApi('/exports/image', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume_id: resumeId,
+        name,
+        html,
+      }),
+    });
+  },
+
+  async exportHtml({ resumeId, name, html }) {
+    return fetchApi('/exports/html', {
       method: 'POST',
       body: JSON.stringify({
         resume_id: resumeId,

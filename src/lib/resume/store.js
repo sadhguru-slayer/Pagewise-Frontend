@@ -14,6 +14,10 @@ export const useResumeStore = create(
     sections: defaultSections(),
     settings: defaultSettings(),
     activeSectionId: null,
+    targetJobTitle: null,
+    targetCompany: null,
+    targetJobDescription: null,
+    targetAtsScore: null,
     isDirty: false,
     isSaving: false,
     lastSaved: null,
@@ -50,6 +54,15 @@ export const useResumeStore = create(
         sections: normalizedSections.length > 0 ? normalizedSections : defaultSections(),
         settings: { ...defaultSettings(), ...(resume.settingsJson || resume.settings_json || {}) },
         activeSectionId: normalizedSections[0]?.id || null,
+        targetJobTitle: resume.target_job_title || resume.targetJobTitle || null,
+        targetCompany: resume.target_company || resume.targetCompany || null,
+        targetJobDescription: resume.target_job_description || resume.targetJobDescription || null,
+        targetAtsScore: resume.target_ats_score ?? resume.targetAtsScore ?? null,
+        activeJdAnalysis: resume.jd_analysis_json && typeof resume.jd_analysis_json === 'object' && Object.keys(resume.jd_analysis_json).length > 0
+          ? resume.jd_analysis_json
+          : (resume.jd_analysis_json && typeof resume.jd_analysis_json === 'string'
+              ? JSON.parse(resume.jd_analysis_json || '{}')
+              : null),
         isDirty: false,
         lastSaved: resume.updatedAt || resume.updated_at,
       });
@@ -310,5 +323,9 @@ export const useResumeStore = create(
         ),
         isDirty: true,
       })),
+
+    // ─── AI / JD Suggestions ──────────────────────────────────────────────────
+    activeJdAnalysis: null,
+    setActiveJdAnalysis: (analysis) => set({ activeJdAnalysis: analysis }),
   }))
 );

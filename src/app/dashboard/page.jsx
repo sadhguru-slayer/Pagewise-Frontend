@@ -4,81 +4,279 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { resumesApi, exportsApi } from '@/lib/api';
-import {
-  FileText,
-  Plus,
-  Trash2,
-  Download,
-  Edit3,
-  Calendar,
-  Layers,
-  FileCode,
-  LogOut,
-  Loader2,
-  AlertCircle,
-  ExternalLink,
-  Search,
-  FilePlus,
-  FolderOpen,
-  CheckCircle2,
-  FileDown,
-  X,
-  Upload,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+import { resumesApi, exportsApi, templatesApi } from '@/lib/api';
+import { BRAND_CONFIG, BrandLogo, BrandLockup } from '@/lib/brand';
+import { RESUME_TEMPLATES as builtInTemplates } from '@/lib/resume/templates';
 import { defaultHeader, defaultSections, defaultSettings } from '@/lib/resume/defaults';
-import { RESUME_TEMPLATES as templates } from '@/lib/resume/templates';
+import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
 
+import {
+  Home,
+  FileText,
+  Palette,
+  BarChart3,
+  Settings,
+  LogOut,
+  Plus,
+  Upload,
+  Target,
+  Download,
+  Cpu,
+  Trash2,
+  Edit3,
+  ChevronRight,
+  Calendar,
+  Layers,
+  Search,
+  Loader2,
+  FilePlus,
+  FolderOpen,
+  FileDown,
+  CheckCircle2,
+  X,
+  AlertTriangle,
+  ArrowUpRight,
+  Sparkles,
+  Bookmark,
+  Check,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function relativeDate(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function atsColor(score) {
+  if (!score && score !== 0) return null;
+  if (score >= 80) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25';
+  if (score >= 60) return 'text-amber-300 bg-amber-500/10 border-amber-500/25';
+  if (score >= 40) return 'text-orange-400 bg-orange-500/10 border-orange-500/25';
+  return 'text-rose-400 bg-rose-500/10 border-rose-500/25';
+}
+
+// ─── Editorial Metric Card (Industrial Warm Aesthetic) ────────────────────────
+function MetricCard({ icon: Icon, value, label, subtext, highlightColor }) {
+  return (
+    <div
+      className="rounded-2xl p-5 relative overflow-hidden transition-all duration-300 group hover:border-white/[0.14]"
+      style={{
+        background: BRAND_CONFIG.colors.surfaceCard,
+        border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+      }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-mono uppercase tracking-wider text-[#7E869B]">
+          {label}
+        </span>
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
+          style={{
+            background: BRAND_CONFIG.colors.surfaceSubtle,
+            border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+            color: highlightColor || BRAND_CONFIG.colors.primary,
+          }}
+        >
+          <Icon className="w-4 h-4" />
+        </div>
+      </div>
+      <p className="text-3xl sm:text-4xl font-extrabold text-[#F1F3F9] tracking-tight leading-none">
+        {value ?? '—'}
+      </p>
+      {subtext && (
+        <p className="text-[11px] text-[#7E869B] mt-2 font-sans flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: highlightColor || BRAND_CONFIG.colors.primary }} />
+          {subtext}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Precision Progress Track ────────────────────────────────────────────────
+function ResourceBar({ label, value, max = 10, unit = '' }) {
+  const pct = max ? Math.min(100, Math.round((value / max) * 100)) : 25;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-[#F1F3F9] font-medium">{label}</span>
+        <span className="text-[#7E869B] font-mono">
+          {value} {unit}
+        </span>
+      </div>
+      <div
+        className="h-1.5 rounded-full overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.06)' }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            background: `linear-gradient(90deg, ${BRAND_CONFIG.colors.primary}, #F59E0B)`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Sidebar Navigation ───────────────────────────────────────────────────────
+function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
+  const navItems = [
+    { id: 'home', label: 'Overview', icon: Home },
+    { id: 'resumes', label: 'My Resumes', icon: FileText },
+    { id: 'templates', label: 'Templates Library', icon: Palette },
+    { id: 'exports', label: 'Export History', icon: FileDown },
+    { id: 'usage', label: 'Intelligence & Usage', icon: BarChart3 },
+  ];
+
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+
+  return (
+    <aside
+      className="hidden md:flex flex-col w-[230px] shrink-0 min-h-screen sticky top-0"
+      style={{
+        background: '#0B0D13',
+        borderRight: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+      }}
+    >
+      {/* Brand Header */}
+      <div
+        className="px-5 py-5 border-b"
+        style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
+      >
+        <Link href="/" className="group block">
+          <BrandLockup size={28} showTagline={true} />
+        </Link>
+      </div>
+
+      {/* Nav List */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {navItems.map(({ id, label, icon: Icon }) => {
+          const isActive = activeTab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer text-left"
+              style={{
+                background: isActive ? BRAND_CONFIG.colors.primarySurface : 'transparent',
+                color: isActive ? BRAND_CONFIG.colors.primary : BRAND_CONFIG.colors.textMuted,
+                border: isActive
+                  ? `1px solid ${BRAND_CONFIG.colors.primaryBorder}`
+                  : '1px solid transparent',
+              }}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* User Section */}
+      <div
+        className="px-3 pb-4 space-y-2 border-t pt-4"
+        style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
+      >
+        <Link
+          href="/settings"
+          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-[#7E869B] hover:text-[#F1F3F9] hover:bg-white/[0.04] transition-all"
+        >
+          <Settings className="w-4 h-4" />
+          <span>Account &amp; Studio</span>
+        </Link>
+
+        <div
+          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+          style={{ background: BRAND_CONFIG.colors.surfaceCard }}
+        >
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+            style={{ background: BRAND_CONFIG.colors.primary }}
+          >
+            {initial}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-[#F1F3F9] truncate">{user?.name || 'User'}</p>
+            <p className="text-[10px] text-[#7E869B] truncate">{user?.email}</p>
+          </div>
+          <button
+            onClick={onLogout}
+            title="Sign out"
+            className="p-1 text-[#7E869B] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Main Dashboard Page ───────────────────────────────────────────────────────
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, logout, isAuthenticated } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('resumes'); // 'resumes' | 'exports'
+  const [activeTab, setActiveTab] = useState('home');
+  const [templateSubTab, setTemplateSubTab] = useState('formats'); // 'formats' | 'saved'
   const [resumes, setResumes] = useState([]);
   const [exportsList, setExportsList] = useState([]);
+  const [userTemplates, setUserTemplates] = useState([]);
+  const [usageStats, setUsageStats] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modals
+  // Modals & Actions
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [newResumeName, setNewResumeName] = useState('My Resume');
-  const [selectedTemplateKey, setSelectedTemplateKey] = useState('standard');
+  const [newResumeName, setNewResumeName] = useState('Senior Engineer Resume');
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState(builtInTemplates[0].id);
   const [creatingResume, setCreatingResume] = useState(false);
-
   const [resumeToDelete, setResumeToDelete] = useState(null);
-  const [exportToDelete, setExportToDelete] = useState(null);
+  const [templateToDelete, setTemplateToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Quick export state
   const [exportingId, setExportingId] = useState(null);
 
-  // Redirect if not logged in
+  // Authentication Guard
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.replace('/login');
     }
   }, [authLoading, isAuthenticated, router]);
 
-  // Load user data
   const loadDashboardData = useCallback(async () => {
-    if (!isAuthenticated) return;
-    setLoadingData(true);
     try {
-      const [resumesData, exportsData] = await Promise.all([
-        resumesApi.list(),
-        exportsApi.list(),
+      setLoadingData(true);
+      const [resumesData, exportsData, templatesData, statsData] = await Promise.all([
+        resumesApi.list().catch(() => []),
+        exportsApi.list().catch(() => []),
+        templatesApi.list().catch(() => []),
+        resumesApi.getUsageStats().catch(() => null),
       ]);
-      setResumes(resumesData || []);
-      setExportsList(exportsData || []);
+
+      setResumes(Array.isArray(resumesData) ? resumesData : []);
+      setExportsList(Array.isArray(exportsData) ? exportsData : []);
+      setUserTemplates(Array.isArray(templatesData) ? templatesData : []);
+      setUsageStats(statsData);
     } catch (err) {
-      toast.error('Failed to load dashboard data: ' + err.message);
+      console.error('[Dashboard fetch error]:', err);
+      toast.error('Could not load dashboard data');
     } finally {
       setLoadingData(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -86,7 +284,7 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, loadDashboardData]);
 
-  // Create new resume handler
+  // Create Resume Action
   const handleCreateResume = async (e) => {
     e.preventDefault();
     if (!newResumeName.trim()) {
@@ -94,45 +292,39 @@ export default function DashboardPage() {
       return;
     }
 
-    setCreatingResume(true);
     try {
-      let initialHeader = defaultHeader();
-      let initialSections = defaultSections();
-      let initialSettings = defaultSettings();
+      setCreatingResume(true);
+      const selectedTpl = builtInTemplates.find((t) => t.id === selectedTemplateKey) || builtInTemplates[0];
 
-      const chosenTpl = templates.find((t) => t.id === selectedTemplateKey);
-      if (chosenTpl) {
-        if (chosenTpl.header) initialHeader = { ...initialHeader, ...chosenTpl.header };
-        if (chosenTpl.sections) initialSections = chosenTpl.sections;
-        if (chosenTpl.settings) initialSettings = { ...initialSettings, ...chosenTpl.settings };
-      }
-
-      const created = await resumesApi.create({
+      const newResume = await resumesApi.create({
         name: newResumeName.trim(),
-        headerJson: initialHeader,
-        settingsJson: initialSettings,
-        sectionsJson: initialSections,
+        header_json: { ...defaultHeader, ...(selectedTpl?.header || {}) },
+        settings_json: { ...defaultSettings, ...(selectedTpl?.settings || {}) },
+        sections_json: defaultSections.map((s) => ({
+          ...s,
+          ...(selectedTpl?.sectionDefaults || {}),
+        })),
       });
 
       toast.success('Resume created successfully!');
       setIsCreateModalOpen(false);
-      router.push(`/builder?id=${created.id}`);
+      router.push(`/builder?id=${newResume.id}`);
     } catch (err) {
-      toast.error('Error creating resume: ' + err.message);
+      toast.error('Failed to create resume: ' + err.message);
     } finally {
       setCreatingResume(false);
     }
   };
 
-  // Delete resume handler
+  // Delete Resume Action
   const confirmDeleteResume = async () => {
     if (!resumeToDelete) return;
-    setIsDeleting(true);
     try {
+      setIsDeleting(true);
       await resumesApi.delete(resumeToDelete.id);
       toast.success('Resume deleted');
-      setResumes((prev) => prev.filter((r) => r.id !== resumeToDelete.id));
       setResumeToDelete(null);
+      loadDashboardData();
     } catch (err) {
       toast.error('Failed to delete resume: ' + err.message);
     } finally {
@@ -140,545 +332,930 @@ export default function DashboardPage() {
     }
   };
 
-  // Delete export handler
-  const confirmDeleteExport = async () => {
-    if (!exportToDelete) return;
-    setIsDeleting(true);
+  // Delete Template Action
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return;
     try {
-      await exportsApi.delete(exportToDelete.id);
-      toast.success('Export removed');
-      setExportsList((prev) => prev.filter((item) => item.id !== exportToDelete.id));
-      setExportToDelete(null);
+      setIsDeleting(true);
+      await templatesApi.delete(templateToDelete.id);
+      toast.success('Custom template deleted');
+      setTemplateToDelete(null);
+      loadDashboardData();
     } catch (err) {
-      toast.error('Failed to remove export: ' + err.message);
+      toast.error('Failed to delete template: ' + err.message);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Quick export Word directly from dashboard
-  const handleQuickExportDocx = async (resumeId) => {
-    setExportingId(resumeId);
+  // Quick Export PDF (Recommended Format)
+  const handleQuickExportPdf = async (resumeId) => {
     try {
-      const fullResume = await resumesApi.get(resumeId);
-      const res = await exportsApi.exportDocx({
-        resumeId: fullResume.id,
-        name: fullResume.name,
-        headerJson: fullResume.header_json,
-        settingsJson: fullResume.settings_json,
-        sectionsJson: fullResume.sections_json,
+      setExportingId(resumeId);
+      const detail = await resumesApi.get(resumeId);
+      const fullHtml = generateResumeDocumentHtml({
+        header: detail.header_json || {},
+        sections: detail.sections_json || [],
+        settings: detail.settings_json || {},
       });
 
-      toast.success('Word document generated!');
-      // Trigger download
-      window.open(exportsApi.getDownloadUrl(res.id), '_blank');
-      // Refresh exports
-      const updatedExports = await exportsApi.list();
-      setExportsList(updatedExports || []);
+      const res = await exportsApi.exportPdf({
+        resumeId: detail.id,
+        name: detail.name || 'Resume',
+        html: fullHtml,
+      });
+
+      if (res && res.id) {
+        toast.success('PDF generated! Downloading...');
+        await exportsApi.downloadFile(res.id, res.file_name || `${detail.name}.pdf`);
+        loadDashboardData();
+      }
     } catch (err) {
-      toast.error('Export failed: ' + err.message);
+      toast.error('PDF Export failed: ' + err.message);
     } finally {
       setExportingId(null);
     }
   };
 
-  if (authLoading || (!isAuthenticated && !user)) {
+  if (authLoading || (!isAuthenticated && !authLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090a0f] text-zinc-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#090B10] text-[#F1F3F9]">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <p className="text-sm text-zinc-400">Loading your workspace...</p>
+          <BrandLogo size={36} />
+          <Loader2 className="w-5 h-5 animate-spin text-amber-500 mt-2" />
+          <p className="text-xs text-[#7E869B] font-mono">Initializing Resumo Studio...</p>
         </div>
       </div>
     );
   }
 
   const filteredResumes = resumes.filter((r) =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+    r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (r.target_job_title && r.target_job_title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (r.target_company && r.target_company.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const resumeCount = usageStats?.resume_count ?? resumes.length;
+  const targetedCount = usageStats?.targeted_resume_count ?? resumes.filter((r) => r.target_job_title).length;
+  const exportCount = usageStats?.export_count ?? exportsList.length;
+  const jdAnalysesCount = usageStats?.jd_analyses_count ?? targetedCount;
+  const templateCount = builtInTemplates.length + userTemplates.length;
+
+  const recentResumes = [...resumes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 4);
+
   return (
-    <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col">
-      {/* Top Navbar */}
-      <header className="border-b border-zinc-800/80 bg-[#10121a]/80 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-md shadow-blue-500/25">
-                <FileText className="w-4 h-4 text-white" />
+    <div className="min-h-screen bg-[#090B10] text-[#F1F3F9] flex font-sans">
+      {/* Precision Sidebar */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={logout} />
+
+      {/* Main Workspace Area */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
+        {/* Mobile Header Bar */}
+        <header
+          className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30 border-b backdrop-blur-md"
+          style={{ background: 'rgba(9,11,16,0.9)', borderColor: BRAND_CONFIG.colors.borderSubtle }}
+        >
+          <BrandLockup size={24} />
+          <Link href="/settings" className="p-2 text-[#7E869B] hover:text-white">
+            <Settings className="w-4 h-4" />
+          </Link>
+        </header>
+
+        {/* Content Body */}
+        <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8">
+          {/* ── 1. OVERVIEW TAB ──────────────────────────────────────────────── */}
+          {activeTab === 'home' && (
+            <div className="space-y-8">
+              {/* Executive Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-white/[0.06]">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
+                    Studio Workspace
+                  </span>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F1F3F9] tracking-tight mt-1">
+                    Welcome back, {user?.name?.split(' ')[0] || 'Architect'}
+                  </h1>
+                  <p className="text-xs text-[#7E869B] mt-1">
+                    {BRAND_CONFIG.tagline} — Craft, tailor, and audit your career assets.
+                  </p>
+                </div>
+
+                {/* Primary Action Buttons */}
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border hover:border-white/20 text-[#F1F3F9]"
+                    style={{
+                      background: BRAND_CONFIG.colors.surfaceCard,
+                      borderColor: BRAND_CONFIG.colors.borderSubtle,
+                    }}
+                  >
+                    <Upload className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Import PDF</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setNewResumeName('Senior Engineer Resume');
+                      setIsCreateModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all cursor-pointer hover:opacity-95"
+                    style={{
+                      background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
+                      boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>New Resume</span>
+                  </button>
+                </div>
               </div>
-              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-                Resumo
-              </span>
-            </Link>
 
-            <span className="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              Studio Dashboard
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="py-1.5 px-3 bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 hover:text-blue-300 font-medium text-xs sm:text-sm rounded-lg border border-blue-500/30 flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Import and parse existing resume PDF using Gemini AI"
-            >
-              <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Import PDF</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setNewResumeName('My Resume');
-                setIsCreateModalOpen(true);
-              }}
-              className="py-1.5 px-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-xs sm:text-sm rounded-lg shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Resume</span>
-            </button>
-
-            <div className="h-4 w-px bg-zinc-800" />
-
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200">
-                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <div className="hidden md:block text-left">
-                <p className="text-xs font-medium text-zinc-200 truncate max-w-[140px]">{user?.name}</p>
-                <p className="text-[11px] text-zinc-500 truncate max-w-[140px]">{user?.email}</p>
-              </div>
-
-              <button
-                onClick={logout}
-                title="Sign out"
-                className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800/80 rounded-lg transition-colors cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Banner */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Hello, {user?.name || 'Creator'} 👋
-            </h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              Manage your tailored resumes, launch the studio editor, or download previously exported files.
-            </p>
-          </div>
-
-          {/* Tab Navigation Buttons */}
-          <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-zinc-800 w-fit">
-            <button
-              onClick={() => setActiveTab('resumes')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
-                activeTab === 'resumes'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span>My Resumes</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[11px] ${
-                  activeTab === 'resumes' ? 'bg-blue-700 text-white' : 'bg-zinc-800 text-zinc-400'
-                }`}
-              >
-                {resumes.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('exports')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
-                activeTab === 'exports'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              }`}
-            >
-              <FileDown className="w-4 h-4" />
-              <span>Exported Resumes</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[11px] ${
-                  activeTab === 'exports' ? 'bg-blue-700 text-white' : 'bg-zinc-800 text-zinc-400'
-                }`}
-              >
-                {exportsList.length}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* ─── TAB 1: MY RESUMES ────────────────────────────────────────────── */}
-        {activeTab === 'resumes' && (
-          <div>
-            {/* Search Bar & Actions */}
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <div className="relative w-full max-w-sm">
-                <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search resumes by title..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-zinc-900/80 border border-zinc-800 rounded-xl text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              {/* Bento Metric Matrix */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                  icon={FileText}
+                  value={resumeCount}
+                  label="Master Resumes"
+                  subtext="Crafted & Versioned"
+                  highlightColor="#D97706"
+                />
+                <MetricCard
+                  icon={Target}
+                  value={targetedCount}
+                  label="Targeted Clones"
+                  subtext="Bound to specific JDs"
+                  highlightColor="#10B981"
+                />
+                <MetricCard
+                  icon={Palette}
+                  value={templateCount}
+                  label="Available Formats"
+                  subtext={`${builtInTemplates.length} Standard + ${userTemplates.length} Custom`}
+                  highlightColor="#F59E0B"
+                />
+                <MetricCard
+                  icon={Download}
+                  value={exportCount}
+                  label="Verified Exports"
+                  subtext="PDF & DOCX Generated"
+                  highlightColor="#E2E8F0"
                 />
               </div>
 
-              <button
-                onClick={() => {
-                  setNewResumeName('My Resume');
-                  setIsCreateModalOpen(true);
-                }}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 rounded-xl text-xs font-medium border border-zinc-700 transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4 text-blue-400" />
-                <span>New Resume</span>
-              </button>
-            </div>
-
-            {loadingData ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-                <p className="text-sm text-zinc-400">Loading your resumes...</p>
-              </div>
-            ) : filteredResumes.length === 0 ? (
-              <div className="py-16 px-4 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/30">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4">
-                  <FolderOpen className="w-6 h-6" />
+              {/* Recent Resumes Grid */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                      Recent Resumes
+                    </h2>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-[#7E869B]">
+                      {resumes.length} total
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('resumes')}
+                    className="text-xs text-amber-500 hover:text-amber-400 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <span>View all files</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <h3 className="text-lg font-semibold text-white">No resumes found</h3>
-                <p className="mt-1 text-sm text-zinc-400 max-w-md mx-auto">
-                  {searchQuery
-                    ? 'No resumes match your search query. Try clearing the filter.'
-                    : "You haven't created any resumes yet. Start creating your first professional resume!"}
-                </p>
+
+                {loadingData ? (
+                  <div className="py-12 flex justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                  </div>
+                ) : recentResumes.length === 0 ? (
+                  <div
+                    className="rounded-2xl border border-dashed p-10 text-center"
+                    style={{
+                      borderColor: BRAND_CONFIG.colors.borderSubtle,
+                      background: BRAND_CONFIG.colors.surfaceCard,
+                    }}
+                  >
+                    <FolderOpen className="w-8 h-8 text-[#7E869B] mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-[#F1F3F9]">No resumes created yet</p>
+                    <p className="text-xs text-[#7E869B] mt-1">
+                      Choose a template format or import an existing PDF to begin.
+                    </p>
+                    <button
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Create First Resume</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {recentResumes.map((resume) => (
+                      <div
+                        key={resume.id}
+                        className="rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
+                        style={{
+                          background: BRAND_CONFIG.colors.surfaceCard,
+                          border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                        }}
+                      >
+                        <div>
+                          {/* Target Job Pill if present */}
+                          {resume.target_job_title ? (
+                            <div className="flex items-center gap-1.5 mb-2.5">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 truncate">
+                                🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 mb-2.5">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-[#7E869B] bg-white/[0.04] border border-white/[0.06]">
+                                Master Draft
+                              </span>
+                            </div>
+                          )}
+
+                          <h3 className="font-bold text-sm text-[#F1F3F9] group-hover:text-amber-400 transition-colors line-clamp-1">
+                            {resume.name}
+                          </h3>
+
+                          <p className="text-[11px] text-[#7E869B] mt-1.5 flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-[#7E869B]" />
+                            <span>Updated {relativeDate(resume.updated_at)}</span>
+                          </p>
+                        </div>
+
+                        <div className="pt-4 mt-3 border-t border-white/[0.06] flex items-center justify-between">
+                          <Link
+                            href={`/builder?id=${resume.id}`}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-amber-500 hover:text-black text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <span>Open</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                          </Link>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleQuickExportPdf(resume.id)}
+                              disabled={exportingId === resume.id}
+                              title="Quick PDF Export (Recommended)"
+                              className="p-1.5 text-[#7E869B] hover:text-[#F1F3F9] rounded-lg transition-colors cursor-pointer"
+                            >
+                              {exportingId === resume.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setResumeToDelete(resume)}
+                              title="Delete resume"
+                              className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── 2. MY RESUMES TAB ────────────────────────────────────────────── */}
+          {activeTab === 'resumes' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+                <div>
+                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                    All Resume Architectures
+                  </h1>
+                  <p className="text-xs text-[#7E869B] mt-1">
+                    Manage your core resumes and job-targeted branches.
+                  </p>
+                </div>
+
                 <button
                   onClick={() => {
-                    setNewResumeName('My Resume');
+                    setNewResumeName('Senior Engineer Resume');
                     setIsCreateModalOpen(true);
                   }}
-                  className="mt-5 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-medium rounded-xl inline-flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-blue-600/20"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Create Resume Now</span>
+                  <span>Create Resume</span>
                 </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {/* Create Card Shortcut */}
-                <div
-                  onClick={() => {
-                    setNewResumeName('My Resume');
-                    setIsCreateModalOpen(true);
+
+              {/* Search Strip */}
+              <div className="relative max-w-md">
+                <Search className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Filter by title, company, or target position..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-colors"
+                  style={{
+                    background: BRAND_CONFIG.colors.surfaceCard,
+                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
                   }}
-                  className="group min-h-[220px] rounded-2xl border border-dashed border-zinc-800 hover:border-blue-500/50 bg-zinc-900/20 hover:bg-zinc-900/50 p-6 flex flex-col items-center justify-center cursor-pointer transition-all duration-200"
-                >
-                  <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 group-hover:scale-110 text-blue-400 flex items-center justify-center mb-3 transition-transform">
-                    <Plus className="w-6 h-6" />
-                  </div>
-                  <p className="font-semibold text-white text-sm">Create New Resume</p>
-                  <p className="text-xs text-zinc-500 mt-1">Start from a template or blank</p>
+                />
+              </div>
+
+              {loadingData ? (
+                <div className="py-16 flex justify-center">
+                  <Loader2 className="w-7 h-7 animate-spin text-amber-500" />
                 </div>
+              ) : filteredResumes.length === 0 ? (
+                <div
+                  className="rounded-2xl border border-dashed p-16 text-center"
+                  style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
+                >
+                  <FolderOpen className="w-10 h-10 text-[#7E869B] mx-auto mb-3" />
+                  <p className="text-sm font-semibold text-[#F1F3F9]">No resumes match criteria</p>
+                  <p className="text-xs text-[#7E869B] mt-1">
+                    {searchQuery ? 'Try adjusting your search terms.' : 'Create your first resume to get started.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filteredResumes.map((resume) => {
+                    const score = resume.target_ats_score;
+                    const badgeCls = atsColor(score);
+                    return (
+                      <div
+                        key={resume.id}
+                        className="rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
+                        style={{
+                          background: BRAND_CONFIG.colors.surfaceCard,
+                          border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                        }}
+                      >
+                        <div>
+                          {/* Tags header */}
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            {resume.target_job_title ? (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-semibold truncate max-w-[180px]">
+                                🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-[#7E869B] bg-white/[0.04] border border-white/[0.06]">
+                                Master Architecture
+                              </span>
+                            )}
 
-                {/* Resume Cards */}
-                {filteredResumes.map((resume) => {
-                  const updatedDate = new Date(resume.updated_at).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  });
-
-                  return (
-                    <div
-                      key={resume.id}
-                      className="group bg-[#12141c]/90 border border-zinc-800/80 hover:border-zinc-700/80 rounded-2xl p-5 shadow-lg transition-all duration-200 flex flex-col justify-between"
-                    >
-                      <div>
-                        {/* Header & Badges */}
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-                            <FileText className="w-4 h-4" />
+                            {score !== null && score !== undefined && (
+                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold border ${badgeCls}`}>
+                                ATS {Math.round(score)}%
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-300 border border-zinc-700/50 flex items-center gap-1">
-                              <Layers className="w-3 h-3 text-zinc-400" />
-                              {resume.section_count} sections
+                          <h3 className="font-bold text-base text-[#F1F3F9] group-hover:text-amber-400 transition-colors line-clamp-1">
+                            {resume.name}
+                          </h3>
+
+                          <div className="flex items-center gap-3 mt-2 text-[11px] text-[#7E869B]">
+                            <span className="flex items-center gap-1">
+                              <Layers className="w-3 h-3" />
+                              {resume.section_count || 0} sections
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {relativeDate(resume.updated_at)}
                             </span>
                           </div>
                         </div>
 
-                        {/* Title */}
-                        <h3 className="font-bold text-white text-base tracking-tight truncate group-hover:text-blue-400 transition-colors">
-                          {resume.name}
+                        <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
+                          <Link
+                            href={`/builder?id=${resume.id}`}
+                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>Launch Studio</span>
+                          </Link>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleQuickExportPdf(resume.id)}
+                              disabled={exportingId === resume.id}
+                              title="Quick PDF Export (Recommended)"
+                              className="p-2 text-[#7E869B] hover:text-[#F1F3F9] rounded-lg transition-colors cursor-pointer"
+                            >
+                              {exportingId === resume.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setResumeToDelete(resume)}
+                              title="Delete resume"
+                              className="p-2 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── 3. TEMPLATES LIBRARY TAB ─────────────────────────────────────── */}
+          {activeTab === 'templates' && (
+            <div className="space-y-6">
+              {/* Header with Sub-tabs */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+                <div>
+                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                    Template &amp; Format Library
+                  </h1>
+                  <p className="text-xs text-[#7E869B] mt-1">
+                    Industry-calibrated typography, margins, and section designs.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1 bg-[#12141D] p-1 rounded-xl border border-white/[0.08]">
+                  <button
+                    onClick={() => setTemplateSubTab('formats')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      templateSubTab === 'formats'
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        : 'text-[#7E869B] hover:text-white'
+                    }`}
+                  >
+                    Industry Formats ({builtInTemplates.length})
+                  </button>
+                  <button
+                    onClick={() => setTemplateSubTab('saved')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      templateSubTab === 'saved'
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        : 'text-[#7E869B] hover:text-white'
+                    }`}
+                  >
+                    My Custom Presets ({userTemplates.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Subtab 1: Built-in Industry Formats */}
+              {templateSubTab === 'formats' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {builtInTemplates.map((tpl) => (
+                    <div
+                      key={tpl.id}
+                      className="rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
+                      style={{
+                        background: BRAND_CONFIG.colors.surfaceCard,
+                        border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                      }}
+                    >
+                      <div>
+                        {/* Format category badge */}
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-semibold">
+                            {tpl.tag || 'Standard'}
+                          </span>
+                          <span className="text-[10px] text-[#7E869B] font-mono">
+                            {tpl.settings?.bodyFont?.split(',')[0]}
+                          </span>
+                        </div>
+
+                        <h3 className="font-bold text-base text-[#F1F3F9] group-hover:text-amber-400 transition-colors">
+                          {tpl.name}
                         </h3>
 
-                        {/* Date */}
-                        <div className="flex items-center gap-1.5 mt-2 text-xs text-zinc-400">
-                          <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                          <span>Last updated {updatedDate}</span>
+                        <p className="text-xs text-[#7E869B] mt-2 leading-relaxed">
+                          {tpl.description}
+                        </p>
+
+                        {/* Format Specs Preview */}
+                        <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1.5 text-[11px] font-mono text-[#7E869B]">
+                          <div className="flex justify-between">
+                            <span>Font Family:</span>
+                            <span className="text-[#F1F3F9] font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Target Industry:</span>
+                            <span className="text-[#F1F3F9] font-sans truncate max-w-[130px]">{tpl.category}</span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Card Footer Actions */}
-                      <div className="mt-6 pt-4 border-t border-zinc-800/80 flex items-center justify-between gap-2">
-                        <Link
-                          href={`/builder?id=${resume.id}`}
-                          className="flex-1 py-1.5 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>Edit Resume</span>
-                        </Link>
-
+                      <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
                         <button
-                          onClick={() => handleQuickExportDocx(resume.id)}
-                          disabled={exportingId === resume.id}
-                          title="Export Word (.docx)"
-                          className="p-1.5 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg border border-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
+                          onClick={() => {
+                            setSelectedTemplateKey(tpl.id);
+                            setNewResumeName(`${tpl.name} Resume`);
+                            setIsCreateModalOpen(true);
+                          }}
+                          className="w-full py-2 bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                         >
-                          {exportingId === resume.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                          ) : (
-                            <FileCode className="w-4 h-4 text-sky-400" />
-                          )}
-                        </button>
-
-                        <button
-                          onClick={() => setResumeToDelete(resume)}
-                          title="Delete Resume"
-                          className="p-1.5 bg-zinc-800/90 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded-lg border border-zinc-700 hover:border-red-500/20 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Use This Architecture</span>
                         </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ─── TAB 2: EXPORTED RESUMES ───────────────────────────────────────── */}
-        {activeTab === 'exports' && (
-          <div>
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-white">Export History</h2>
-                <p className="text-xs text-zinc-400">
-                  Every resume exported as PDF or Word is securely saved and ready for re-download.
-                </p>
-              </div>
-
-              <button
-                onClick={loadDashboardData}
-                className="py-1.5 px-3 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 rounded-lg text-xs font-medium border border-zinc-700 transition-colors"
-              >
-                Refresh
-              </button>
-            </div>
-
-            {loadingData ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
-                <p className="text-sm text-zinc-400">Loading export history...</p>
-              </div>
-            ) : exportsList.length === 0 ? (
-              <div className="py-16 px-4 text-center border border-dashed border-zinc-800 rounded-2xl bg-zinc-900/30">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4">
-                  <FileDown className="w-6 h-6" />
+                  ))}
                 </div>
-                <h3 className="text-lg font-semibold text-white">No exported resumes yet</h3>
-                <p className="mt-1 text-sm text-zinc-400 max-w-md mx-auto">
-                  When you export your resume from the builder studio as PDF or Word, it will appear here for instant download anytime.
-                </p>
-              </div>
-            ) : (
-              <div className="bg-[#12141c]/90 border border-zinc-800/80 rounded-2xl overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs sm:text-sm">
-                    <thead className="bg-zinc-900/80 border-b border-zinc-800 text-zinc-400 uppercase text-[11px] font-semibold tracking-wider">
-                      <tr>
-                        <th className="py-3 px-4 sm:px-6">Document</th>
-                        <th className="py-3 px-4 sm:px-6">Format</th>
-                        <th className="py-3 px-4 sm:px-6">Size</th>
-                        <th className="py-3 px-4 sm:px-6">Export Date</th>
-                        <th className="py-3 px-4 sm:px-6 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-800/60">
-                      {exportsList.map((item) => {
-                        const isPdf = item.file_type === 'pdf';
-                        const sizeKb = Math.round(item.file_size / 1024);
-                        const exportDate = new Date(item.created_at).toLocaleString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        });
+              )}
 
-                        return (
-                          <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors">
-                            <td className="py-3.5 px-4 sm:px-6">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
-                                    isPdf
-                                      ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
-                                      : 'bg-sky-500/15 text-sky-400 border border-sky-500/20'
-                                  }`}
-                                >
-                                  {isPdf ? 'PDF' : 'DOC'}
-                                </div>
+              {/* Subtab 2: User Saved Custom Presets */}
+              {templateSubTab === 'saved' && (
+                <div>
+                  {userTemplates.length === 0 ? (
+                    <div
+                      className="rounded-2xl border border-dashed p-16 text-center"
+                      style={{
+                        borderColor: BRAND_CONFIG.colors.borderSubtle,
+                        background: BRAND_CONFIG.colors.surfaceCard,
+                      }}
+                    >
+                      <Bookmark className="w-10 h-10 text-amber-500/60 mx-auto mb-3" />
+                      <h3 className="text-sm font-bold text-[#F1F3F9]">No custom presets saved yet</h3>
+                      <p className="text-xs text-[#7E869B] max-w-md mx-auto mt-1 leading-relaxed">
+                        Customize your typography, margins, and divider rules in the Resume Builder, then click
+                        &quot;Save as Template&quot; in the Settings panel to preserve your style.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {userTemplates.map((tpl) => (
+                        <div
+                          key={tpl.id}
+                          className="rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
+                          style={{
+                            background: BRAND_CONFIG.colors.surfaceCard,
+                            border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                          }}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20">
+                                Custom Preset
+                              </span>
+                              <span className="text-[11px] text-[#7E869B]">
+                                {relativeDate(tpl.created_at)}
+                              </span>
+                            </div>
+
+                            <h3 className="font-bold text-base text-[#F1F3F9]">
+                              {tpl.name}
+                            </h3>
+
+                            {tpl.description && (
+                              <p className="text-xs text-[#7E869B] mt-1.5 leading-relaxed">
+                                {tpl.description}
+                              </p>
+                            )}
+
+                            <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] text-[11px] text-[#7E869B] space-y-1">
+                              <div>Font: <span className="text-white">{tpl.settings_json?.bodyFont || 'Default'}</span></div>
+                              <div>Heading: <span className="text-white">{tpl.settings_json?.headingColor || '#111827'}</span></div>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
+                            <button
+                              onClick={() => {
+                                setNewResumeName(`${tpl.name} Resume`);
+                                setIsCreateModalOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] transition-all cursor-pointer"
+                            >
+                              Create with Preset
+                            </button>
+                            <button
+                              onClick={() => setTemplateToDelete(tpl)}
+                              className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                              title="Delete preset"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── EXPORT HISTORY TAB ─────────────────────────────────────────── */}
+          {activeTab === 'exports' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+                <div>
+                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                    Exported Resumes Archive
+                  </h1>
+                  <p className="text-xs text-[#7E869B] mt-1">
+                    Track which job, company, and template each export was built for. Redownload or clean up files.
+                  </p>
+                </div>
+              </div>
+
+              {loadingData ? (
+                <div className="py-16 flex justify-center">
+                  <Loader2 className="w-7 h-7 animate-spin text-amber-500" />
+                </div>
+              ) : exportsList.length === 0 ? (
+                <div
+                  className="rounded-2xl border border-dashed p-16 text-center"
+                  style={{
+                    borderColor: BRAND_CONFIG.colors.borderSubtle,
+                    background: BRAND_CONFIG.colors.surfaceCard,
+                  }}
+                >
+                  <FileDown className="w-10 h-10 text-[#7E869B] mx-auto mb-3" />
+                  <h3 className="text-sm font-bold text-[#F1F3F9]">No exported files yet</h3>
+                  <p className="text-xs text-[#7E869B] max-w-md mx-auto mt-1 leading-relaxed">
+                    When you export a PDF, PNG image, or HTML document from the Resume Studio, your generated files and job targeting metadata will be logged here.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl overflow-hidden border border-white/[0.07]" style={{ background: BRAND_CONFIG.colors.surfaceCard }}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b border-white/[0.06] bg-black/40 text-[10px] font-mono uppercase tracking-wider text-[#7E869B]">
+                        <tr>
+                          <th className="py-3 px-4">File Name</th>
+                          <th className="py-3 px-4">Format</th>
+                          <th className="py-3 px-4">Targeted Job &amp; Company</th>
+                          <th className="py-3 px-4">Layout / Font</th>
+                          <th className="py-3 px-4">Date</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.04]">
+                        {exportsList.map((exp) => (
+                          <tr key={exp.id} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-3.5 px-4 font-semibold text-[#F1F3F9]">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-amber-500 shrink-0" />
                                 <div>
-                                  <p className="font-semibold text-white">{item.resume_name}</p>
-                                  <p className="text-[11px] text-zinc-500 truncate max-w-[200px]">
-                                    {item.file_name}
-                                  </p>
+                                  <p className="truncate max-w-[200px]">{exp.resume_name || exp.file_name}</p>
+                                  <p className="text-[10px] text-[#7E869B] font-mono truncate max-w-[200px]">{exp.file_name}</p>
                                 </div>
                               </div>
                             </td>
-
-                            <td className="py-3.5 px-4 sm:px-6">
+                            <td className="py-3.5 px-4 font-mono uppercase">
                               <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase ${
-                                  isPdf
-                                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                    : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  exp.file_type === 'pdf'
+                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    : exp.file_type === 'png'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                                 }`}
                               >
-                                {item.file_type}
+                                {exp.file_type}
                               </span>
                             </td>
-
-                            <td className="py-3.5 px-4 sm:px-6 text-zinc-300 text-xs">
-                              {sizeKb} KB
+                            <td className="py-3.5 px-4">
+                              {exp.target_job_title ? (
+                                <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                                  <span>🎯</span>
+                                  <span>{exp.target_company ? `${exp.target_company} · ` : ''}{exp.target_job_title}</span>
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-[#7E869B]">General Master Export</span>
+                              )}
                             </td>
-
-                            <td className="py-3.5 px-4 sm:px-6 text-zinc-400 text-xs">
-                              {exportDate}
+                            <td className="py-3.5 px-4 text-[#7E869B] font-sans">
+                              {exp.template_name || 'Standard Format'}
                             </td>
-
-                            <td className="py-3.5 px-4 sm:px-6 text-right">
+                            <td className="py-3.5 px-4 text-[#7E869B] font-mono text-[11px]">
+                              {relativeDate(exp.created_at)}
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <a
-                                  href={exportsApi.getDownloadUrl(item.id)}
-                                  download={item.file_name}
-                                  className="py-1 px-2.5 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white rounded-lg text-xs font-medium border border-blue-500/30 transition-colors inline-flex items-center gap-1"
+                                <button
+                                  onClick={() => exportsApi.downloadFile(exp.id, exp.file_name)}
+                                  className="px-2.5 py-1 bg-white/[0.06] hover:bg-amber-600 hover:text-white rounded-lg text-xs font-semibold text-[#F1F3F9] transition-all flex items-center gap-1 cursor-pointer"
+                                  title="Download this file"
                                 >
                                   <Download className="w-3.5 h-3.5" />
                                   <span>Download</span>
-                                </a>
-
+                                </button>
                                 <button
-                                  onClick={() => setExportToDelete(item)}
-                                  title="Remove export"
-                                  className="p-1 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
+                                  onClick={async () => {
+                                    if (confirm(`Delete export record for "${exp.file_name}"?`)) {
+                                      try {
+                                        await exportsApi.delete(exp.id);
+                                        toast.success('Export file deleted');
+                                        loadDashboardData();
+                                      } catch (err) {
+                                        toast.error('Failed to delete export: ' + err.message);
+                                      }
+                                    }
+                                  }}
+                                  className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                                  title="Delete record"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── 4. USAGE & INTELLIGENCE TAB ──────────────────────────────────── */}
+          {activeTab === 'usage' && (
+            <div className="space-y-6">
+              <div className="pb-5 border-b border-white/[0.06]">
+                <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                  Resource Intelligence &amp; Quotas
+                </h1>
+                <p className="text-xs text-[#7E869B] mt-1">
+                  Track career asset utilization and ATS scanning throughput.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Resource Allocations */}
+                <div
+                  className="rounded-2xl p-6 space-y-5"
+                  style={{
+                    background: BRAND_CONFIG.colors.surfaceCard,
+                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                      Active Workspace Quotas
+                    </h2>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                      v2.5 Unlimited Beta
+                    </span>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    <ResourceBar label="Master Resumes Created" value={resumeCount} max={25} unit="resumes" />
+                    <ResourceBar label="JD-Targeted Resumes" value={targetedCount} max={20} unit="branches" />
+                    <ResourceBar label="PDF & DOCX Exports Generated" value={exportCount} max={50} unit="files" />
+                    <ResourceBar label="Custom Presets Saved" value={userTemplates.length} max={15} unit="presets" />
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed">
+                    💡 All ATS checks, cross-resume intelligence extractions, and PDF exports remain uncapped on your account during the v2.5 release sequence.
+                  </div>
+                </div>
+
+                {/* System Activity Feed */}
+                <div
+                  className="rounded-2xl p-6 space-y-4"
+                  style={{
+                    background: BRAND_CONFIG.colors.surfaceCard,
+                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                  }}
+                >
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                    Recent Modifications
+                  </h2>
+
+                  {resumes.length === 0 ? (
+                    <p className="text-xs text-[#7E869B]">No recent activity recorded.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {resumes.slice(0, 6).map((r) => (
+                        <div
+                          key={r.id}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-black/30 border border-white/[0.04]"
+                        >
+                          <div className="min-w-0 pr-2">
+                            <p className="text-xs font-semibold text-[#F1F3F9] truncate">
+                              {r.name}
+                            </p>
+                            {r.target_job_title && (
+                              <p className="text-[10px] text-amber-500 truncate">
+                                Targeted for {r.target_job_title}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-[#7E869B] font-mono shrink-0">
+                            {relativeDate(r.updated_at)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-        )}
-      </main>
+            </div>
+          )}
+        </main>
+      </div>
 
-      {/* ─── MODAL: CREATE RESUME ─────────────────────────────────────────── */}
+      {/* ── MODAL: CREATE RESUME ────────────────────────────────────────────── */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#12141c] border border-zinc-800 rounded-2xl w-full max-w-xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div
+            className="w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-5"
+            style={{
+              background: '#0F121A',
+              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+            }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <FilePlus className="w-5 h-5 text-blue-400" />
-                <h3 className="text-lg font-bold text-white">Create New Resume</h3>
+                <FilePlus className="w-4 h-4 text-amber-500" />
+                <h3 className="text-base font-bold text-white">Create New Resume Architecture</h3>
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-zinc-500 hover:text-zinc-300"
+                className="text-[#7E869B] hover:text-white cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateResume} className="mt-5 space-y-5">
+            <form onSubmit={handleCreateResume} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-1.5">
                   Resume Title
                 </label>
                 <input
                   type="text"
                   value={newResumeName}
                   onChange={(e) => setNewResumeName(e.target.value)}
-                  placeholder="e.g. Senior Software Engineer - Google"
+                  placeholder="e.g. Senior Backend Engineer - Stripe"
                   required
-                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-colors"
+                  style={{
+                    background: BRAND_CONFIG.colors.surfaceCard,
+                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                  }}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
-                  Choose a Starter Template
+                <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-2">
+                  Choose Layout Template
                 </label>
-                <div className="grid grid-cols-2 gap-3 max-h-56 overflow-y-auto pr-1">
-                  {templates.map((tpl) => (
+                <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                  {builtInTemplates.map((tpl) => (
                     <div
                       key={tpl.id}
                       onClick={() => setSelectedTemplateKey(tpl.id)}
                       className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
                         selectedTemplateKey === tpl.id
-                          ? 'border-blue-500 bg-blue-500/10'
-                          : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                          ? 'border-amber-500 bg-amber-500/10'
+                          : 'hover:border-white/20'
                       }`}
+                      style={{
+                        background: BRAND_CONFIG.colors.surfaceCard,
+                        borderColor: selectedTemplateKey === tpl.id ? undefined : BRAND_CONFIG.colors.borderSubtle,
+                      }}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-xs text-white">{tpl.name}</span>
-                        {selectedTemplateKey === tpl.id && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
-                        )}
+                        <span className="font-bold text-xs text-white line-clamp-1">{tpl.name}</span>
+                        {selectedTemplateKey === tpl.id && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
                       </div>
-                      <p className="text-[11px] text-zinc-400 line-clamp-2">{tpl.description}</p>
+                      <p className="text-[10px] text-[#7E869B] line-clamp-2">{tpl.tag || tpl.category}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+                  className="px-3.5 py-2 text-xs text-[#7E869B] hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingResume}
-                  className="py-2 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-xs sm:text-sm rounded-xl shadow-md shadow-blue-600/25 inline-flex items-center gap-2 transition-all disabled:opacity-60 cursor-pointer"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {creatingResume ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       <span>Creating...</span>
                     </>
                   ) : (
-                    <span>Launch Resume Studio</span>
+                    <span>Launch Studio</span>
                   )}
                 </button>
               </div>
@@ -687,67 +1264,83 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ─── MODAL: CONFIRM DELETE RESUME ─────────────────────────────────── */}
+      {/* ── MODAL: CONFIRM DELETE RESUME ───────────────────────────────────── */}
       {resumeToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#12141c] border border-zinc-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-white">Delete Resume?</h3>
-            <p className="mt-2 text-xs text-zinc-400">
-              Are you sure you want to delete <span className="text-white font-semibold">&quot;{resumeToDelete.name}&quot;</span>? This action cannot be undone.
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div
+            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4"
+            style={{
+              background: '#0F121A',
+              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-white">Delete Resume?</h3>
+            </div>
+            <p className="text-xs text-[#7E869B] leading-relaxed">
+              Are you sure you want to delete <strong className="text-white">&quot;{resumeToDelete.name}&quot;</strong>? This cannot be undone.
             </p>
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
-                type="button"
                 onClick={() => setResumeToDelete(null)}
-                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white"
+                className="px-3 py-1.5 text-xs text-[#7E869B] hover:text-white"
               >
                 Cancel
               </button>
               <button
-                type="button"
                 onClick={confirmDeleteResume}
                 disabled={isDeleting}
-                className="py-1.5 px-4 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
-                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Delete</span>
+                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── MODAL: CONFIRM DELETE EXPORT ─────────────────────────────────── */}
-      {exportToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#12141c] border border-zinc-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-white">Delete Exported File?</h3>
-            <p className="mt-2 text-xs text-zinc-400">
-              Delete exported record for <span className="text-white font-semibold">&quot;{exportToDelete.file_name}&quot;</span>? The saved file will be removed from storage.
+      {/* ── MODAL: CONFIRM DELETE TEMPLATE ─────────────────────────────────── */}
+      {templateToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div
+            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4"
+            style={{
+              background: '#0F121A',
+              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-white">Delete Custom Preset?</h3>
+            </div>
+            <p className="text-xs text-[#7E869B] leading-relaxed">
+              Delete custom preset <strong className="text-white">&quot;{templateToDelete.name}&quot;</strong>?
             </p>
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
-                type="button"
-                onClick={() => setExportToDelete(null)}
-                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white"
+                onClick={() => setTemplateToDelete(null)}
+                className="px-3 py-1.5 text-xs text-[#7E869B] hover:text-white"
               >
                 Cancel
               </button>
               <button
-                type="button"
-                onClick={confirmDeleteExport}
+                onClick={confirmDeleteTemplate}
                 disabled={isDeleting}
-                className="py-1.5 px-4 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
-                {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Delete File</span>
+                {isDeleting ? 'Deleting...' : 'Delete Preset'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── MODAL: IMPORT PDF (GEMINI AI) ─────────────────────────────────── */}
+      {/* ── MODAL: IMPORT PDF ──────────────────────────────────────────────── */}
       {isImportModalOpen && (
         <ImportPdfModal
           isOpen={isImportModalOpen}

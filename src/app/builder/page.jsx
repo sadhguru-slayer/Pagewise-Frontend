@@ -33,11 +33,17 @@ import {
   Heading,
   Settings,
   Upload,
+  Target,
+  Bookmark,
+  BookmarkPlus,
+  MoreVertical,
+  Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
-import { resumesApi } from '@/lib/api';
+import { resumesApi, templatesApi } from '@/lib/api';
 import { useResumeStore } from '@/lib/resume/store';
+import { BrandLogo, BRAND_CONFIG } from '@/lib/brand';
 import SectionManager from '@/components/resume-builder/SectionManager';
 import SectionTitleStyleEditor from '@/components/resume-builder/SectionTitleStyleEditor';
 import ResumeRichEditor from '@/components/resume-builder/ResumeRichEditor';
@@ -49,6 +55,7 @@ import ResumePreview from '@/components/resume-builder/ResumePreview';
 import ExportMenu from '@/components/resume-builder/ExportMenu';
 import TemplateModal from '@/components/resume-builder/TemplateModal';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
+import JDAnalyzerModal from '@/components/resume-builder/JDAnalyzerModal';
 
 function BuilderContent() {
   const router = useRouter();
@@ -80,6 +87,26 @@ function BuilderContent() {
   const [mobileView, setMobileView] = useState('editor'); // 'editor' | 'preview'
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isJdModalOpen, setIsJdModalOpen] = useState(false);
+  const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false);
+  const studioMenuRef = useRef(null);
+
+  // Close studio quick menu on click outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (studioMenuRef.current && !studioMenuRef.current.contains(event.target)) {
+        setIsStudioMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // ─── Save-as-Template modal state ─────────────────────────────────────────
+  const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
   // ─── Panel Widths & Collapsing States ──────────────────────────────────────
   const [leftWidth, setLeftWidth] = useState(310);
@@ -114,6 +141,11 @@ function BuilderContent() {
             headerJson: data.header_json,
             settingsJson: data.settings_json,
             sectionsJson: data.sections_json,
+            target_job_title: data.target_job_title,
+            target_company: data.target_company,
+            target_job_description: data.target_job_description,
+            target_ats_score: data.target_ats_score,
+            jd_analysis_json: data.jd_analysis_json,
             updatedAt: data.updated_at,
           });
         } else {
@@ -200,6 +232,36 @@ function BuilderContent() {
     }
   }, [sections, activeSectionId, setActiveSectionId]);
 
+  // ─── Save as Template Handler ──────────────────────────────────────────────
+  const handleOpenSaveTemplate = () => {
+    setTemplateName(resumeName || '');
+    setTemplateDescription('');
+    setIsSaveTemplateModalOpen(true);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error('Please enter a template name.');
+      return;
+    }
+    setIsSavingTemplate(true);
+    try {
+      await templatesApi.save({
+        name: templateName.trim(),
+        description: templateDescription.trim() || null,
+        settingsJson: settings,
+        headerStyleJson: header,
+        sectionDefaultsJson: {},
+      });
+      toast.success('Template saved!');
+      setIsSaveTemplateModalOpen(false);
+    } catch (err) {
+      toast.error('Failed to save template: ' + err.message);
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
   // ─── Canva-like Click-to-Edit Handlers ────────────────────────────────────
   const handleSelectSectionFromPreview = (sectionId) => {
     setActiveSectionId(sectionId);
@@ -274,7 +336,7 @@ function BuilderContent() {
 
   if (authLoading || initialLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090a0f] text-zinc-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#090b13] text-zinc-100">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
           <p className="text-sm text-zinc-400">Loading Resume Studio...</p>
@@ -284,136 +346,127 @@ function BuilderContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col overflow-hidden select-none">
+    <div className="min-h-screen bg-[#090b13] text-[#e2e8f0] flex flex-col overflow-hidden select-none">
       {/* ─── STUDIO HEADER ─────────────────────────────────────────────────── */}
-      <header className="h-14 border-b border-zinc-800/80 bg-[#10121a]/95 backdrop-blur-md px-3 sm:px-5 flex items-center justify-between shrink-0 z-30">
-        <div className="flex items-center gap-3">
+      <header className="h-12 border-b border-white/[0.07] bg-[#111420]/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between shrink-0 z-30">
+        {/* Left: Back + Resume Name + Save Status */}
+        <div className="flex items-center gap-2.5 min-w-0">
           <Link
             href="/dashboard"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-xs font-medium cursor-pointer"
+            className="flex items-center justify-center p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors cursor-pointer shrink-0"
             title="Return to Dashboard"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Dashboard</span>
           </Link>
 
-          <div className="h-4 w-px bg-zinc-800" />
+          <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 shrink-0" title="Resumo Studio">
+            <BrandLogo size={22} />
+          </Link>
 
-          {/* Editable Title */}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={resumeName}
-              onChange={(e) => setResumeName(e.target.value)}
-              className="bg-transparent hover:bg-zinc-800/50 focus:bg-zinc-900 border border-transparent focus:border-zinc-700 px-2 py-1 rounded-lg text-xs sm:text-sm font-semibold text-white tracking-tight focus:outline-none max-w-[150px] sm:max-w-xs transition-colors"
-              placeholder="Resume Name"
-            />
-          </div>
+          <div className="h-4 w-px bg-white/[0.07] shrink-0" />
 
-          {/* Manual Save Button & Auto-save Status */}
-          <div className="flex items-center gap-2 ml-1">
-            <button
-              type="button"
-              onClick={handleManualSave}
-              disabled={isSaving}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                isDirty
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400'
-                  : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/70'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-              title="Save resume immediately to database (or press Ctrl+S)"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Save</span>
-                </>
-              )}
-            </button>
+          {/* Editable Resume Name */}
+          <input
+            type="text"
+            value={resumeName}
+            onChange={(e) => setResumeName(e.target.value)}
+            className="bg-transparent focus:bg-[#111420] border border-transparent focus:border-white/[0.12] px-2 py-1 rounded-lg text-sm font-semibold text-[#e2e8f0] tracking-tight focus:outline-none max-w-[140px] sm:max-w-[220px] transition-colors placeholder:text-zinc-600"
+            placeholder="Resume Name"
+          />
 
-            <div className="hidden md:flex items-center gap-1 text-[11px] text-zinc-500">
-              {isSaving ? (
-                <span className="text-blue-400 font-mono">Syncing...</span>
-              ) : isDirty ? (
-                <span className="text-amber-400 font-medium">Unsaved changes</span>
-              ) : (
-                <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                  <Check className="w-3 h-3 text-emerald-400" />
-                  <span>Saved</span>
-                </span>
-              )}
-            </div>
+          {/* Save Status Indicator */}
+          <div className="hidden md:flex items-center gap-1.5 ml-0.5">
+            {isSaving ? (
+              <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />
+            ) : isDirty ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-xs text-amber-400">Unsaved changes</span>
+              </>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span className="text-xs text-emerald-400">Saved</span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Center: Viewport Vertical Panel Toggles */}
-        <div className="hidden lg:flex items-center gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800">
+        {/* Center: Icon-only panel toggles */}
+        <div className="hidden lg:flex items-center bg-zinc-900/60 border border-white/[0.06] rounded-xl p-0.5 gap-0.5">
           <button
             onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
-            className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer ${
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${
               !isLeftCollapsed
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                ? 'bg-blue-600/20 text-blue-400'
+                : 'text-zinc-500 hover:text-zinc-300'
             }`}
             title={isLeftCollapsed ? 'Expand Menu Panel' : 'Collapse Menu Panel'}
           >
             <PanelLeft className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-medium">Menu</span>
           </button>
 
           <button
             onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
-            className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer ${
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${
               !isEditorCollapsed
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                ? 'bg-blue-600/20 text-blue-400'
+                : 'text-zinc-500 hover:text-zinc-300'
             }`}
             title={isEditorCollapsed ? 'Expand Text Editor' : 'Collapse Text Editor'}
           >
             <Edit3 className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-medium">Editor</span>
           </button>
 
           <button
             onClick={() => setIsPreviewCollapsed(!isPreviewCollapsed)}
-            className={`p-1.5 rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer ${
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${
               !isPreviewCollapsed
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                ? 'bg-blue-600/20 text-blue-400'
+                : 'text-zinc-500 hover:text-zinc-300'
             }`}
             title={isPreviewCollapsed ? 'Expand Resume Preview' : 'Collapse Resume Preview'}
           >
             <Eye className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-medium">Preview</span>
           </button>
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* JD & ATS button */}
+          <button
+            onClick={() => setIsJdModalOpen(true)}
+            className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 border border-orange-500/20 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Paste Job Description to run Strict ATS analysis & cross-resume point enhancements"
+          >
+            <Target className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">JD &amp; ATS</span>
+            <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded font-mono">
+              v2.5
+            </span>
+          </button>
+
+          {/* Import PDF */}
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="px-2.5 py-1.5 bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 hover:text-blue-300 rounded-xl text-xs font-medium border border-blue-500/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 rounded-xl px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Extract & import an existing resume PDF using Gemini AI"
           >
             <Upload className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Import PDF</span>
           </button>
 
+          {/* Templates */}
           <button
             onClick={() => setIsTemplateModalOpen(true)}
-            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-medium border border-zinc-700/80 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 rounded-xl px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <LayoutTemplate className="w-3.5 h-3.5 text-blue-400" />
+            <LayoutTemplate className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Templates</span>
           </button>
 
           {/* Mobile view toggle */}
-          <div className="flex lg:hidden bg-zinc-900 p-0.5 rounded-lg border border-zinc-800">
+          <div className="flex lg:hidden bg-zinc-900 p-0.5 rounded-lg border border-white/[0.07]">
             <button
               onClick={() => setMobileView('editor')}
               className={`p-1.5 rounded-md text-xs ${
@@ -434,7 +487,70 @@ function BuilderContent() {
             </button>
           </div>
 
+          {/* Studio Quick Actions Dropdown Menu */}
+          <div className="relative" ref={studioMenuRef}>
+            <button
+              onClick={() => setIsStudioMenuOpen(!isStudioMenuOpen)}
+              className="p-1.5 rounded-xl border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              title="Studio Actions Menu"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            {isStudioMenuOpen && (
+              <div
+                className="origin-top-right absolute right-0 mt-2 w-56 rounded-2xl shadow-2xl p-1.5 z-50 overflow-hidden"
+                style={{
+                  background: '#0F121A',
+                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                }}
+              >
+                <button
+                  onClick={() => { setIsStudioMenuOpen(false); handleOpenSaveTemplate(); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-[#F1F3F9] hover:bg-white/[0.06] transition-colors text-left cursor-pointer"
+                >
+                  <BookmarkPlus className="w-4 h-4 text-amber-500" />
+                  <span>Save Format as Template</span>
+                </button>
+
+                <button
+                  onClick={() => { setIsStudioMenuOpen(false); setIsTemplateModalOpen(true); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-[#F1F3F9] hover:bg-white/[0.06] transition-colors text-left cursor-pointer"
+                >
+                  <LayoutTemplate className="w-4 h-4 text-blue-400" />
+                  <span>Browse Templates</span>
+                </button>
+
+                <button
+                  onClick={() => { setIsStudioMenuOpen(false); setIsImportModalOpen(true); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-[#F1F3F9] hover:bg-white/[0.06] transition-colors text-left cursor-pointer"
+                >
+                  <Upload className="w-4 h-4 text-emerald-400" />
+                  <span>Import Resume PDF</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           <ExportMenu />
+
+          {/* Manual Save — visible only when dirty */}
+          {isDirty && (
+            <button
+              type="button"
+              onClick={handleManualSave}
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Save resume (Ctrl+S)"
+            >
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              <span>Save</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -442,7 +558,7 @@ function BuilderContent() {
       <div className="flex-1 flex overflow-hidden relative">
         {/* ── 1. LEFT PANEL: MENU & SECTIONS ──────────────────────────────── */}
         {isLeftCollapsed ? (
-          <div className="w-11 bg-[#0a0c13] border-r border-zinc-800/80 flex flex-col items-center py-3 gap-3 shrink-0 z-10">
+          <div className="w-11 bg-[#090b13] border-r border-white/[0.07] flex flex-col items-center py-3 gap-2 shrink-0 z-10">
             <button
               onClick={() => setIsLeftCollapsed(false)}
               title="Expand Left Menu"
@@ -450,39 +566,30 @@ function BuilderContent() {
             >
               <ChevronsRight className="w-4 h-4" />
             </button>
-            <div className="h-px w-6 bg-zinc-800 my-1" />
+            <div className="h-px w-6 bg-white/[0.07] my-1" />
             <button
-              onClick={() => {
-                setIsLeftCollapsed(false);
-                setLeftTab('sections');
-              }}
+              onClick={() => { setIsLeftCollapsed(false); setLeftTab('sections'); }}
               title="Sections"
               className={`p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                leftTab === 'sections' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                leftTab === 'sections' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
               }`}
             >
               <Layers className="w-4 h-4" />
             </button>
             <button
-              onClick={() => {
-                setIsLeftCollapsed(false);
-                setLeftTab('header');
-              }}
+              onClick={() => { setIsLeftCollapsed(false); setLeftTab('header'); }}
               title="Header"
               className={`p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                leftTab === 'header' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                leftTab === 'header' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
               }`}
             >
               <Heading className="w-4 h-4" />
             </button>
             <button
-              onClick={() => {
-                setIsLeftCollapsed(false);
-                setLeftTab('settings');
-              }}
-              title="Settings"
+              onClick={() => { setIsLeftCollapsed(false); setLeftTab('settings'); }}
+              title="Page Settings"
               className={`p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                leftTab === 'settings' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                leftTab === 'settings' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
               }`}
             >
               <Settings className="w-4 h-4" />
@@ -491,49 +598,52 @@ function BuilderContent() {
         ) : (
           <div
             style={{ width: `${leftWidth}px` }}
-            className={`border-r border-zinc-800/80 bg-[#0d0f17] flex flex-col shrink-0 ${
+            className={`border-r border-white/[0.07] bg-[#111420] flex flex-col shrink-0 ${
               mobileView === 'preview' ? 'hidden lg:flex' : 'flex'
             }`}
           >
-            {/* Left Header with Tabs & Collapse Button */}
-            <div className="flex items-center justify-between border-b border-zinc-800/80 bg-zinc-900/50 p-1.5 shrink-0">
+            {/* Left Header: Icon-only Tabs + Collapse */}
+            <div className="flex items-center justify-between border-b border-white/[0.06] p-1.5 shrink-0">
               <div className="flex items-center gap-1 flex-1 mr-1">
                 <button
                   onClick={() => setLeftTab('sections')}
-                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  title="Sections"
+                  className={`p-2 rounded-lg cursor-pointer transition-colors ${
                     leftTab === 'sections'
-                      ? 'bg-zinc-800 text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20'
+                      : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
                   }`}
                 >
-                  Sections
+                  <Layers className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setLeftTab('header')}
-                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  title="Header"
+                  className={`p-2 rounded-lg cursor-pointer transition-colors ${
                     leftTab === 'header'
-                      ? 'bg-zinc-800 text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20'
+                      : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
                   }`}
                 >
-                  Header
+                  <Heading className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setLeftTab('settings')}
-                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  title="Page Settings"
+                  className={`p-2 rounded-lg cursor-pointer transition-colors ${
                     leftTab === 'settings'
-                      ? 'bg-zinc-800 text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20'
+                      : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
                   }`}
                 >
-                  Settings
+                  <Settings className="w-4 h-4" />
                 </button>
               </div>
 
               <button
                 onClick={() => setIsLeftCollapsed(true)}
-                title="Collapse Menu (Double-click border to reset width)"
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="Collapse Menu"
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
               >
                 <ChevronsLeft className="w-4 h-4" />
               </button>
@@ -562,6 +672,18 @@ function BuilderContent() {
                 </>
               )}
             </div>
+
+            {/* "Save as Template" button — accessible directly from the sidebar */}
+            <div className="p-3 border-t border-white/[0.06] shrink-0">
+              <button
+                onClick={handleOpenSaveTemplate}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25 text-xs font-semibold transition-all cursor-pointer"
+                title="Save current typography and format styling as a reusable template"
+              >
+                <BookmarkPlus className="w-3.5 h-3.5 shrink-0" />
+                <span>Save Format as Template</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -581,7 +703,7 @@ function BuilderContent() {
 
         {/* ── 2. CENTER PANEL: RICH TEXT EDITOR ───────────────────────────── */}
         {isEditorCollapsed ? (
-          <div className="w-10 bg-[#0a0c13] border-r border-zinc-800/80 flex flex-col items-center py-3 gap-3 shrink-0 z-10">
+          <div className="w-10 bg-[#090b13] border-r border-white/[0.07] flex flex-col items-center py-3 gap-3 shrink-0 z-10">
             <button
               onClick={() => setIsEditorCollapsed(false)}
               title="Expand Text Editor"
@@ -598,7 +720,7 @@ function BuilderContent() {
             style={{
               width: isPreviewCollapsed ? '100%' : `${editorWidth}px`,
             }}
-            className={`flex flex-col bg-[#0b0c13] border-r border-zinc-800/80 overflow-hidden shrink-0 ${
+            className={`flex flex-col bg-[#0d0f18] border-r border-white/[0.07] overflow-hidden shrink-0 ${
               isPreviewCollapsed ? 'flex-1' : ''
             } ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex'}`}
           >
@@ -622,7 +744,7 @@ function BuilderContent() {
 
         {/* ── 3. RIGHT PANEL: LIVE A4 PREVIEW ─────────────────────────────── */}
         {isPreviewCollapsed ? (
-          <div className="w-10 bg-[#0a0c13] flex flex-col items-center py-3 gap-3 shrink-0 z-10">
+          <div className="w-10 bg-[#090b13] flex flex-col items-center py-3 gap-3 shrink-0 z-10">
             <button
               onClick={() => setIsPreviewCollapsed(false)}
               title="Expand Live Preview"
@@ -636,26 +758,18 @@ function BuilderContent() {
           </div>
         ) : (
           <div
-            className={`flex-1 bg-[#151722] flex flex-col overflow-hidden ${
+            className={`flex-1 bg-[#111420] flex flex-col overflow-hidden ${
               mobileView === 'editor' ? 'hidden lg:flex' : 'flex'
             }`}
           >
             {/* Preview Toolbar */}
-            <div className="px-4 py-2 border-b border-zinc-800/80 bg-zinc-900/60 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Interactive Live A4 Preview</span>
-                </span>
-                <span className="text-[10px] text-zinc-500 hidden sm:inline">
-                  (Click any section or header to edit)
-                </span>
-              </div>
+            <div className="px-4 py-2 border-b border-white/[0.07] bg-[#111420] flex items-center justify-between shrink-0">
+              <span className="text-xs text-zinc-500 uppercase tracking-wider font-medium">Preview</span>
 
               <button
                 onClick={() => setIsPreviewCollapsed(true)}
                 title="Collapse Preview"
-                className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer text-xs flex items-center gap-1"
+                className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer text-xs flex items-center gap-1"
               >
                 <span>Collapse</span>
                 <ChevronsRight className="w-3.5 h-3.5" />
@@ -682,6 +796,86 @@ function BuilderContent() {
       {isImportModalOpen && (
         <ImportPdfModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} mode="current" />
       )}
+
+      {/* JD Analyzer & Strict ATS Checker Modal (v2.5) */}
+      {isJdModalOpen && (
+        <JDAnalyzerModal
+          isOpen={isJdModalOpen}
+          onClose={() => setIsJdModalOpen(false)}
+          onEnhancementsReady={(analysis) => {
+            useResumeStore.getState().setActiveJdAnalysis(analysis);
+          }}
+        />
+      )}
+
+      {/* ─── Save as Template Inline Modal ──────────────────────────────────── */}
+      {isSaveTemplateModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setIsSaveTemplateModalOpen(false); }}
+        >
+          <div className="bg-[#111420] border border-white/[0.07] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookmarkPlus className="w-4 h-4 text-orange-400" />
+                <h2 className="text-sm font-semibold text-[#e2e8f0]">Save as Template</h2>
+              </div>
+              <button
+                onClick={() => setIsSaveTemplateModalOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-zinc-400 font-medium">Template Name</label>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g. My Clean Resume"
+                  className="bg-[#090b13] border border-white/[0.07] focus:border-blue-500/40 rounded-xl px-3 py-2 text-sm text-[#e2e8f0] placeholder:text-zinc-600 focus:outline-none transition-colors"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-zinc-400 font-medium">Description <span className="text-zinc-600">(optional)</span></label>
+                <textarea
+                  value={templateDescription}
+                  onChange={(e) => setTemplateDescription(e.target.value)}
+                  placeholder="Brief description of this template style..."
+                  rows={3}
+                  className="bg-[#090b13] border border-white/[0.07] focus:border-blue-500/40 rounded-xl px-3 py-2 text-sm text-[#e2e8f0] placeholder:text-zinc-600 focus:outline-none transition-colors resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 justify-end pt-1">
+              <button
+                onClick={() => setIsSaveTemplateModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs text-zinc-400 hover:text-white border border-white/[0.07] hover:border-white/20 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                disabled={isSavingTemplate || !templateName.trim()}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                {isSavingTemplate ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <BookmarkPlus className="w-3 h-3" />
+                )}
+                Save Template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -690,7 +884,7 @@ export default function ResumeBuilderPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#090a0f] text-zinc-100">
+        <div className="min-h-screen flex items-center justify-center bg-[#090b13] text-zinc-100">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         </div>
       }

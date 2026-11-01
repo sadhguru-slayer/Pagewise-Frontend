@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, FileText, FileCode, Loader2, ChevronDown, Check } from 'lucide-react';
+import { Download, FileText, Image, Code, Loader2, ChevronDown, Check, Sparkles, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
 import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';
-import { renderTiptapJson } from '@/lib/resume/renderTiptap';
 import { exportsApi } from '@/lib/api';
+import { BRAND_CONFIG } from '@/lib/brand';
 
 export default function ExportMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [exportType, setExportType] = useState(null); // 'pdf' | 'png' | 'html'
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFilename, setExportFilename] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const menuRef = useRef(null);
 
   const { resumeId, resumeName, header, sections, settings } = useResumeStore();
@@ -27,10 +29,24 @@ export default function ExportMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleExportPdf = async () => {
+  const openExportPrompt = (type) => {
     setIsOpen(false);
-    setIsExportingPdf(true);
-    const toastId = toast.loading('Generating high-fidelity PDF...');
+    setExportType(type);
+    setExportFilename(resumeName || 'My Resume');
+    setIsExportModalOpen(true);
+  };
+
+  const handleExecuteExport = async (e) => {
+    e.preventDefault();
+    if (!exportFilename.trim()) {
+      toast.error('Please enter a file name');
+      return;
+    }
+
+    setIsProcessing(true);
+    const targetName = exportFilename.trim();
+    const typeLabel = exportType === 'pdf' ? 'PDF' : exportType === 'png' ? 'Retina Image' : 'HTML Document';
+    const toastId = toast.loading(`Generating ${typeLabel}...`);
 
     try {
       const fullHtml = generateResumeDocumentHtml({
@@ -39,106 +55,192 @@ export default function ExportMenu() {
         settings,
       });
 
-      const exportRecord = await exportsApi.exportPdf({
-        resumeId: resumeId || null,
-        name: resumeName || 'Resume',
-        html: fullHtml,
-      });
+      let exportRecord;
+      if (exportType === 'pdf') {
+        exportRecord = await exportsApi.exportPdf({
+          resumeId: resumeId || null,
+          name: targetName,
+          html: fullHtml,
+        });
+      } else if (exportType === 'png') {
+        exportRecord = await exportsApi.exportImage({
+          resumeId: resumeId || null,
+          name: targetName,
+          html: fullHtml,
+        });
+      } else {
+        exportRecord = await exportsApi.exportHtml({
+          resumeId: resumeId || null,
+          name: targetName,
+          html: fullHtml,
+        });
+      }
 
-      // Download file using authenticated blob download
       await exportsApi.downloadFile(exportRecord.id, exportRecord.file_name);
-      toast.success('PDF exported and downloaded!', { id: toastId });
+      toast.success(`${typeLabel} downloaded successfully!`, { id: toastId });
+      setIsExportModalOpen(false);
     } catch (err) {
-      console.error('PDF export error:', err);
-      toast.error(err.message || 'Failed to export PDF', { id: toastId });
+      console.error('Export error:', err);
+      toast.error(err.message || `Failed to export ${typeLabel}`, { id: toastId });
     } finally {
-      setIsExportingPdf(false);
+      setIsProcessing(false);
     }
   };
-
-  const handleExportDocx = async () => {
-    setIsOpen(false);
-    setIsExportingDocx(true);
-    const toastId = toast.loading('Generating Word document (.docx)...');
-
-    try {
-      // Map section tiptap JSON content into HTML for python-docx parser
-      const formattedSections = (sections || []).map((sec) => ({
-        ...sec,
-        contentHtml: sec.content ? renderTiptapJson(sec.content) : '',
-      }));
-
-      const exportRecord = await exportsApi.exportDocx({
-        resumeId: resumeId || null,
-        name: resumeName || 'Resume',
-        headerJson: header || {},
-        settingsJson: settings || {},
-        sectionsJson: formattedSections,
-      });
-
-      // Download file using authenticated blob download
-      await exportsApi.downloadFile(exportRecord.id, exportRecord.file_name);
-      toast.success('Word document exported and downloaded!', { id: toastId });
-    } catch (err) {
-      console.error('Word export error:', err);
-      toast.error(err.message || 'Failed to export Word document', { id: toastId });
-    } finally {
-      setIsExportingDocx(false);
-    }
-  };
-
-  const isBusy = isExportingPdf || isExportingDocx;
 
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isBusy}
-        className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm tracking-normal shadow-md shadow-blue-600/25 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-        title="Export your resume"
-      >
-        {isBusy ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Download className="w-4 h-4" />
-        )}
-        <span>{isExportingPdf ? 'Exporting PDF...' : isExportingDocx ? 'Exporting Word...' : 'Export'}</span>
-        <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-      </button>
+    <>
+      <div className="relative inline-block text-left" ref={menuRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          disabled={isProcessing}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-md transition-all cursor-pointer disabled:opacity-50"
+          style={{
+            background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
+            boxShadow: `0 4px 14px ${BRAND_CONFIG.colors.primaryGlow}`,
+          }}
+          title="Export resume in PDF, Image, or HTML formats"
+        >
+          {isProcessing ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Download className="w-3.5 h-3.5" />
+          )}
+          <span>Export</span>
+          <ChevronDown className="w-3 h-3 opacity-70" />
+        </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-2xl shadow-2xl bg-[#12141c] border border-zinc-800 ring-1 ring-black/5 divide-y divide-zinc-800/80 focus:outline-none z-50 overflow-hidden">
-          <div className="p-1.5">
+        {/* Dropdown Menu */}
+        {isOpen && (
+          <div
+            className="origin-top-right absolute right-0 mt-2 w-64 rounded-2xl shadow-2xl p-1.5 z-50 overflow-hidden"
+            style={{
+              background: '#0F121A',
+              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+            }}
+          >
+            {/* 1. PDF (Recommended) */}
             <button
-              onClick={handleExportPdf}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm text-zinc-200 hover:text-white hover:bg-zinc-800/80 transition-colors text-left cursor-pointer"
+              onClick={() => openExportPrompt('pdf')}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.06] transition-colors text-left cursor-pointer group"
             >
-              <div className="w-7 h-7 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
                 <FileText className="w-4 h-4" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold">Export as PDF</p>
-                <p className="text-[11px] text-zinc-500">Pixel-perfect A4 document</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-xs text-[#F1F3F9]">Export as PDF</p>
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30">
+                    Recommended
+                  </span>
+                </div>
+                <p className="text-[10px] text-[#7E869B] mt-0.5">Vector multi-page A4 document</p>
               </div>
             </button>
 
+            {/* 2. Image (PNG) */}
             <button
-              onClick={handleExportDocx}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm text-zinc-200 hover:text-white hover:bg-zinc-800/80 transition-colors text-left cursor-pointer"
+              onClick={() => openExportPrompt('png')}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.06] transition-colors text-left cursor-pointer group"
             >
-              <div className="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center">
-                <FileCode className="w-4 h-4" />
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Image className="w-4 h-4" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold">Export as Word (.docx)</p>
-                <p className="text-[11px] text-zinc-500">Fully editable document</p>
+                <p className="font-bold text-xs text-[#F1F3F9]">Export as Image (.png)</p>
+                <p className="text-[10px] text-[#7E869B] mt-0.5">High-resolution 2x Retina preview</p>
+              </div>
+            </button>
+
+            {/* 3. HTML Document */}
+            <button
+              onClick={() => openExportPrompt('html')}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.06] transition-colors text-left cursor-pointer group"
+            >
+              <div className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Code className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-xs text-[#F1F3F9]">Export as HTML (.html)</p>
+                <p className="text-[10px] text-[#7E869B] mt-0.5">Self-contained web markup file</p>
               </div>
             </button>
           </div>
+        )}
+      </div>
+
+      {/* Export Confirmation / File Naming Modal */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div
+            className="w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4"
+            style={{
+              background: '#0F121A',
+              border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+            }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4 text-amber-500" />
+                <h3 className="text-sm font-bold text-white">
+                  Export as {exportType === 'pdf' ? 'PDF' : exportType === 'png' ? 'Image' : 'HTML'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="text-[#7E869B] hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleExecuteExport} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-[#7E869B] mb-1.5">
+                  Confirm Export File Name
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    value={exportFilename}
+                    onChange={(e) => setExportFilename(e.target.value)}
+                    required
+                    placeholder="My Resume"
+                    className="flex-1 px-3 py-2 rounded-l-xl text-xs text-white bg-black/40 border border-white/[0.08] focus:border-amber-500 focus:outline-none"
+                  />
+                  <span className="px-3 py-2 rounded-r-xl text-xs font-mono bg-white/[0.05] border border-l-0 border-white/[0.08] text-[#7E869B]">
+                    .{exportType}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setIsExportModalOpen(false)}
+                  className="px-3 py-1.5 text-xs text-[#7E869B] hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <span>Download File</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
