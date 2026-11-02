@@ -45,6 +45,13 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const BILLING_PERIODS = [
+  { key: 'all', label: 'All Time' },
+  { key: 'this_billing', label: 'This Billing' },
+  { key: 'prev_billing', label: 'Prev Billings' },
+  { key: 'last_3_months', label: 'Last 3 Months' },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function relativeDate(dateStr) {
   if (!dateStr) return '';
@@ -238,8 +245,25 @@ export default function DashboardPage() {
   const [exportsList, setExportsList] = useState([]);
   const [userTemplates, setUserTemplates] = useState([]);
   const [usageStats, setUsageStats] = useState(null);
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [loadingStats, setLoadingStats] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSelectPeriod = async (periodKey) => {
+    setSelectedPeriod(periodKey);
+    try {
+      setLoadingStats(true);
+      const updatedStats = await resumesApi.getUsageStats({ period: periodKey });
+      if (updatedStats) {
+        setUsageStats(updatedStats);
+      }
+    } catch (err) {
+      console.error('[Error fetching usage stats by period]:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   // Modals & Actions
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -263,7 +287,7 @@ export default function DashboardPage() {
         resumesApi.list().catch(() => []),
         exportsApi.list().catch(() => []),
         templatesApi.list().catch(() => []),
-        resumesApi.getUsageStats().catch(() => null),
+        resumesApi.getUsageStats({ period: selectedPeriod }).catch(() => null),
       ]);
 
       setResumes(Array.isArray(resumesData) ? resumesData : []);
@@ -276,7 +300,7 @@ export default function DashboardPage() {
     } finally {
       setLoadingData(false);
     }
-  }, []);
+  }, [selectedPeriod]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -427,13 +451,13 @@ export default function DashboardPage() {
   );
 
   const resumeCount = usageStats?.resume_count ?? resumes.length;
-  const totalResumes = usageStats?.total_resumes_generated ?? resumeCount;
+  const totalResumes = Math.max(usageStats?.total_resumes_generated ?? 0, resumeCount);
   const targetedCount = usageStats?.targeted_resume_count ?? resumes.filter((r) => r.target_job_title).length;
   const exportCount = usageStats?.export_count ?? exportsList.length;
-  const totalExports = usageStats?.total_exports_generated ?? exportCount;
+  const totalExports = Math.max(usageStats?.total_exports_generated ?? 0, exportCount);
   const templateCount = builtInTemplates.length + userTemplates.length;
-  const totalCustomTemplates = usageStats?.total_templates_created ?? userTemplates.length;
-  const wiserJobHelps = usageStats?.wiser_job_helps_count ?? targetedCount;
+  const totalCustomTemplates = Math.max(usageStats?.total_templates_created ?? 0, userTemplates.length);
+  const wiserJobHelps = Math.max(usageStats?.wiser_job_helps_count ?? 0, targetedCount);
   const wiserAtsChecks = usageStats?.wiser_ats_checks_count ?? 0;
   const wiserTotal = usageStats?.wiser_total_invocations ?? (wiserJobHelps + wiserAtsChecks);
 
@@ -510,6 +534,49 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Analytics & Billing Period Filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#111319] border border-white/[0.07]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white tracking-tight">
+                        Analytics Period: {usageStats?.period_label || 'All Time'}
+                      </span>
+                      {loadingStats && <Loader2 className="w-3 h-3 animate-spin text-amber-500" />}
+                    </div>
+                    <p className="text-[11px] text-[#7E869B] font-mono">
+                      {usageStats?.period_start
+                        ? `${new Date(usageStats.period_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${
+                            usageStats?.period_end
+                              ? new Date(usageStats.period_end).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                              : 'Now'
+                          }`
+                        : 'Cumulative all-time usage history across all workspaces'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 bg-[#161922] p-1 rounded-xl border border-white/[0.08] overflow-x-auto">
+                  {BILLING_PERIODS.map((bp) => (
+                    <button
+                      key={bp.key}
+                      onClick={() => handleSelectPeriod(bp.key)}
+                      disabled={loadingStats}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                        selectedPeriod === bp.key
+                          ? 'bg-amber-500 text-black shadow-md font-bold'
+                          : 'text-[#7E869B] hover:text-white'
+                      }`}
+                    >
+                      {bp.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Bento Metric Matrix */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
@@ -522,8 +589,12 @@ export default function DashboardPage() {
                 <MetricCard
                   icon={Cpu}
                   value={wiserTotal}
-                  label="Wiser AI Actions"
-                  subtext={`${wiserJobHelps} JD + ${wiserAtsChecks} ATS checks`}
+                  label={selectedPeriod === 'all' ? 'Wiser AI Actions' : `Wiser AI (${usageStats?.period_label || 'Period'})`}
+                  subtext={
+                    selectedPeriod === 'all'
+                      ? `${wiserJobHelps} JD + ${wiserAtsChecks} ATS checks`
+                      : `${wiserJobHelps} JD + ${wiserAtsChecks} ATS in cycle (${usageStats?.lifetime_wiser_invocations ?? wiserTotal} lifetime)`
+                  }
                   highlightColor="#F59E0B"
                 />
                 <MetricCard

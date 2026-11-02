@@ -73,7 +73,7 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
     setCurrentStep('Extracting PDF text with PyMuPDF...');
 
     try {
-      setCurrentStep('Analyzing sections & structure with Gemini AI...');
+      setCurrentStep('Analyzing sections & structure with Wiser AI...');
 
       const result = await resumesApi.parsePdf({
         file: selectedFile,
@@ -118,7 +118,7 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
         });
       }
 
-      toast.success('Sections & contact details extracted with Gemini AI!');
+      toast.success('Sections & contact details extracted with Wiser AI!');
       onClose();
     } catch (err) {
       console.error('Import error:', err);
@@ -139,8 +139,8 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
               <Cpu className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white tracking-tight">AI Resume PDF Importer</h3>
-              <p className="text-[11px] text-zinc-400">Powered by PyMuPDF & Gemini 2.5 Flash</p>
+              <h3 className="text-base font-bold text-white tracking-tight">Wiser AI Resume Importer</h3>
+              <p className="text-[11px] text-zinc-400">Powered by Wiser AI Intelligence Engine</p>
             </div>
           </div>
 

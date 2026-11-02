@@ -309,8 +309,13 @@ export const resumesApi = {
     });
   },
 
-  async getUsageStats() {
-    return fetchApi('/resumes/usage-stats');
+  async getUsageStats(params = {}) {
+    const query = new URLSearchParams();
+    if (params.period) query.set('period', params.period);
+    if (params.startDate) query.set('start_date', params.startDate);
+    if (params.endDate) query.set('end_date', params.endDate);
+    const queryString = query.toString();
+    return fetchApi(`/resumes/usage-stats${queryString ? `?${queryString}` : ''}`);
   },
 
   async updateJobTarget(resumeId, { targetJobTitle, targetCompany, targetJobDescription, targetAtsScore }) {

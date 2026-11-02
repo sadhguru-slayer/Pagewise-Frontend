@@ -64,7 +64,7 @@ export const RESUME_TEMPLATES = [
     category: 'Software Engineering, AI/ML, DevOps & Cloud',
     tag: 'Modern Tech Standard',
     badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
-    description: 'Clean modern sans-serif layout favored by Meta, Google, Stripe & OpenAI recruiters. High scannability, electric indigo accents, and clean division.',
+    description: 'Clean modern sans-serif layout favored by top enterprise and tech recruiters. High scannability, electric indigo accents, and clean division.',
     previewColors: { bg: '#ffffff', header: '#0f172a', accent: '#4f46e5', text: '#334155' },
     settings: {
       marginTop: 14,

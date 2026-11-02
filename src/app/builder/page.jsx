@@ -460,7 +460,7 @@ function BuilderContent() {
           <button
             onClick={() => setIsImportModalOpen(true)}
             className="border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 rounded-xl px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Extract & import an existing resume PDF using Gemini AI"
+            title="Extract & import an existing resume PDF using Wiser AI"
           >
             <Upload className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Import PDF</span>

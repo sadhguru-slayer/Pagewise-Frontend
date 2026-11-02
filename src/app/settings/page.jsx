@@ -556,7 +556,7 @@ export default function SettingsPage() {
           </div>
           <p className="text-xs text-[#6b7280] leading-relaxed">
             During the v2.5 beta phase, you have access to unlimited resume branches, AI JD matching,
-            Google XYZ bullet generation, and high-fidelity PDF exports.
+            Wiser XYZ metric bullet formula, and high-fidelity PDF exports.
           </p>
         </div>
 

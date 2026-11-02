@@ -850,7 +850,7 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
 
               <div>
                 <span className="text-[9px] uppercase font-mono tracking-wider text-amber-400">
-                  Enhanced Version (Google XYZ Standard):
+                  Enhanced Version (Wiser XYZ Formula):
                 </span>
                 <div
                   className="text-xs text-[#F1F3F9] mt-1 bg-black/40 p-2.5 rounded-lg border border-white/[0.05] leading-relaxed font-sans"
