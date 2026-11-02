@@ -6,6 +6,9 @@ import { adminApi, getAdminToken } from '@/lib/api';
 import { BrandLogo } from '@/lib/brand';
 import {
   Users,
+  DollarSign,
+  Receipt,
+  Cpu,
   BarChart3,
   Search,
   Plus,
@@ -41,6 +44,12 @@ import {
   Star,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+import FinancesTab from './components/FinancesTab';
+import OrdersTab from './components/OrdersTab';
+import SubscriptionsTab from './components/SubscriptionsTab';
+import TemplatesTab from './components/TemplatesTab';
+import AIUsageTab from './components/AIUsageTab';
 
 export default function AdminPage() {
   const [adminUser, setAdminUser] = useState(null);
@@ -118,7 +127,7 @@ export default function AdminPage() {
     }
   };
 
-  // Django-style Bulk Action handlers
+  // Bulk Action handlers
   const handleSelectAllUsers = (e) => {
     if (e.target.checked) {
       setSelectedUserIds(users.map((u) => u.id));
@@ -756,16 +765,16 @@ export default function AdminPage() {
     );
   }
 
-  // ─── ADMIN CONTROL PANEL INTERFACE (DJANGO CRM STYLE) ──────────────────────
+  // ─── ADMIN CONTROL PANEL INTERFACE (PLATFORM CRM SUITE) ──────────────────────
   return (
     <div className="h-screen w-full bg-[#0A0C10] text-zinc-100 flex font-sans overflow-hidden">
-      {/* ── Fixed Left Sidebar: Django Model Registry / CRM Navigation ── */}
+      {/* ── Fixed Left Sidebar: Model Registry / Navigation ── */}
       <aside
         className={`bg-[#0C0E14] border-r border-zinc-800/80 flex flex-col h-full shrink-0 select-none transition-all duration-200 z-20 ${
           sidebarCollapsed ? 'w-16' : 'w-64'
         }`}
       >
-        {/* CRM / Django Admin Brand Header */}
+        {/* CRM / Platform Admin Brand Header */}
         <div className="h-14 px-4 border-b border-zinc-800 flex items-center justify-between shrink-0 bg-[#0E1018]">
           {!sidebarCollapsed ? (
             <div className="flex items-center gap-2.5 min-w-0">
@@ -777,7 +786,7 @@ export default function AdminPage() {
                   PageWise CRM
                 </span>
                 <span className="text-[10px] text-zinc-500 font-mono block truncate">
-                  Django Administration
+                  PageWise Administration
                 </span>
               </div>
             </div>
@@ -797,7 +806,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Django App Tree Navigation */}
+        {/* Navigation App Tree */}
         <div className="flex-1 overflow-y-auto px-2 py-4 space-y-5 text-xs">
           {/* App 1: SYSTEM TELEMETRY */}
           <div>
@@ -1004,19 +1013,27 @@ export default function AdminPage() {
             </button>
             <span className="text-zinc-600">›</span>
             <span className="text-zinc-400 font-medium">
-              {activeTab === 'insights' && 'Telemetry'}
-              {activeTab === 'users' && 'Authentication and Authorization'}
+              {activeTab === 'insights' && 'Telemetry & Analytics'}
+              {activeTab === 'finances' && 'Finance & Billing'}
+              {activeTab === 'orders' && 'Commerce & Billing'}
+              {activeTab === 'subscriptions' && 'Subscriptions & Quotas'}
+              {activeTab === 'users' && 'Customer CRM & Access'}
               {activeTab === 'security' && 'Security & Access Control'}
               {activeTab === 'templates' && 'Resume Studio Content'}
+              {activeTab === 'ai_usage' && 'AI Intelligence Engine'}
               {activeTab === 'tiers' && 'Billing & Subscriptions'}
               {activeTab === 'feedbacks' && 'User Telemetry & Feedback'}
             </span>
             <span className="text-zinc-600">›</span>
             <span className="text-amber-400 font-semibold font-sans">
               {activeTab === 'insights' && 'Platform Insights'}
-              {activeTab === 'users' && 'Users'}
+              {activeTab === 'finances' && 'Gross Revenue & Unit Economics'}
+              {activeTab === 'orders' && 'Payments & Orders Ledger'}
+              {activeTab === 'subscriptions' && 'User Subscriptions'}
+              {activeTab === 'users' && 'Customer Accounts'}
               {activeTab === 'security' && 'Master Credentials'}
-              {activeTab === 'templates' && 'Layout Architectures'}
+              {activeTab === 'templates' && 'Layout Architectures & Visual Styles'}
+              {activeTab === 'ai_usage' && 'AI Token Telemetry & Feature Quotas'}
               {activeTab === 'tiers' && 'Pricing Tiers Config'}
               {activeTab === 'feedbacks' && 'User Feedbacks & Pilot Reports'}
             </span>
@@ -1074,7 +1091,7 @@ export default function AdminPage() {
             <div className="h-4 w-px bg-zinc-800" />
 
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-              DJANGO LIVE DB
+              LIVE PRODUCTION DB
             </span>
           </div>
         </header>
@@ -1274,10 +1291,10 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ─── TAB 2: USER MANAGEMENT (DJANGO CRM CHANGELIST) ────────────────── */}
+        {/* ─── TAB 2: USER MANAGEMENT (CRM CHANGELIST) ────────────────── */}
         {activeTab === 'users' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Django Search Toolbar */}
+            {/* Search Toolbar */}
             <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center justify-between gap-4">
               <div className="flex-1 min-w-[240px] relative">
                 <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1311,7 +1328,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Django Admin Actions Bar */}
+            {/* Admin Actions Bar */}
             <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 font-mono text-zinc-400">
@@ -1354,7 +1371,7 @@ export default function AdminPage() {
               )}
             </div>
 
-            {/* Two-Column: Table + Django Right-hand Filters */}
+            {/* Two-Column: Table + Right-hand Filters */}
             <div className="flex flex-col lg:flex-row gap-5 items-start">
               {/* Left: Main Data Table */}
               <div className="flex-1 min-w-0 w-full space-y-3">
@@ -1535,7 +1552,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Django Changelist Footer Counter */}
+                {/* Changelist Footer Counter */}
                 <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl flex items-center justify-between text-xs text-zinc-400 font-mono">
                   <span>
                     {users.length} user{users.length === 1 ? '' : 's'} (of {totalUsers} registered in database)
@@ -1548,7 +1565,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Right: Signature Django Filter Box */}
+              {/* Right: Signature Filter Box */}
               <div className="hidden lg:block w-60 shrink-0 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-xs space-y-4 shadow-sm">
                 <div className="flex items-center gap-2 text-zinc-200 font-bold uppercase tracking-wider text-[11px] pb-2.5 border-b border-zinc-800">
                   <Filter className="w-3.5 h-3.5 text-amber-400" />
@@ -1741,134 +1758,29 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ─── TAB 4: TEMPLATES & TIER ACCESS ──────────────────────────────────── */}
+        {/* ─── TAB: FINANCES & REVENUE ─────────────────────────────────────── */}
+        {activeTab === 'finances' && (
+          <FinancesTab onNavigateToOrders={() => setActiveTab('orders')} />
+        )}
+
+        {/* ─── TAB: ORDERS & PAYMENTS ───────────────────────────────────────── */}
+        {activeTab === 'orders' && (
+          <OrdersTab />
+        )}
+
+        {/* ─── TAB: SUBSCRIPTIONS & QUOTAS ──────────────────────────────────── */}
+        {activeTab === 'subscriptions' && (
+          <SubscriptionsTab />
+        )}
+
+        {/* ─── TAB: TEMPLATES & VISUAL STYLES ───────────────────────────────── */}
         {activeTab === 'templates' && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
-                <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-purple-400" />
-                    <span>Global Resume Layout Architectures</span>
-                  </h2>
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Dynamic template management. Instantly change which plan tier unlocks each template, configure industry metadata, or create custom global layouts.
-                  </p>
-                </div>
-                <button
-                  onClick={fetchAdminTemplates}
-                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer self-start md:self-auto border border-zinc-800"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Reload</span>
-                </button>
-              </div>
+          <TemplatesTab />
+        )}
 
-              {templatesLoading ? (
-                <div className="py-20 flex flex-col items-center justify-center gap-3 text-zinc-500">
-                  <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
-                  <span className="text-xs font-mono">Loading layout templates...</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                  {adminTemplates.map((tpl) => {
-                    const isFree = tpl.min_plan_tier === 'free';
-                    const isDayPass = tpl.min_plan_tier === 'day_pass';
-                    const isPro = tpl.min_plan_tier === 'pro_monthly';
-
-                    return (
-                      <div
-                        key={tpl.id}
-                        className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-5 flex flex-col justify-between transition group relative shadow-sm"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold bg-zinc-900 text-zinc-400 border border-zinc-800">
-                              {tpl.category || 'General'}
-                            </span>
-                            <button
-                              onClick={() => handleToggleTemplateActive(tpl)}
-                              className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold cursor-pointer transition ${
-                                tpl.is_active
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
-                                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
-                              }`}
-                              title="Click to toggle visibility"
-                            >
-                              {tpl.is_active ? 'Active' : 'Hidden'}
-                            </button>
-                          </div>
-
-                          <h3 className="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
-                            {tpl.name}
-                          </h3>
-                          <p className="text-[11px] font-mono text-zinc-500 mt-0.5">
-                            key: {tpl.template_key}
-                          </p>
-
-                          <p className="text-xs text-zinc-400 mt-2.5 line-clamp-3 leading-relaxed">
-                            {tpl.description}
-                          </p>
-
-                          {/* Plan Tier Selector */}
-                          <div className="mt-4 p-3 rounded-xl bg-zinc-900 border border-zinc-800/80 space-y-2">
-                            <label className="block text-[11px] font-medium text-zinc-300">
-                              Assigned Access Tier
-                            </label>
-                            <select
-                              value={tpl.min_plan_tier}
-                              onChange={(e) => handleQuickTierChange(tpl.id, e.target.value)}
-                              className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs font-semibold text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                            >
-                              <option value="free">Pagewise Free (Available to all)</option>
-                              <option value="day_pass">Wiser Day Pass &amp; Pro</option>
-                              <option value="pro_monthly">Pagewise Pro Only (Exclusive)</option>
-                            </select>
-                            <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 pt-1">
-                              <span>Live status:</span>
-                              <span className={`font-semibold ${isPro ? 'text-indigo-400' : isDayPass ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                {isPro ? 'Pro Exclusive' : isDayPass ? 'Day Pass Tier' : 'Free Standard'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pt-4 mt-5 border-t border-zinc-800/80 flex items-center justify-between gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingTemplate(tpl);
-                              setTplForm({
-                                name: tpl.name,
-                                template_key: tpl.template_key,
-                                description: tpl.description || '',
-                                category: tpl.category || '',
-                                badge: tpl.badge || '',
-                                min_plan_tier: tpl.min_plan_tier || 'free',
-                                display_order: tpl.display_order || 0,
-                                is_active: tpl.is_active,
-                              });
-                              setTemplateModalOpen(true);
-                            }}
-                            className="flex-1 py-1.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-lg text-xs font-medium transition cursor-pointer flex items-center justify-center gap-1.5 border border-zinc-800"
-                          >
-                            <Edit2 className="w-3 h-3 text-amber-400" />
-                            <span>Edit Metadata</span>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTemplate(tpl.id)}
-                            className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-                            title="Delete template"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+        {/* ─── TAB: AI USAGE & TELEMETRY ────────────────────────────────────── */}
+        {activeTab === 'ai_usage' && (
+          <AIUsageTab />
         )}
 
         {/* ─── TAB 5: PRICING & TIER CONFIGURATION ─────────────────────────────── */}

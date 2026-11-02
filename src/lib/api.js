@@ -618,6 +618,58 @@ export const adminApi = {
     });
   },
 
+  async getFinances() {
+    return fetchAdminApi('/admin/finances');
+  },
+
+  async getOrders(params = {}) {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', params.page);
+    if (params.limit) query.set('limit', params.limit);
+    if (params.status && params.status !== 'all') query.set('status', params.status);
+    if (params.plan_type && params.plan_type !== 'all') query.set('plan_type', params.plan_type);
+    if (params.search) query.set('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return fetchAdminApi(`/admin/orders${qs}`);
+  },
+
+  async getOrderDetail(orderId) {
+    return fetchAdminApi(`/admin/orders/${orderId}`);
+  },
+
+  async getSubscriptions(params = {}) {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', params.page);
+    if (params.limit) query.set('limit', params.limit);
+    if (params.plan_type && params.plan_type !== 'all') query.set('plan_type', params.plan_type);
+    if (params.status && params.status !== 'all') query.set('status', params.status);
+    if (params.search) query.set('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return fetchAdminApi(`/admin/subscriptions${qs}`);
+  },
+
+  async updateSubscription(userId, payload) {
+    return fetchAdminApi(`/admin/subscriptions/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getAIUsageLogs(params = {}) {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', params.page);
+    if (params.limit) query.set('limit', params.limit);
+    if (params.action_type && params.action_type !== 'all') query.set('action_type', params.action_type);
+    if (params.user_id) query.set('user_id', params.user_id);
+    if (params.search) query.set('search', params.search);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return fetchAdminApi(`/admin/ai-usage${qs}`);
+  },
+
+  async getAIUsageStats() {
+    return fetchAdminApi('/admin/ai-usage/stats');
+  },
+
   async getInsights() {
     return fetchAdminApi('/admin/insights');
   },
