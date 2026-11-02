@@ -808,11 +808,11 @@ export default function AdminPage() {
 
         {/* Navigation App Tree */}
         <div className="flex-1 overflow-y-auto px-2 py-4 space-y-5 text-xs">
-          {/* App 1: SYSTEM TELEMETRY */}
+          {/* Section 1: OVERVIEW & TELEMETRY */}
           <div>
             {!sidebarCollapsed && (
               <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
-                Core &amp; Telemetry
+                Overview &amp; Telemetry
               </span>
             )}
             <div className="space-y-0.5">
@@ -828,60 +828,56 @@ export default function AdminPage() {
                 <BarChart3 className="w-4 h-4 shrink-0 text-amber-400" />
                 {!sidebarCollapsed && <span>Platform Insights</span>}
               </button>
-            </div>
-          </div>
-
-          {/* App 2: AUTHENTICATION AND AUTHORIZATION */}
-          <div>
-            {!sidebarCollapsed && (
-              <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
-                Authentication &amp; Access
-              </span>
-            )}
-            <div className="space-y-0.5">
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
-                  activeTab === 'users'
-                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
-                }`}
-                title="User Accounts"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Users className="w-4 h-4 shrink-0 text-sky-400" />
-                  {!sidebarCollapsed && <span>Users &amp; Accounts</span>}
-                </div>
-                {!sidebarCollapsed && (
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
-                    {totalUsers}
-                  </span>
-                )}
-              </button>
 
               <button
-                onClick={() => setActiveTab('security')}
+                onClick={() => setActiveTab('finances')}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
-                  activeTab === 'security'
+                  activeTab === 'finances'
                     ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
                 }`}
-                title="Security & Master Keys"
+                title="Finances & Revenue Telemetry"
               >
-                <KeyRound className="w-4 h-4 shrink-0 text-emerald-400" />
-                {!sidebarCollapsed && <span>Master Credentials</span>}
+                <DollarSign className="w-4 h-4 shrink-0 text-emerald-400" />
+                {!sidebarCollapsed && <span>Finances &amp; Revenue</span>}
               </button>
             </div>
           </div>
 
-          {/* App 3: BILLING & SUBSCRIPTIONS */}
+          {/* Section 2: COMMERCE & BILLING */}
           <div>
             {!sidebarCollapsed && (
               <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
-                Billing &amp; Plans
+                Commerce &amp; Billing
               </span>
             )}
             <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('orders')}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'orders'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Orders & Payment Transactions"
+              >
+                <Receipt className="w-4 h-4 shrink-0 text-amber-400" />
+                {!sidebarCollapsed && <span>Payments &amp; Orders</span>}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('subscriptions')}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'subscriptions'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Subscriptions & Quotas"
+              >
+                <CreditCard className="w-4 h-4 shrink-0 text-sky-400" />
+                {!sidebarCollapsed && <span>Subscriptions</span>}
+              </button>
+
               <button
                 onClick={() => setActiveTab('tiers')}
                 className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
@@ -892,7 +888,7 @@ export default function AdminPage() {
                 title="Pricing & Tiers Matrix"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <CreditCard className="w-4 h-4 shrink-0 text-rose-400" />
+                  <Sliders className="w-4 h-4 shrink-0 text-rose-400" />
                   {!sidebarCollapsed && <span>Pricing &amp; Tiers</span>}
                 </div>
                 {!sidebarCollapsed && (
@@ -904,14 +900,72 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* App 4: RESUME STUDIO & CONTENT */}
+          {/* Section 3: CRM & USERS */}
           <div>
             {!sidebarCollapsed && (
               <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
-                Studio Architecture
+                Customer Accounts (CRM)
               </span>
             )}
             <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'users'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="User Accounts & Permissions"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Users className="w-4 h-4 shrink-0 text-sky-400" />
+                  {!sidebarCollapsed && <span>Customer Accounts</span>}
+                </div>
+                {!sidebarCollapsed && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
+                    {totalUsers}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Section 4: STUDIO & AI INTELLIGENCE */}
+          <div>
+            {!sidebarCollapsed && (
+              <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
+                Studio &amp; AI Intelligence
+              </span>
+            )}
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('templates')}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'templates'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Layout Architectures & Typography Styles"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Layers className="w-4 h-4 shrink-0 text-purple-400" />
+                  {!sidebarCollapsed && <span>Templates &amp; Styles</span>}
+                </div>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('ai_usage')}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'ai_usage'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="AI Token Consumption & Feature Telemetry"
+              >
+                <Cpu className="w-4 h-4 shrink-0 text-indigo-400" />
+                {!sidebarCollapsed && <span>AI Usage &amp; Tokens</span>}
+              </button>
+
               <button
                 onClick={() => setActiveTab('feedbacks')}
                 className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
@@ -931,30 +985,32 @@ export default function AdminPage() {
                   </span>
                 )}
               </button>
+            </div>
+          </div>
 
+          {/* Section 5: ACCESS CONTROL & CREDENTIALS */}
+          <div>
+            {!sidebarCollapsed && (
+              <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
+                Access Control
+              </span>
+            )}
+            <div className="space-y-0.5">
               <button
-                onClick={() => setActiveTab('templates')}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
-                  activeTab === 'templates'
+                onClick={() => setActiveTab('security')}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'security'
                     ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
                 }`}
-                title="Layout Templates"
+                title="Master Credentials & Superuser Security"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Layers className="w-4 h-4 shrink-0 text-purple-400" />
-                  {!sidebarCollapsed && <span>Layout Templates</span>}
-                </div>
-                {!sidebarCollapsed && (
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
-                    {adminTemplates.length}
-                  </span>
-                )}
+                <KeyRound className="w-4 h-4 shrink-0 text-emerald-400" />
+                {!sidebarCollapsed && <span>Master Credentials</span>}
               </button>
             </div>
           </div>
         </div>
-
         {/* Sidebar Footer: View Site & Superuser Info */}
         <div className="shrink-0 border-t border-zinc-800 p-2.5 bg-[#0E1018] space-y-2">
           {!sidebarCollapsed && (
