@@ -38,6 +38,7 @@ import {
   BookmarkPlus,
   MoreVertical,
   Download,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
@@ -202,6 +203,14 @@ function BuilderContent() {
 
     fetchResume();
   }, [resumeQueryId, isAuthenticated, loadResume, router]);
+
+  // Open Wiser AI modal if triggered via URL param (e.g. from Dashboard)
+  const wiserParam = searchParams.get('wiser');
+  useEffect(() => {
+    if ((wiserParam === 'true' || wiserParam === 'ats') && !initialLoading) {
+      setIsJdModalOpen(true);
+    }
+  }, [wiserParam, initialLoading]);
 
   // ─── Auto-Save ─────────────────────────────────────────────────────────────
   const saveResume = useCallback(async () => {
@@ -478,12 +487,12 @@ function BuilderContent() {
           {/* Wiser AI (JD Matching & Standalone ATS) button */}
           <button
             onClick={() => setIsJdModalOpen(true)}
-            className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 border border-orange-500/20 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="bg-[#C88A58]/10 hover:bg-[#C88A58]/20 text-[#D49A6A] border border-[#C88A58]/25 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Launch Wiser AI: Standalone ATS Audit & Job-Targeted ATS Match"
           >
-            <Target className="w-3.5 h-3.5 text-orange-400" />
+            <Target className="w-3.5 h-3.5 text-[#D49A6A]" />
             <span className="hidden sm:inline">Wiser AI</span>
-            <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded font-mono">
+            <span className="text-[10px] bg-[#C88A58]/20 text-[#D49A6A] px-1.5 py-0.5 rounded font-mono">
               ATS
             </span>
           </button>
@@ -491,20 +500,20 @@ function BuilderContent() {
           {/* Pilot Feedback Mail Link */}
           <a
             href="mailto:pagewises@gmail.com?subject=PageWise%20Builder%20Feedback"
-            className="hidden xl:inline-flex items-center gap-1 text-[11px] font-mono text-amber-300 hover:text-white px-2.5 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 transition-colors"
+            className="hidden xl:inline-flex items-center gap-1 text-[11px] font-mono text-[#D49A6A] hover:text-white px-2.5 py-1.5 rounded-xl border border-[#C88A58]/25 bg-[#C88A58]/10 transition-colors"
             title="Pilot Release: Report an edge case or feedback to pagewises@gmail.com"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58] animate-pulse" />
             <span>Pilot Feedback</span>
           </a>
 
           {/* Import PDF */}
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 rounded-xl px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="border border-white/10 text-zinc-300 hover:text-white hover:border-white/20 rounded-xl px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors cursor-pointer bg-white/[0.02]"
             title="Extract & import an existing resume PDF using Wiser AI"
           >
-            <Upload className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 text-[#D49A6A]" />
             <span className="hidden sm:inline">Import PDF</span>
           </button>
 
@@ -881,7 +890,17 @@ function BuilderContent() {
 
       {/* Import PDF Modal */}
       {isImportModalOpen && (
-        <ImportPdfModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} mode="current" />
+        <ImportPdfModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          mode="current"
+          currentResumeId={resumeId}
+          currentResumeName={resumeName}
+          onPlanUpgradeRequest={() => {
+            setIsImportModalOpen(false);
+            setIsPricingModalOpen(true);
+          }}
+        />
       )}
 
       {/* JD Analyzer & Strict ATS Checker Modal (v2.5) */}
@@ -904,7 +923,7 @@ function BuilderContent() {
           <div className="bg-[#111420] border border-white/[0.07] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <BookmarkPlus className="w-4 h-4 text-orange-400" />
+                <BookmarkPlus className="w-4 h-4 text-[#D49A6A]" />
                 <h2 className="text-sm font-semibold text-[#e2e8f0]">Save as Template</h2>
               </div>
               <button
@@ -950,7 +969,7 @@ function BuilderContent() {
               <button
                 onClick={handleSaveTemplate}
                 disabled={isSavingTemplate || !templateName.trim()}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#C88A58] hover:bg-[#B87A47] text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
                 {isSavingTemplate ? (
                   <Loader2 className="w-3 h-3 animate-spin" />

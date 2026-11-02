@@ -37,6 +37,8 @@ import {
   CheckSquare,
   Square,
   ChevronDown,
+  MessageSquare,
+  Star,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -57,6 +59,20 @@ export default function AdminPage() {
 
   // Admin panel state
   const [activeTab, setActiveTab] = useState('insights'); // 'insights' | 'users' | 'security'
+
+  // User Feedbacks state
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [feedbackStats, setFeedbackStats] = useState(null);
+  const [feedbacksLoading, setFeedbacksLoading] = useState(false);
+  const [feedbackCategoryFilter, setFeedbackCategoryFilter] = useState('all');
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState('all');
+  const [feedbackSearch, setFeedbackSearch] = useState('');
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [feedbackTotalPages, setFeedbackTotalPages] = useState(1);
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [feedbackDetailOpen, setFeedbackDetailOpen] = useState(false);
+  const [adminNotesDraft, setAdminNotesDraft] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
   const [insights, setInsights] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
 
@@ -429,14 +445,92 @@ export default function AdminPage() {
     );
   };
 
+  // 6. Fetch Feedbacks & Moderation
+  const fetchFeedbacks = useCallback(async () => {
+    try {
+      setFeedbacksLoading(true);
+      const [listRes, statsRes] = await Promise.all([
+        adminApi.getFeedbacks({
+          category: feedbackCategoryFilter,
+          status: feedbackStatusFilter,
+          search: feedbackSearch,
+          page: feedbackPage,
+          page_size: 15,
+        }),
+        adminApi.getFeedbackStats().catch(() => null),
+      ]);
+      setFeedbacks(listRes?.items || []);
+      setFeedbackTotalPages(listRes?.total_pages || 1);
+      if (statsRes) setFeedbackStats(statsRes);
+    } catch (err) {
+      toast.error('Failed to load feedbacks: ' + err.message);
+    } finally {
+      setFeedbacksLoading(false);
+    }
+  }, [feedbackCategoryFilter, feedbackStatusFilter, feedbackSearch, feedbackPage]);
+
+  const handleUpdateFeedbackStatus = async (feedbackId, newStatus) => {
+    try {
+      await adminApi.updateFeedback(feedbackId, { status: newStatus });
+      setFeedbacks((prev) =>
+        prev.map((f) => (f.id === feedbackId ? { ...f, status: newStatus } : f))
+      );
+      if (selectedFeedback && selectedFeedback.id === feedbackId) {
+        setSelectedFeedback((prev) => ({ ...prev, status: newStatus }));
+      }
+      toast.success(`Status updated to "${newStatus}"!`);
+      const updatedStats = await adminApi.getFeedbackStats().catch(() => null);
+      if (updatedStats) setFeedbackStats(updatedStats);
+    } catch (err) {
+      toast.error('Failed to update status: ' + err.message);
+    }
+  };
+
+  const handleSaveAdminNotes = async () => {
+    if (!selectedFeedback) return;
+    try {
+      setSavingNotes(true);
+      const updated = await adminApi.updateFeedback(selectedFeedback.id, {
+        admin_notes: adminNotesDraft,
+      });
+      setFeedbacks((prev) =>
+        prev.map((f) => (f.id === selectedFeedback.id ? { ...f, admin_notes: adminNotesDraft } : f))
+      );
+      setSelectedFeedback(updated);
+      toast.success('Internal notes saved!');
+    } catch (err) {
+      toast.error('Failed to save notes: ' + err.message);
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const handleDeleteFeedback = async (feedbackId) => {
+    if (!window.confirm('Delete this feedback record permanently?')) return;
+    try {
+      await adminApi.deleteFeedback(feedbackId);
+      setFeedbacks((prev) => prev.filter((f) => f.id !== feedbackId));
+      if (selectedFeedback && selectedFeedback.id === feedbackId) {
+        setFeedbackDetailOpen(false);
+        setSelectedFeedback(null);
+      }
+      toast.success('Feedback deleted.');
+      const updatedStats = await adminApi.getFeedbackStats().catch(() => null);
+      if (updatedStats) setFeedbackStats(updatedStats);
+    } catch (err) {
+      toast.error('Failed to delete feedback: ' + err.message);
+    }
+  };
+
   useEffect(() => {
     if (adminUser) {
       fetchInsights();
       fetchUsers();
       fetchAdminTemplates();
       fetchAdminTiers();
+      fetchFeedbacks();
     }
-  }, [adminUser, fetchInsights, fetchUsers, fetchAdminTemplates, fetchAdminTiers]);
+  }, [adminUser, fetchInsights, fetchUsers, fetchAdminTemplates, fetchAdminTiers, fetchFeedbacks]);
 
   // Handle dedicated Admin Login
   const handleAdminLogin = async (e) => {
@@ -810,6 +904,26 @@ export default function AdminPage() {
             )}
             <div className="space-y-0.5">
               <button
+                onClick={() => setActiveTab('feedbacks')}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'feedbacks'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="User Feedback & Pilot Reports"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <MessageSquare className="w-4 h-4 shrink-0 text-[#D49A6A]" />
+                  {!sidebarCollapsed && <span>User Feedbacks</span>}
+                </div>
+                {!sidebarCollapsed && feedbackStats && feedbackStats.new_count > 0 && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                    {feedbackStats.new_count} new
+                  </span>
+                )}
+              </button>
+
+              <button
                 onClick={() => setActiveTab('templates')}
                 className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
                   activeTab === 'templates'
@@ -895,6 +1009,7 @@ export default function AdminPage() {
               {activeTab === 'security' && 'Security & Access Control'}
               {activeTab === 'templates' && 'Resume Studio Content'}
               {activeTab === 'tiers' && 'Billing & Subscriptions'}
+              {activeTab === 'feedbacks' && 'User Telemetry & Feedback'}
             </span>
             <span className="text-zinc-600">›</span>
             <span className="text-amber-400 font-semibold font-sans">
@@ -903,6 +1018,7 @@ export default function AdminPage() {
               {activeTab === 'security' && 'Master Credentials'}
               {activeTab === 'templates' && 'Layout Architectures'}
               {activeTab === 'tiers' && 'Pricing Tiers Config'}
+              {activeTab === 'feedbacks' && 'User Feedbacks & Pilot Reports'}
             </span>
           </div>
 
@@ -2062,8 +2178,391 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* ─── TAB: USER FEEDBACKS & PILOT REPORTS ──────────────────────────── */}
+        {activeTab === 'feedbacks' && (
+          <div className="space-y-6">
+            {/* Telemetry Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+                <span className="text-xs font-mono uppercase tracking-wider text-zinc-500">Total Feedbacks</span>
+                <p className="text-3xl font-extrabold text-white mt-2 leading-none">
+                  {feedbackStats?.total ?? 0}
+                </p>
+                <p className="text-[11px] text-zinc-400 mt-2">All submitted reviews &amp; reports</p>
+              </div>
+
+              <div className="bg-zinc-950 border border-amber-500/25 rounded-2xl p-5 bg-gradient-to-b from-amber-950/10 to-zinc-950">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono uppercase tracking-wider text-amber-400">New / Unreviewed</span>
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                </div>
+                <p className="text-3xl font-extrabold text-amber-300 mt-2 leading-none">
+                  {feedbackStats?.new_count ?? 0}
+                </p>
+                <p className="text-[11px] text-zinc-400 mt-2">Needs triage or review</p>
+              </div>
+
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5">
+                <span className="text-xs font-mono uppercase tracking-wider text-zinc-500">Average Rating</span>
+                <p className="text-3xl font-extrabold text-white mt-2 leading-none flex items-center gap-2">
+                  <span>{feedbackStats?.avg_rating ? `${feedbackStats.avg_rating}` : '—'}</span>
+                  {feedbackStats?.avg_rating && <Star className="w-5 h-5 text-amber-400 fill-amber-400" />}
+                </p>
+                <p className="text-[11px] text-zinc-400 mt-2">Across rated submissions (1-5★)</p>
+              </div>
+
+              <div className="bg-zinc-950 border border-emerald-500/20 rounded-2xl p-5">
+                <span className="text-xs font-mono uppercase tracking-wider text-emerald-400">Resolved</span>
+                <p className="text-3xl font-extrabold text-white mt-2 leading-none">
+                  {feedbackStats?.resolved_count ?? 0}
+                </p>
+                <p className="text-[11px] text-zinc-400 mt-2">Bugs &amp; requests addressed</p>
+              </div>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1 max-w-md">
+                <div className="relative w-full">
+                  <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={feedbackSearch}
+                    onChange={(e) => {
+                      setFeedbackSearch(e.target.value);
+                      setFeedbackPage(1);
+                    }}
+                    placeholder="Search by keyword, subject, user or email..."
+                    className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={feedbackCategoryFilter}
+                  onChange={(e) => {
+                    setFeedbackCategoryFilter(e.target.value);
+                    setFeedbackPage(1);
+                  }}
+                  className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="pilot_feedback">Pilot Feedback</option>
+                  <option value="bug">Bug Report</option>
+                  <option value="feature_request">Feature Request</option>
+                  <option value="wiser_ai">Wiser AI</option>
+                  <option value="general">General</option>
+                </select>
+
+                <select
+                  value={feedbackStatusFilter}
+                  onChange={(e) => {
+                    setFeedbackStatusFilter(e.target.value);
+                    setFeedbackPage(1);
+                  }}
+                  className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="new">New</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="archived">Archived</option>
+                </select>
+
+                <button
+                  onClick={fetchFeedbacks}
+                  className="p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-400 hover:text-white transition cursor-pointer"
+                  title="Refresh list"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Feedbacks List */}
+            {feedbacksLoading ? (
+              <div className="py-20 flex justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+              </div>
+            ) : feedbacks.length === 0 ? (
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-12 text-center text-zinc-500">
+                <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-40 text-amber-400" />
+                <p className="text-sm font-semibold text-zinc-300">No feedbacks match your filter criteria.</p>
+                <p className="text-xs text-zinc-500 mt-1">Submitted in-app user feedbacks will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {feedbacks.map((fb) => {
+                  const ratingVal = fb.rating;
+                  const isNew = fb.status === 'new';
+
+                  return (
+                    <div
+                      key={fb.id}
+                      className={`bg-zinc-950 border rounded-2xl p-5 transition-all space-y-3 ${
+                        isNew
+                          ? 'border-amber-500/30 bg-gradient-to-r from-amber-950/10 via-zinc-950 to-zinc-950'
+                          : 'border-zinc-800/80 hover:border-zinc-700'
+                      }`}
+                    >
+                      {/* Top Row: Category, Rating, Status, Date */}
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className="px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-wider"
+                            style={{
+                              background: 'rgba(200, 138, 88, 0.15)',
+                              color: '#D49A6A',
+                              border: '1px solid rgba(200, 138, 88, 0.3)',
+                            }}
+                          >
+                            {fb.category.replace('_', ' ')}
+                          </span>
+
+                          {ratingVal && (
+                            <div className="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                              <span>{ratingVal}★</span>
+                            </div>
+                          )}
+
+                          <select
+                            value={fb.status}
+                            onChange={(e) => handleUpdateFeedbackStatus(fb.id, e.target.value)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold uppercase cursor-pointer border focus:outline-none ${
+                              fb.status === 'new'
+                                ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                : fb.status === 'reviewed'
+                                ? 'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                                : fb.status === 'in_progress'
+                                ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                                : fb.status === 'resolved'
+                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                            }`}
+                          >
+                            <option value="new">● New</option>
+                            <option value="reviewed">● Reviewed</option>
+                            <option value="in_progress">● In Progress</option>
+                            <option value="resolved">● Resolved</option>
+                            <option value="archived">● Archived</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs text-zinc-500 font-mono">
+                          <span>{new Date(fb.created_at).toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Content Row */}
+                      <div>
+                        {fb.title && (
+                          <h4 className="text-sm font-bold text-white mb-1">
+                            {fb.title}
+                          </h4>
+                        )}
+                        <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                          {fb.message}
+                        </p>
+                      </div>
+
+                      {/* Submitter & Metadata Row */}
+                      <div className="pt-2 border-t border-zinc-900 flex items-center justify-between gap-3 flex-wrap text-xs">
+                        <div className="flex items-center gap-3 text-zinc-400 flex-wrap">
+                          <span className="font-semibold text-zinc-200">
+                            {fb.user_name || fb.email || 'Anonymous / Guest'}
+                          </span>
+                          {fb.user_email && fb.user_name && (
+                            <span className="text-zinc-500 font-mono text-[11px]">({fb.user_email})</span>
+                          )}
+                          {fb.ip_address && (
+                            <span className="text-zinc-600 font-mono text-[10px]">IP: {fb.ip_address}</span>
+                          )}
+                          {fb.metadata_json?.path && (
+                            <span className="text-zinc-500 font-mono text-[10px] px-1.5 py-0.2 rounded bg-zinc-900 border border-zinc-800">
+                              Route: {fb.metadata_json.path}
+                            </span>
+                          )}
+                          {fb.admin_notes && (
+                            <span className="text-sky-400 text-[11px] italic line-clamp-1 max-w-xs">
+                              Note: {fb.admin_notes}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedFeedback(fb);
+                              setAdminNotesDraft(fb.admin_notes || '');
+                              setFeedbackDetailOpen(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-800 transition cursor-pointer"
+                          >
+                            Inspect Details
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteFeedback(fb.id)}
+                            className="p-1 text-zinc-600 hover:text-rose-400 transition cursor-pointer"
+                            title="Delete permanently"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Pagination */}
+                {feedbackTotalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 text-xs text-zinc-400">
+                    <button
+                      disabled={feedbackPage <= 1}
+                      onClick={() => setFeedbackPage((p) => Math.max(1, p - 1))}
+                      className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:text-white disabled:opacity-40 transition cursor-pointer"
+                    >
+                      ← Previous
+                    </button>
+                    <span className="font-mono">
+                      Page {feedbackPage} of {feedbackTotalPages}
+                    </span>
+                    <button
+                      disabled={feedbackPage >= feedbackTotalPages}
+                      onClick={() => setFeedbackPage((p) => Math.min(feedbackTotalPages, p + 1))}
+                      className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:text-white disabled:opacity-40 transition cursor-pointer"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </main>
       </div>
+
+            {/* ─── FEEDBACK DETAIL & ADMIN NOTES MODAL ────────────────────────── */}
+      {feedbackDetailOpen && selectedFeedback && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden p-6 text-white space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">
+                  Feedback Inspection #{selectedFeedback.id}
+                </span>
+                <h3 className="text-base font-extrabold text-white mt-0.5">
+                  {selectedFeedback.title || 'User Submission'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setFeedbackDetailOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Meta Tags */}
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                {selectedFeedback.category.replace('_', ' ')}
+              </span>
+              {selectedFeedback.rating && (
+                <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  {selectedFeedback.rating} ★ Rating
+                </span>
+              )}
+              <span className="text-zinc-400 text-[11px] font-mono">
+                {new Date(selectedFeedback.created_at).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Submitter Info */}
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400">User / Submitter:</span>
+                <span className="text-white font-semibold">
+                  {selectedFeedback.user_name || selectedFeedback.email || 'Anonymous / Guest'}
+                </span>
+              </div>
+              {selectedFeedback.user_email && (
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span>Registered Email:</span>
+                  <span className="font-mono text-zinc-300">{selectedFeedback.user_email}</span>
+                </div>
+              )}
+              {selectedFeedback.ip_address && (
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span>Client IP:</span>
+                  <span className="font-mono text-zinc-500">{selectedFeedback.ip_address}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Message Body */}
+            <div>
+              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                Feedback Message
+              </label>
+              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                {selectedFeedback.message}
+              </div>
+            </div>
+
+            {/* Client Telemetry Metadata */}
+            {selectedFeedback.metadata_json && Object.keys(selectedFeedback.metadata_json).length > 0 && (
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                  Client Environment Metadata
+                </label>
+                <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] font-mono text-zinc-400 max-h-24 overflow-y-auto">
+                  {JSON.stringify(selectedFeedback.metadata_json, null, 2)}
+                </div>
+              </div>
+            )}
+
+            {/* Admin Notes Section */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                  Admin Internal Notes
+                </label>
+                <button
+                  type="button"
+                  disabled={savingNotes}
+                  onClick={handleSaveAdminNotes}
+                  className="text-xs text-amber-400 hover:text-amber-300 font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  {savingNotes ? 'Saving...' : 'Save Notes'}
+                </button>
+              </div>
+              <textarea
+                value={adminNotesDraft}
+                onChange={(e) => setAdminNotesDraft(e.target.value)}
+                placeholder="Internal notes for other admins (e.g., ticket ID, fix status, follow-up notes)..."
+                rows={3}
+                className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setFeedbackDetailOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-white cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── ADD / EDIT USER MODAL ─────────────────────────────────────────── */}
       {userModalOpen && (

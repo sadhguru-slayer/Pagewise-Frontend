@@ -10,6 +10,8 @@ import { RESUME_TEMPLATES as builtInTemplates } from '@/lib/resume/templates';
 import { defaultHeader, defaultSections, defaultSettings } from '@/lib/resume/defaults';
 import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
+import JDAnalyzerModal from '@/components/resume-builder/JDAnalyzerModal';
+import FeedbackModal from '@/components/feedback/FeedbackModal';
 import Modal from '@/components/ui/Modal';
 import PilotBanner from '@/components/ui/PilotBanner';
 import PricingModal from '@/components/pricing/PricingModal';
@@ -23,6 +25,7 @@ import {
   Palette,
   BarChart3,
   Settings,
+  MessageSquare,
   LogOut,
   Plus,
   Upload,
@@ -204,7 +207,7 @@ function ResourceBar({
 }
 
 // ─── Sidebar Navigation ───────────────────────────────────────────────────────
-function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planStatus }) {
+function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpenFeedback, planStatus }) {
   const navItems = [
     { id: 'home', label: 'Overview', icon: Home },
     { id: 'resumes', label: 'My Resumes', icon: FileText },
@@ -311,6 +314,14 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
 
         {/* User & Settings Section */}
         <div className="px-3 pb-3 space-y-1.5">
+          <button
+            onClick={onOpenFeedback}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.04] transition-all cursor-pointer text-left"
+          >
+            <MessageSquare className="w-4 h-4 text-[#D49A6A]" />
+            <span>Give Feedback</span>
+          </button>
+
           <Link
             href="/settings"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.04] transition-all"
@@ -382,6 +393,10 @@ export default function DashboardPage() {
   // Modals & Actions
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isWiserModalOpen, setIsWiserModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [selectedResumeForWiser, setSelectedResumeForWiser] = useState(null);
+  const [wiserTargetResumeId, setWiserTargetResumeId] = useState(null);
   const [newResumeName, setNewResumeName] = useState('Senior Engineer Resume');
   const [systemTemplates, setSystemTemplates] = useState(builtInTemplates);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState(builtInTemplates[0].id);
@@ -648,6 +663,7 @@ export default function DashboardPage() {
         user={user}
         onLogout={logout}
         onOpenUpgrade={() => setPricingModalOpen(true)}
+        onOpenFeedback={() => setIsFeedbackModalOpen(true)}
         planStatus={planStatus}
       />
 
@@ -701,24 +717,37 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Primary Action Buttons */}
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setPricingModalOpen(true)}
-                    className="flex items-center px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700"
-                  >
-                    <span>{planStatus?.plan_name || 'Upgrade Plan'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsImportModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border hover:border-white/20 text-[#F1F3F9]"
+                    onClick={() => {
+                      setSelectedResumeForWiser(null);
+                      setIsImportModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border hover:border-white/20 text-[#EDEDF2] hover:bg-white/[0.04]"
                     style={{
                       background: BRAND_CONFIG.colors.surfaceCard,
                       borderColor: BRAND_CONFIG.colors.borderSubtle,
                     }}
+                    title="Upload and parse an existing PDF resume"
                   >
-                    <Upload className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Import PDF</span>
+                    <Upload className="w-3.5 h-3.5 text-[#7E869B]" />
+                    <span>Upload PDF</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setWiserTargetResumeId(null);
+                      setIsWiserModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border hover:border-white/20 text-[#EDEDF2] hover:bg-white/[0.04]"
+                    style={{
+                      background: BRAND_CONFIG.colors.surfaceCard,
+                      borderColor: BRAND_CONFIG.colors.borderSubtle,
+                    }}
+                    title="Launch Wiser AI Job Description matching and strict ATS compliance audit"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: BRAND_CONFIG.colors.primary }} />
+                    <span>Wiser AI (JD + ATS)</span>
                   </button>
 
                   <button
@@ -726,16 +755,66 @@ export default function DashboardPage() {
                       setNewResumeName('Senior Engineer Resume');
                       setIsCreateModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-all cursor-pointer hover:opacity-95"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all cursor-pointer hover:opacity-95 shadow-sm"
                     style={{
-                      background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                      boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
+                      background: BRAND_CONFIG.colors.primary,
                     }}
                   >
                     <Plus className="w-4 h-4" />
                     <span>New Resume</span>
                   </button>
                 </div>
+              </div>
+
+              {/* Minimal Clean Wiser AI Strip */}
+              <div
+                className="rounded-2xl p-4 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors"
+                style={{
+                  background: BRAND_CONFIG.colors.surfaceCard,
+                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      background: BRAND_CONFIG.colors.primarySurface,
+                      border: `1px solid ${BRAND_CONFIG.colors.primaryBorder}`,
+                      color: BRAND_CONFIG.colors.primary,
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold text-[#EDEDF2]">
+                        Wiser AI Career Intelligence (JD + ATS)
+                      </span>
+                      <span className="text-[10px] font-mono text-[#8E94A5]">
+                        {planStatus?.remaining?.wiser_ai_combined ?? planStatus?.remaining?.wiser_job_help ?? 0} evaluations left
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#7E869B] mt-0.5 truncate">
+                      Match keywords against target Job Descriptions, audit ATS compliance scores, and generate quantified bullet points.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setWiserTargetResumeId(null);
+                    setIsWiserModalOpen(true);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer self-start sm:self-auto shrink-0 flex items-center gap-1.5 shadow-sm hover:opacity-95"
+                  style={{
+                    background: BRAND_CONFIG.colors.primarySurface,
+                    color: BRAND_CONFIG.colors.primary,
+                    border: `1px solid ${BRAND_CONFIG.colors.primaryBorder}`,
+                  }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Audit Resume (JD + ATS)</span>
+                </button>
               </div>
 
               {/* Quick Workspace Stats Header */}
@@ -897,6 +976,16 @@ export default function DashboardPage() {
 
                           <div className="flex items-center gap-1">
                             <button
+                              onClick={() => {
+                                setWiserTargetResumeId(resume.id);
+                                setIsWiserModalOpen(true);
+                              }}
+                              title="Audit with Wiser AI (JD Matching & ATS)"
+                              className="p-1.5 text-[#7E869B] hover:text-[#D49A6A] hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </button>
+                            <button
                               onClick={() => handleQuickExportPdf(resume.id)}
                               disabled={exportingId === resume.id}
                               title="Quick PDF Export (Recommended)"
@@ -1021,9 +1110,17 @@ export default function DashboardPage() {
                             </div>
 
                             {score !== null && score !== undefined && (
-                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold border ${badgeCls}`}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWiserTargetResumeId(resume.id);
+                                  setIsWiserModalOpen(true);
+                                }}
+                                className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold border transition cursor-pointer hover:opacity-90 ${badgeCls}`}
+                                title="Click to view ATS score breakdown and keyword audit"
+                              >
                                 ATS {Math.round(score)}%
-                              </span>
+                              </button>
                             )}
                           </div>
 
@@ -1066,6 +1163,16 @@ export default function DashboardPage() {
                           </div>
 
                           <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setWiserTargetResumeId(resume.id);
+                                setIsWiserModalOpen(true);
+                              }}
+                              title="Audit with Wiser AI (JD Matching & ATS)"
+                              className="p-1.5 text-[#7E869B] hover:text-[#D49A6A] hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               onClick={() => handleQuickExportPdf(resume.id)}
                               disabled={exportingId === resume.id}
@@ -2021,17 +2128,46 @@ export default function DashboardPage() {
         </form>
       </Modal>
 
-      {/* ── MODAL: IMPORT PDF ──────────────────────────────────────────────── */}
+      {/* ── MODAL: WISER AI RESUME BUILDER & IMPORTER ──────────────────── */}
       {isImportModalOpen && (
         <ImportPdfModal
           isOpen={isImportModalOpen}
           onClose={() => {
             setIsImportModalOpen(false);
+            setSelectedResumeForWiser(null);
             loadDashboardData();
           }}
-          mode="new"
+          mode={selectedResumeForWiser ? 'existing' : 'new'}
+          resumesList={resumes}
+          currentResumeId={selectedResumeForWiser}
+          onPlanUpgradeRequest={() => {
+            setIsImportModalOpen(false);
+            setPricingModalOpen(true);
+          }}
         />
       )}
+
+      {/* ── MODAL: WISER AI (JD + ATS) AUDIT & INTELLIGENCE ──────────────── */}
+      {isWiserModalOpen && (
+        <JDAnalyzerModal
+          isOpen={isWiserModalOpen}
+          onClose={() => {
+            setIsWiserModalOpen(false);
+            setWiserTargetResumeId(null);
+            loadDashboardData();
+          }}
+          targetResume={resumes.find((r) => r.id === wiserTargetResumeId) || resumes[0]}
+          allResumes={resumes}
+        />
+      )}
+
+      {/* ── MODAL: IN-HOUSE USER FEEDBACK ───────────────────────────────── */}
+      <FeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        initialCategory="pilot_feedback"
+        contextMetadata={{ source: 'dashboard' }}
+      />
 
       {/* ── MODAL: PRICING & RAZORPAY UPGRADE ────────────────────────────── */}
       <PricingModal

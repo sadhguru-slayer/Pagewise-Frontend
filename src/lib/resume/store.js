@@ -194,6 +194,12 @@ export const useResumeStore = create(
         isDirty: true,
       })),
 
+    replaceSections: (nextSections) =>
+      set({
+        sections: Array.isArray(nextSections) ? nextSections : [],
+        isDirty: true,
+      }),
+
     updateSectionSettings: (id, patch) =>
       set((s) => ({
         sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)),

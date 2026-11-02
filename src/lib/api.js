@@ -296,12 +296,13 @@ export const resumesApi = {
     });
   },
 
-  async parsePdf({ file, createResume = false, resumeName = '' }) {
+  async parsePdf({ file, createResume = false, resumeName = '', targetResumeId = null }) {
     const token = getToken();
     const formData = new FormData();
     formData.append('file', file);
     if (createResume) formData.append('create_resume', 'true');
     if (resumeName) formData.append('resume_name', resumeName);
+    if (targetResumeId) formData.append('target_resume_id', String(targetResumeId));
 
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -340,7 +341,7 @@ export const resumesApi = {
         resume_id: resumeId || null,
         job_description: jobDescription,
         current_resume_override: currentResumeOverride,
-        include_all_user_resumes: true,
+        include_all_user_resumes: false,
       }),
     });
   },
@@ -369,7 +370,7 @@ export const resumesApi = {
     });
   },
 
-  async cloneResume(resumeId, { newName, targetJobTitle, targetCompany, targetJobDescription, targetAtsScore } = {}) {
+  async cloneResume(resumeId, { newName, targetJobTitle, targetCompany, targetJobDescription, targetAtsScore, applyToExisting, jdAnalysisJson } = {}) {
     return fetchApi(`/resumes/${resumeId}/clone`, {
       method: 'POST',
       body: JSON.stringify({
@@ -378,6 +379,8 @@ export const resumesApi = {
         target_company: targetCompany || null,
         target_job_description: targetJobDescription || null,
         target_ats_score: targetAtsScore || null,
+        apply_to_existing: Boolean(applyToExisting),
+        jd_analysis_json: jdAnalysisJson || {},
       }),
     });
   },
@@ -675,6 +678,50 @@ export const adminApi = {
         plan_type: planType,
       }),
     });
+  },
+
+  async getFeedbacks(params = {}) {
+    const query = new URLSearchParams();
+    if (params.category && params.category !== 'all') query.set('category', params.category);
+    if (params.status && params.status !== 'all') query.set('status', params.status);
+    if (params.search) query.set('search', params.search);
+    if (params.page) query.set('page', params.page);
+    if (params.page_size) query.set('page_size', params.page_size);
+    if (params.sort_by) query.set('sort_by', params.sort_by);
+    if (params.sort_order) query.set('sort_order', params.sort_order);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return fetchAdminApi(`/admin/feedback${qs}`);
+  },
+
+  async getFeedbackStats() {
+    return fetchAdminApi('/admin/feedback/stats');
+  },
+
+  async updateFeedback(feedbackId, payload) {
+    return fetchAdminApi(`/admin/feedback/${feedbackId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteFeedback(feedbackId) {
+    return fetchAdminApi(`/admin/feedback/${feedbackId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ─── Feedback API (In-House Feedback System) ───────────────────────────────
+export const feedbackApi = {
+  async submit(payload) {
+    return fetchApi('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getMyFeedback() {
+    return fetchApi('/feedback/my');
   },
 };
 
