@@ -42,6 +42,9 @@ import {
   ArrowUpRight,
   Bookmark,
   Check,
+  Activity,
+  ShieldCheck,
+  Database,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -112,29 +115,84 @@ function MetricCard({ icon: Icon, value, label, subtext, highlightColor }) {
   );
 }
 
-// ─── Precision Progress Track ────────────────────────────────────────────────
-function ResourceBar({ label, value, max = 10, unit = '' }) {
-  const pct = max ? Math.min(100, Math.round((value / max) * 100)) : 25;
+// ─── Precision Progress Track (Supports Dual Bar / Bar-Over-Bar) ──────────────
+function ResourceBar({
+  label,
+  value,
+  primaryValue,
+  secondaryValue,
+  max = 10,
+  unit = '',
+  primaryColor = '#D97706',
+  secondaryColor = '#10B981',
+}) {
+  const actualPrimary = primaryValue !== undefined ? primaryValue : (value ?? 0);
+  const actualSecondary = secondaryValue;
+
+  const safeMax = Math.max(max, actualPrimary, actualSecondary ?? 0, 1);
+  const primaryPct = Math.min(100, Math.round((actualPrimary / safeMax) * 100));
+  const secondaryPct = actualSecondary !== undefined
+    ? Math.min(100, Math.round((actualSecondary / safeMax) * 100))
+    : 0;
+
+  const isDualLayer = actualSecondary !== undefined;
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
         <span className="text-[#F1F3F9] font-medium">{label}</span>
-        <span className="text-[#7E869B] font-mono">
-          {value} {unit}
-        </span>
+        <div className="flex items-center gap-2 font-mono">
+          <span className="text-white font-bold">
+            {actualPrimary} <span className="text-[#7E869B] font-normal">{unit}</span>
+          </span>
+          {isDualLayer && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              {actualSecondary} active
+            </span>
+          )}
+        </div>
       </div>
-      <div
-        className="h-1.5 rounded-full overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.06)' }}
-      >
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${pct}%`,
-            background: `linear-gradient(90deg, ${BRAND_CONFIG.colors.primary}, #F59E0B)`,
-          }}
-        />
+
+      {/* Dual Bar Track (Bar-over-bar) */}
+      <div className="relative h-2 rounded-full overflow-hidden bg-white/[0.06]">
+        {/* Layer 1: Cumulative Footprint / Total Generated (Base layer in distinct amber/accent tone) */}
+        {actualPrimary > 0 && (
+          <div
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+            style={{
+              width: `${Math.max(primaryPct, 3)}%`,
+              background: isDualLayer ? 'rgba(217, 119, 6, 0.4)' : `linear-gradient(90deg, ${primaryColor}, #F59E0B)`,
+              borderRight: isDualLayer ? '1px solid rgba(245, 158, 11, 0.8)' : 'none',
+            }}
+          />
+        )}
+
+        {/* Layer 2: Active Assets in Studio (Overlay layer rendered over base bar) */}
+        {isDualLayer && actualSecondary > 0 && (
+          <div
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+            style={{
+              width: `${Math.max(secondaryPct, 2)}%`,
+              background: `linear-gradient(90deg, ${secondaryColor}, #34D399)`,
+              boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)',
+            }}
+          />
+        )}
       </div>
+
+      {/* Dual Layer Indicator Legend */}
+      {isDualLayer && (
+        <div className="flex items-center justify-between text-[10px] text-[#7E869B] font-mono pt-0.5">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Active in workspace: <strong className="text-white font-medium">{actualSecondary}</strong></span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500/70" />
+            <span>Total generated: <strong className="text-white font-medium">{actualPrimary}</strong></span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -460,6 +518,7 @@ export default function DashboardPage() {
   const wiserJobHelps = Math.max(usageStats?.wiser_job_helps_count ?? 0, targetedCount);
   const wiserAtsChecks = usageStats?.wiser_ats_checks_count ?? 0;
   const wiserTotal = usageStats?.wiser_total_invocations ?? (wiserJobHelps + wiserAtsChecks);
+  const lifetimeWiserTotal = Math.max(usageStats?.lifetime_wiser_invocations ?? 0, wiserTotal);
 
   const recentResumes = [...resumes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 4);
 
@@ -534,47 +593,18 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Analytics & Billing Period Filter */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#111319] border border-white/[0.07]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-white tracking-tight">
-                        Analytics Period: {usageStats?.period_label || 'All Time'}
-                      </span>
-                      {loadingStats && <Loader2 className="w-3 h-3 animate-spin text-amber-500" />}
-                    </div>
-                    <p className="text-[11px] text-[#7E869B] font-mono">
-                      {usageStats?.period_start
-                        ? `${new Date(usageStats.period_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${
-                            usageStats?.period_end
-                              ? new Date(usageStats.period_end).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                              : 'Now'
-                          }`
-                        : 'Cumulative all-time usage history across all workspaces'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 bg-[#161922] p-1 rounded-xl border border-white/[0.08] overflow-x-auto">
-                  {BILLING_PERIODS.map((bp) => (
-                    <button
-                      key={bp.key}
-                      onClick={() => handleSelectPeriod(bp.key)}
-                      disabled={loadingStats}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                        selectedPeriod === bp.key
-                          ? 'bg-amber-500 text-black shadow-md font-bold'
-                          : 'text-[#7E869B] hover:text-white'
-                      }`}
-                    >
-                      {bp.label}
-                    </button>
-                  ))}
-                </div>
+              {/* Quick Workspace Stats Header */}
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#7E869B]">
+                  Workspace Quick Metrics
+                </span>
+                <button
+                  onClick={() => setActiveTab('usage')}
+                  className="text-xs text-amber-500 hover:text-amber-400 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span>Intelligence &amp; Usage Telemetry</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
               {/* Bento Metric Matrix */}
@@ -589,26 +619,22 @@ export default function DashboardPage() {
                 <MetricCard
                   icon={Cpu}
                   value={wiserTotal}
-                  label={selectedPeriod === 'all' ? 'Wiser AI Actions' : `Wiser AI (${usageStats?.period_label || 'Period'})`}
-                  subtext={
-                    selectedPeriod === 'all'
-                      ? `${wiserJobHelps} JD + ${wiserAtsChecks} ATS checks`
-                      : `${wiserJobHelps} JD + ${wiserAtsChecks} ATS in cycle (${usageStats?.lifetime_wiser_invocations ?? wiserTotal} lifetime)`
-                  }
+                  label="Wiser AI Actions"
+                  subtext={`${lifetimeWiserTotal} lifetime invocations`}
                   highlightColor="#F59E0B"
                 />
                 <MetricCard
                   icon={Palette}
                   value={templateCount}
                   label="Available Formats"
-                  subtext={`${builtInTemplates.length} Standard + ${userTemplates.length} Custom (${totalCustomTemplates} total)`}
+                  subtext={`${builtInTemplates.length} Standard + ${userTemplates.length} Custom`}
                   highlightColor="#10B981"
                 />
                 <MetricCard
                   icon={Download}
-                  value={exportCount}
-                  label="Active Exports"
-                  subtext={`${totalExports} lifetime generated`}
+                  value={totalExports}
+                  label="Verified Exports"
+                  subtext={`${exportCount} active in workspace`}
                   highlightColor="#E2E8F0"
                 />
               </div>
@@ -1181,17 +1207,103 @@ export default function DashboardPage() {
           {/* ── 4. USAGE & INTELLIGENCE TAB ──────────────────────────────────── */}
           {activeTab === 'usage' && (
             <div className="space-y-6">
-              <div className="pb-5 border-b border-white/[0.06]">
-                <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
-                  Resource Intelligence &amp; Quotas
-                </h1>
-                <p className="text-xs text-[#7E869B] mt-1">
-                  Track career asset utilization and ATS scanning throughput.
-                </p>
+              {/* Header with Duration Filter */}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+                <div>
+                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                    Intelligence &amp; Usage Telemetry
+                  </h1>
+                  <p className="text-xs text-[#7E869B] mt-1">
+                    Audited resource quotas, billing duration breakdown, and Wiser AI engine telemetry.
+                  </p>
+                </div>
+
+                {/* Primary Duration / Billing Cycle Filter */}
+                <div className="flex items-center gap-1.5 bg-[#12141D] p-1.5 rounded-2xl border border-white/[0.08] self-start lg:self-auto overflow-x-auto max-w-full">
+                  {BILLING_PERIODS.map((bp) => (
+                    <button
+                      key={bp.key}
+                      onClick={() => handleSelectPeriod(bp.key)}
+                      disabled={loadingStats}
+                      className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                        selectedPeriod === bp.key
+                          ? 'bg-amber-500 text-black shadow-lg font-bold'
+                          : 'text-[#7E869B] hover:text-white hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      {bp.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Active Duration Status Banner */}
+              <div className="p-4 rounded-2xl bg-[#111319] border border-white/[0.07] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white tracking-tight">
+                        Active Timeframe: {usageStats?.period_label || 'All Time'}
+                      </span>
+                      {loadingStats && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />}
+                    </div>
+                    <p className="text-[11px] text-[#7E869B] font-mono mt-0.5">
+                      {usageStats?.period_start
+                        ? `${new Date(usageStats.period_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${
+                            usageStats?.period_end
+                              ? new Date(usageStats.period_end).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                              : 'Present'
+                          } (UTC)`
+                        : 'Cumulative all-time workspace ledger history'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-white/[0.04] text-[#9DA4B7] border border-white/[0.07]">
+                    Ledger Status: <span className="text-emerald-400 font-semibold">Active &amp; Verified</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Bento Metric Matrix for the selected duration */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                  icon={FileText}
+                  value={selectedPeriod === 'all' ? totalResumes : (usageStats?.period_resumes_created ?? 0)}
+                  label={selectedPeriod === 'all' ? 'Master Resumes' : `Resumes (${usageStats?.period_label || 'Period'})`}
+                  subtext={`${resumeCount} active in studio`}
+                  highlightColor="#D97706"
+                />
+                <MetricCard
+                  icon={Cpu}
+                  value={wiserTotal}
+                  label={selectedPeriod === 'all' ? 'Wiser AI Actions' : `Wiser AI (${usageStats?.period_label || 'Period'})`}
+                  subtext={`${wiserJobHelps} JD + ${wiserAtsChecks} ATS checks`}
+                  highlightColor="#F59E0B"
+                />
+                <MetricCard
+                  icon={Download}
+                  value={selectedPeriod === 'all' ? totalExports : (usageStats?.period_exports_generated ?? 0)}
+                  label={selectedPeriod === 'all' ? 'Verified Exports' : `Exports (${usageStats?.period_label || 'Period'})`}
+                  subtext={`${exportCount} active in studio`}
+                  highlightColor="#E2E8F0"
+                />
+                <MetricCard
+                  icon={Palette}
+                  value={selectedPeriod === 'all' ? totalCustomTemplates : (usageStats?.period_templates_created ?? 0)}
+                  label={selectedPeriod === 'all' ? 'Custom Style Presets' : `Presets (${usageStats?.period_label || 'Period'})`}
+                  subtext={`${userTemplates.length} active in studio`}
+                  highlightColor="#10B981"
+                />
+              </div>
+
+              {/* Dual Quota & Resource Cards */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 1. Resource Allocations (Active vs Lifetime Soft-Deleted) */}
+                {/* 1. Workspace Resource Allocations (Dual Bar: Total Footprint vs Active) */}
                 <div
                   className="rounded-2xl p-6 space-y-5"
                   style={{
@@ -1205,47 +1317,46 @@ export default function DashboardPage() {
                         Workspace Resource Quotas
                       </h2>
                       <p className="text-[11px] text-[#7E869B] mt-0.5">
-                        Active assets in studio vs lifetime creation history
+                        Active assets in studio vs audited generation ledger
                       </p>
                     </div>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
-                      Soft-Delete Tracked
+                      Dual-Track Accounting
                     </span>
                   </div>
 
                   <div className="space-y-4 pt-2">
                     <ResourceBar
-                      label={`Master Resumes (${resumeCount} active · ${totalResumes} all-time)`}
-                      value={resumeCount}
+                      label="Master Resume Architectures"
+                      primaryValue={selectedPeriod === 'all' ? totalResumes : (usageStats?.period_resumes_created ?? 0)}
+                      secondaryValue={resumeCount}
                       max={25}
                       unit="resumes"
                     />
                     <ResourceBar
-                      label={`JD-Targeted Branches (${targetedCount} active)`}
-                      value={targetedCount}
+                      label="Job-Targeted Branches"
+                      primaryValue={targetedCount}
                       max={20}
                       unit="branches"
                     />
                     <ResourceBar
-                      label={`Verified Exports (${exportCount} active · ${totalExports} lifetime generated)`}
-                      value={exportCount}
+                      label="Verified Document Exports"
+                      primaryValue={selectedPeriod === 'all' ? totalExports : (usageStats?.period_exports_generated ?? 0)}
+                      secondaryValue={exportCount}
                       max={50}
                       unit="files"
                     />
                     <ResourceBar
-                      label={`Custom Style Presets (${userTemplates.length} active · ${totalCustomTemplates} saved)`}
-                      value={userTemplates.length}
+                      label="Custom Style Presets"
+                      primaryValue={selectedPeriod === 'all' ? totalCustomTemplates : (usageStats?.period_templates_created ?? 0)}
+                      secondaryValue={userTemplates.length}
                       max={15}
                       unit="presets"
                     />
                   </div>
-
-                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs text-[#9DA4B7] leading-relaxed">
-                    📦 <strong className="text-white">Soft-Delete Preservation:</strong> Even when a resume, export, or preset is removed from your active list, your historical generation footprint is permanently recorded.
-                  </div>
                 </div>
 
-                {/* 2. Wiser AI Intelligence & Quota Tracking */}
+                {/* 2. Wiser AI Processing & Quota Metering */}
                 <div
                   className="rounded-2xl p-6 space-y-5"
                   style={{
@@ -1256,16 +1367,16 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <Cpu className="w-4 h-4 text-orange-400" />
+                        <Cpu className="w-4 h-4 text-amber-400" />
                         <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
-                          Wiser AI Quota Tracking
+                          Wiser AI Engine Processing
                         </h2>
                       </div>
                       <p className="text-[11px] text-[#7E869B] mt-0.5">
-                        Autonomous career AI engine metrics
+                        Autonomous career telemetry and diagnostic throughput
                       </p>
                     </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 font-semibold">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold">
                       Subscription Meter
                     </span>
                   </div>
@@ -1273,26 +1384,62 @@ export default function DashboardPage() {
                   <div className="space-y-4 pt-2">
                     <ResourceBar
                       label="Wiser Job Helps (JD + ATS Matching Runs)"
-                      value={wiserJobHelps}
+                      primaryValue={wiserJobHelps}
                       max={50}
                       unit="runs"
                     />
                     <ResourceBar
-                      label="Wiser ATS Audits (Standalone Checks)"
-                      value={wiserAtsChecks}
+                      label="Wiser ATS Audits (Standalone Diagnostics)"
+                      primaryValue={wiserAtsChecks}
                       max={50}
                       unit="audits"
                     />
                     <ResourceBar
-                      label="Total Wiser AI Invocations"
-                      value={wiserTotal}
+                      label={`Total Wiser AI Invocations (${usageStats?.period_label || 'Selected Duration'})`}
+                      primaryValue={wiserTotal}
                       max={100}
                       unit="actions"
                     />
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-300 leading-relaxed">
-                    ⚡ <strong className="text-white">Subscription Ready:</strong> Wiser is our specialized AI that elevates your resumes. All Wiser Job Helps and Standalone ATS checks are tracked here to power upcoming subscription tier limits.
+                  {selectedPeriod !== 'all' && (
+                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs text-[#9DA4B7]">
+                      <span>All-Time Cumulative Wiser Invocations:</span>
+                      <span className="font-mono font-bold text-white">
+                        {usageStats?.lifetime_wiser_invocations ?? wiserTotal} actions
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Professional Compliance & Accounting Policies */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-white/[0.04] text-[#9DA4B7] shrink-0 border border-white/[0.06]">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#F1F3F9]">
+                      Audit Retention &amp; Historical Ledger
+                    </h3>
+                    <p className="text-xs text-[#7E869B] leading-relaxed">
+                      Document creation records, export transactions, and style configurations are permanently preserved in your workspace ledger. Deleting a document from your active list removes it from the editor view while maintaining an accurate compliance and billing audit trail.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-white/[0.04] text-[#9DA4B7] shrink-0 border border-white/[0.06]">
+                    <Activity className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#F1F3F9]">
+                      Wiser Metering &amp; Quota Enforcement
+                    </h3>
+                    <p className="text-xs text-[#7E869B] leading-relaxed">
+                      Wiser AI processing—encompassing Job Description targeting and ATS compliance evaluations—is metered per billing period. Usage counters automatically reconcile against plan quotas at the beginning of each billing cycle.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1305,38 +1452,43 @@ export default function DashboardPage() {
                   border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
                 }}
               >
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
-                  Recent Modifications
-                </h2>
-
-                  {resumes.length === 0 ? (
-                    <p className="text-xs text-[#7E869B]">No recent activity recorded.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {resumes.slice(0, 6).map((r) => (
-                        <div
-                          key={r.id}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-black/30 border border-white/[0.04]"
-                        >
-                          <div className="min-w-0 pr-2">
-                            <p className="text-xs font-semibold text-[#F1F3F9] truncate">
-                              {r.name}
-                            </p>
-                            {r.target_job_title && (
-                              <p className="text-[10px] text-amber-500 truncate">
-                                Targeted for {r.target_job_title}
-                              </p>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-[#7E869B] font-mono shrink-0">
-                            {relativeDate(r.updated_at)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                    Recent Modifications &amp; Audits
+                  </h2>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-[#7E869B]">
+                    {resumes.length} tracked records
+                  </span>
                 </div>
+
+                {resumes.length === 0 ? (
+                  <p className="text-xs text-[#7E869B]">No recent activity recorded.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {resumes.slice(0, 6).map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between p-3 rounded-xl bg-black/30 border border-white/[0.04]"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="text-xs font-semibold text-[#F1F3F9] truncate">
+                            {r.name}
+                          </p>
+                          {r.target_job_title && (
+                            <p className="text-[10px] text-amber-500 truncate">
+                              Targeted for {r.target_job_title}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-[#7E869B] font-mono shrink-0">
+                          {relativeDate(r.updated_at)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+            </div>
           )}
         </main>
       </div>
