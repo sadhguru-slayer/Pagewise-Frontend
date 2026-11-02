@@ -47,8 +47,18 @@ export function AuthProvider({ children }) {
     return res;
   };
 
-  const register = async (name, email, password, register_token = null) => {
-    const res = await authApi.register({ name, email, password, register_token });
+  const register = async (nameOrEmail, emailOrPassword, passwordOrToken = null, maybeToken = null) => {
+    let payload;
+    if (typeof nameOrEmail === 'object' && nameOrEmail !== null) {
+      payload = nameOrEmail;
+    } else if (maybeToken !== null) {
+      // Called with 4 arguments: (name, email, password, token)
+      payload = { name: nameOrEmail, email: emailOrPassword, password: passwordOrToken, register_token: maybeToken };
+    } else {
+      // Called with 2 or 3 arguments: (email, password, register_token)
+      payload = { email: nameOrEmail, password: emailOrPassword, register_token: passwordOrToken };
+    }
+    const res = await authApi.register(payload);
     setUser(res.user);
     return res;
   };

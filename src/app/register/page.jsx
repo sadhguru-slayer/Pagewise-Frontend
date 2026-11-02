@@ -9,7 +9,6 @@ import { authApi } from '@/lib/api';
 import {
   Lock,
   Mail,
-  User,
   ArrowRight,
   ArrowLeft,
   Loader2,
@@ -28,7 +27,6 @@ export default function RegisterPage() {
   // Steps: 'INFO' | 'OTP'
   const [step, setStep] = useState('INFO');
 
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -59,10 +57,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    if (!name.trim()) {
-      setError('Please provide your full name.');
-      return;
-    }
     if (!email.trim() || !email.includes('@')) {
       setError('Please provide a valid email address.');
       return;
@@ -111,7 +105,7 @@ export default function RegisterPage() {
       }
 
       // 2. Complete registration with verified token
-      await register(name.trim(), email.trim(), password, registerToken);
+      await register(email.trim(), password, registerToken);
       toast.success('Email verified! Account created successfully.');
       router.push('/dashboard');
     } catch (err) {
@@ -177,23 +171,6 @@ export default function RegisterPage() {
           {/* STEP 1: Registration Form */}
           {step === 'INFO' && (
             <form onSubmit={handleRequestOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Alex Morgan"
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
-                  />
-                </div>
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
                   Email Address

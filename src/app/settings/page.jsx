@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  User,
   Shield,
   Key,
   KeyRound,
@@ -45,8 +44,6 @@ export default function SettingsPage() {
   const router = useRouter();
   const { user, logout, isAuthenticated, loading, refreshUser } = useAuth();
 
-  const [name, setName] = useState(user?.name || '');
-  const [isUpdatingName, setIsUpdatingName] = useState(false);
 
   // Resume formatting preferences
   const [allowBoldText, setAllowBoldText] = useState(getAllowBoldPref(user));
@@ -64,7 +61,6 @@ export default function SettingsPage() {
   // Re-synchronize state when auth loads or user profile updates
   useEffect(() => {
     if (user) {
-      if (user.name) setName(user.name);
       setAllowBoldText(getAllowBoldPref(user));
     }
   }, [user]);
@@ -103,24 +99,6 @@ export default function SettingsPage() {
       loadPlan();
     }
   }, [isAuthenticated]);
-
-  const handleUpdateName = async (e) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      toast.error('Name cannot be empty');
-      return;
-    }
-    setIsUpdatingName(true);
-    try {
-      await authApi.updatePreferences({ name: name.trim() });
-      if (refreshUser) await refreshUser();
-      toast.success('Profile name updated!');
-    } catch (err) {
-      toast.error('Failed to update name: ' + err.message);
-    } finally {
-      setIsUpdatingName(false);
-    }
-  };
 
   const handleToggleBoldPreference = async (newValue) => {
     setAllowBoldText(newValue);
@@ -269,13 +247,18 @@ export default function SettingsPage() {
         <PilotBanner variant="card" dismissible={false} />
 
         {/* Profile Card */}
-        <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-6">
-          <div className="flex items-center gap-4 pb-6 border-b border-white/[0.06]">
+        <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-700 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-amber-600/20">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">{user?.name || 'User'}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-white">{user?.name || 'User'}</h2>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 border border-white/[0.08]">
+                  @{user?.name || 'user'}
+                </span>
+              </div>
               <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-0.5">
                 <Mail className="w-3.5 h-3.5 text-zinc-500" />
                 <span>{user?.email || 'user@example.com'}</span>
@@ -286,31 +269,6 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-
-          {/* Edit Name Form */}
-          <form onSubmit={handleUpdateName} className="space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-amber-500" />
-              <span>Full Name</span>
-            </h3>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                className="flex-1 bg-[#090b13] border border-white/[0.08] focus:border-amber-500 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={isUpdatingName}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {isUpdatingName ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Save Name</span>
-              </button>
-            </div>
-          </form>
         </div>
 
         {/* AI & Resume Generation Settings Card */}

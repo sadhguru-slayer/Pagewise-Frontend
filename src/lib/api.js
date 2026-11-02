@@ -150,10 +150,11 @@ export const authApi = {
     });
   },
 
-  async register({ name, email, password, register_token }) {
+  async register(params) {
+    const payload = typeof params === 'object' && params !== null ? params : {};
     const data = await fetchApi('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, register_token }),
+      body: JSON.stringify(payload),
     });
     if (data?.access_token) {
       setToken(data.access_token);
@@ -195,9 +196,8 @@ export const authApi = {
     return fetchApi('/auth/me');
   },
 
-  async updatePreferences({ name, allowBoldText }) {
+  async updatePreferences({ allowBoldText }) {
     const payload = {};
-    if (name !== undefined) payload.name = name;
     if (allowBoldText !== undefined) payload.allow_bold_text = allowBoldText;
     return fetchApi('/auth/preferences', {
       method: 'PUT',
