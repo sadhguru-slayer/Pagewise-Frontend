@@ -26,6 +26,7 @@ import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
 import { authApi, paymentsApi } from '@/lib/api';
 import PricingModal from '@/components/pricing/PricingModal';
+import BillingHistoryCard from '@/components/billing/BillingHistoryCard';
 
 function getAllowBoldPref(usr) {
   if (!usr?.preferences_json) return false;
@@ -645,6 +646,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Purchases, Bills & Invoices */}
+        <BillingHistoryCard user={user} onUpgradeClick={() => setPricingOpen(true)} />
 
         {/* Pricing Modal */}
         <PricingModal

@@ -15,12 +15,15 @@ import FeedbackModal from '@/components/feedback/FeedbackModal';
 import Modal from '@/components/ui/Modal';
 import PilotBanner from '@/components/ui/PilotBanner';
 import PricingModal from '@/components/pricing/PricingModal';
+import BillingHistoryCard from '@/components/billing/BillingHistoryCard';
 import MobileNotice from '@/components/layout/MobileNotice';
 import { useModal } from '@/lib/modal-context';
 import { paymentsApi } from '@/lib/api';
 
 import {
   Home,
+  CreditCard,
+  Receipt,
   FileText,
   Palette,
   BarChart3,
@@ -214,6 +217,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
     { id: 'templates', label: 'Templates Library', icon: Palette },
     { id: 'exports', label: 'Export History', icon: FileDown },
     { id: 'usage', label: 'Intelligence & Usage', icon: BarChart3 },
+    { id: 'billing', label: 'Purchases & Billing', icon: CreditCard },
   ];
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
@@ -300,6 +304,13 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
               className="mt-2.5 w-full py-1.5 px-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] text-[#EDEDF2] text-[11px] font-semibold border border-white/[0.08] flex items-center justify-center transition cursor-pointer"
             >
               <span>{isPilot ? 'Pilot Plan Details' : planStatus?.plan_type === 'pro_monthly' ? 'Subscription Details' : 'Upgrade Plan'}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('billing')}
+              className="mt-1.5 w-full py-1 px-2 rounded-lg text-zinc-400 hover:text-white text-[10px] font-mono flex items-center justify-center gap-1 transition cursor-pointer hover:bg-white/[0.04]"
+            >
+              <Receipt className="w-3 h-3 text-amber-500" />
+              <span>View Invoices &amp; Bills</span>
             </button>
             {user?.is_admin && (
               <Link
@@ -2016,6 +2027,162 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+        
+          {/* ── 6. PURCHASES & BILLING TAB ────────────────────────────────────────── */}
+          {activeTab === 'billing' && (
+            <div className="space-y-8 animate-in fade-in duration-200">
+              {/* Executive Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-white/[0.06]">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
+                    Studio Finance &amp; Subscriptions
+                  </span>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F1F3F9] tracking-tight mt-1 flex items-center gap-2.5">
+                    <CreditCard className="w-7 h-7 text-amber-500" />
+                    <span>Purchases, Subscriptions &amp; Invoices</span>
+                  </h1>
+                  <p className="text-xs text-[#7E869B] mt-1">
+                    Manage your active subscription tier, track remaining period allocations, and inspect official receipts.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setPricingModalOpen(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-amber-600/20 cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{planStatus?.plan_type === 'pro_monthly' ? 'Manage Subscription' : 'Upgrade Plan'}</span>
+                </button>
+              </div>
+
+              {/* Active Subscription Status Card */}
+              <div
+                className="rounded-2xl p-6 space-y-6"
+                style={{
+                  background: BRAND_CONFIG.colors.surfaceCard,
+                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                }}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-bold text-white">
+                        {planStatus?.plan_name || 'Pagewise Free'}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${
+                          planStatus?.status === 'active'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        }`}
+                      >
+                        {planStatus?.status?.toUpperCase() || 'ACTIVE'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#7E869B] mt-1">
+                      {planStatus?.expires_at
+                        ? `Current term active until ${new Date(planStatus.expires_at).toLocaleDateString()} (${Math.max(0, Math.ceil((new Date(planStatus.expires_at) - new Date()) / (1000 * 60 * 60 * 24)))} days remaining)`
+                        : 'Standard Free Tier · Quotas reset automatically at month boundaries'}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setPricingModalOpen(true)}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-zinc-200 border border-white/[0.08] transition cursor-pointer self-start sm:self-auto"
+                  >
+                    Change Tier / Add-ons
+                  </button>
+                </div>
+
+                {/* Quota meters */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">Workspaces</span>
+                      <span className="font-mono font-semibold text-white">
+                        {planStatus?.usage?.active_resumes || 0} / {planStatus?.limits?.resumes ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 rounded-full"
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.active_resumes || 0) / (planStatus?.limits?.resumes || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#7E869B] block">
+                      {planStatus?.remaining?.resumes ?? 0} workspace(s) left
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">PDF Exports</span>
+                      <span className="font-mono font-semibold text-white">
+                        {planStatus?.usage?.exports_used || 0} / {planStatus?.limits?.exports ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full"
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.exports_used || 0) / (planStatus?.limits?.exports || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#7E869B] block">
+                      {planStatus?.remaining?.exports ?? 0} export(s) left
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">Wiser Job Match</span>
+                      <span className="font-mono font-semibold text-white">
+                        {planStatus?.usage?.wiser_job_help_used || 0} / {planStatus?.limits?.wiser_job_help ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full"
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.wiser_job_help_used || 0) / (planStatus?.limits?.wiser_job_help || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#7E869B] block">
+                      {planStatus?.remaining?.wiser_job_help ?? 0} runs left
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">ATS Audits</span>
+                      <span className="font-mono font-semibold text-white">
+                        {planStatus?.usage?.wiser_ats_used || 0} / {planStatus?.limits?.wiser_ats ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-sky-500 rounded-full"
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.wiser_ats_used || 0) / (planStatus?.limits?.wiser_ats || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#7E869B] block">
+                      {planStatus?.remaining?.wiser_ats ?? 0} audits left
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Purchases, Bills & Invoices Table */}
+              <BillingHistoryCard user={user} onUpgradeClick={() => setPricingModalOpen(true)} />
+            </div>
+          )}
+
         </main>
       </div>
 

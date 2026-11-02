@@ -34,6 +34,8 @@ import {
   Settings,
   Upload,
   Target,
+  CreditCard,
+  Receipt,
   Bookmark,
   BookmarkPlus,
   MoreVertical,
@@ -93,6 +95,7 @@ function BuilderContent() {
   const [isJdModalOpen, setIsJdModalOpen] = useState(false);
   const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [isPrimary, setIsPrimary] = useState(false);
   const [planStatus, setPlanStatus] = useState(null);
@@ -407,12 +410,18 @@ function BuilderContent() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
 
-          <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 shrink-0" title="Resumo Studio">
-            <BrandLogo size={22} />
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
+          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+            <Link href="/dashboard" title="Resumo Studio">
+              <BrandLogo size={22} />
+            </Link>
+            <button
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 transition cursor-pointer"
+              title="Click to view Studio Subscription, Quotas & Invoices"
+            >
               {planStatus?.plan_name || 'Free'}
-            </span>
-          </Link>
+            </button>
+          </div>
 
           <div className="h-4 w-px bg-white/[0.07] shrink-0" />
 
@@ -588,6 +597,14 @@ function BuilderContent() {
                 >
                   <Upload className="w-4 h-4 text-emerald-400" />
                   <span>Import Resume PDF</span>
+                </button>
+
+                <button
+                  onClick={() => { setIsStudioMenuOpen(false); setIsSubscriptionModalOpen(true); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-[#F1F3F9] hover:bg-white/[0.06] transition-colors text-left cursor-pointer border-t border-white/[0.06] mt-1 pt-2"
+                >
+                  <CreditCard className="w-4 h-4 text-amber-500" />
+                  <span>Subscription &amp; Quotas</span>
                 </button>
               </div>
             )}
@@ -984,6 +1001,124 @@ function BuilderContent() {
       )}
 
       {/* Pricing & Upgrade Modal */}
+      
+      {/* Studio Subscription & Quotas Modal */}
+      {isSubscriptionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-[#0E1018] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-white/[0.08] bg-[#12141F] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-amber-500" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  Studio Subscription &amp; Quotas
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsSubscriptionModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 text-xs">
+              {/* Plan Tier Header */}
+              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-mono text-amber-500 uppercase tracking-wider font-semibold">
+                    Current Plan
+                  </span>
+                  <div className="text-base font-bold text-white mt-0.5">
+                    {planStatus?.plan_name || 'Pagewise Free'}
+                  </div>
+                  <div className="text-[11px] text-zinc-400 mt-0.5">
+                    {planStatus?.expires_at
+                      ? `Active until ${new Date(planStatus.expires_at).toLocaleDateString()} (${Math.max(0, Math.ceil((new Date(planStatus.expires_at) - new Date()) / (1000 * 60 * 60 * 24)))} days remaining)`
+                      : 'Free standard tier · Monthly period refresh'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsSubscriptionModalOpen(false);
+                    setIsPricingModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-600/20 cursor-pointer shrink-0"
+                >
+                  Upgrade
+                </button>
+              </div>
+
+              {/* Resource Quotas Grid */}
+              <div className="space-y-2.5">
+                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">
+                  Resource Usage &amp; Remaining
+                </span>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1">
+                    <span className="text-zinc-400 text-[11px]">PDF Exports</span>
+                    <div className="font-mono text-white font-bold text-sm">
+                      {planStatus?.remaining?.exports ?? 0} left
+                    </div>
+                    <div className="text-[10px] text-zinc-500 font-mono">
+                      {planStatus?.usage?.exports_used ?? 0} / {planStatus?.limits?.exports ?? 1} used
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1">
+                    <span className="text-zinc-400 text-[11px]">Wiser Job Match</span>
+                    <div className="font-mono text-white font-bold text-sm">
+                      {planStatus?.remaining?.wiser_job_help ?? 0} left
+                    </div>
+                    <div className="text-[10px] text-zinc-500 font-mono">
+                      {planStatus?.usage?.wiser_job_help_used ?? 0} / {planStatus?.limits?.wiser_job_help ?? 1} used
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1">
+                    <span className="text-zinc-400 text-[11px]">ATS Keyword Audits</span>
+                    <div className="font-mono text-white font-bold text-sm">
+                      {planStatus?.remaining?.wiser_ats ?? 0} left
+                    </div>
+                    <div className="text-[10px] text-zinc-500 font-mono">
+                      {planStatus?.usage?.wiser_ats_used ?? 0} / {planStatus?.limits?.wiser_ats ?? 1} used
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1">
+                    <span className="text-zinc-400 text-[11px]">Active Resumes</span>
+                    <div className="font-mono text-white font-bold text-sm">
+                      {planStatus?.remaining?.resumes ?? 0} left
+                    </div>
+                    <div className="text-[10px] text-zinc-500 font-mono">
+                      {planStatus?.usage?.active_resumes ?? 0} / {planStatus?.limits?.resumes ?? 1} active
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoices and Bills Link */}
+              <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                <Link
+                  href="/settings"
+                  target="_blank"
+                  className="text-xs text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1 transition-colors"
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>View All Invoices &amp; Bills in Account →</span>
+                </Link>
+                <button
+                  onClick={() => setIsSubscriptionModalOpen(false)}
+                  className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <PricingModal
         isOpen={isPricingModalOpen}
         onClose={() => setIsPricingModalOpen(false)}

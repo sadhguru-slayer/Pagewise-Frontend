@@ -538,6 +538,10 @@ export const paymentsApi = {
     return fetchApi('/payments/status');
   },
 
+  async getHistory() {
+    return fetchApi('/payments/history');
+  },
+
   async createOrder(planType) {
     return fetchApi('/payments/create-order', {
       method: 'POST',
