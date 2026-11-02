@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/lib/auth-context';
 import { ModalProvider } from '@/lib/modal-context';
+import MobileBlocker from '@/components/MobileBlocker';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -154,6 +155,7 @@ export default function RootLayout({ children }) {
         />
         <AuthProvider>
           <ModalProvider>
+            <MobileBlocker />
             {children}
           </ModalProvider>
         </AuthProvider>
