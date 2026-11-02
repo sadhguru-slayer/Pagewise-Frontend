@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLogo, BrandLockup } from '@/lib/brand';
+import PilotBanner from '@/components/ui/PilotBanner';
 import { RESUME_TEMPLATES as builtInTemplates } from '@/lib/resume/templates';
 import {
   FileText,
@@ -22,7 +23,6 @@ import {
   Check,
   Target,
   Upload,
-  Sparkles,
   Bookmark,
   FileDown,
   Split,
@@ -129,6 +129,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#090B10] text-[#F1F3F9] flex flex-col font-sans selection:bg-amber-500/20 selection:text-amber-200">
+      {/* ─── PILOT ANNOUNCEMENT TOPBAR ─── */}
+      <PilotBanner variant="topbar" />
+
       {/* ─── NAVIGATION ──────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090B10]/85 border-b border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -734,7 +737,7 @@ export default function LandingPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="text-[#F1F3F9] flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <Target className="w-4 h-4 text-amber-400" />
                     <span>Recommended Skill Inclusions</span>
                   </span>
                   <span className="text-[10px] font-mono text-amber-400">
@@ -1085,7 +1088,7 @@ export default function LandingPage() {
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
+            <ShieldCheck className="w-3.5 h-3.5" />
             <span>Ready to Elevate Your Applications?</span>
           </div>
 
@@ -1125,7 +1128,13 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-6 text-[11px] font-mono">
+          <div className="flex items-center gap-5 text-[11px] font-mono flex-wrap">
+            <a
+              href="mailto:pagewises@gmail.com?subject=PageWise%20Pilot%20Feedback"
+              className="text-amber-400 hover:text-amber-300 underline underline-offset-2 flex items-center gap-1"
+            >
+              <span>Feedback: pagewises@gmail.com</span>
+            </a>
             <span className="text-emerald-400 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Studio Engine v2.5 Online</span>

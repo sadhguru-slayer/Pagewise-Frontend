@@ -38,7 +38,6 @@ import {
   BookmarkPlus,
   MoreVertical,
   Download,
-  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
@@ -440,12 +439,22 @@ function BuilderContent() {
             className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 border border-orange-500/20 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Launch Wiser AI: Standalone ATS Audit & Job-Targeted ATS Match"
           >
-            <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+            <Target className="w-3.5 h-3.5 text-orange-400" />
             <span className="hidden sm:inline">Wiser AI</span>
             <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded font-mono">
               ATS
             </span>
           </button>
+
+          {/* Pilot Feedback Mail Link */}
+          <a
+            href="mailto:pagewises@gmail.com?subject=PageWise%20Builder%20Feedback"
+            className="hidden xl:inline-flex items-center gap-1 text-[11px] font-mono text-amber-300 hover:text-white px-2.5 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 transition-colors"
+            title="Pilot Release: Report an edge case or feedback to pagewises@gmail.com"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <span>Pilot Feedback</span>
+          </a>
 
           {/* Import PDF */}
           <button

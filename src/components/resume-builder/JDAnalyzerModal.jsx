@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FileSearch,
-  Sparkles,
   CheckCircle2,
   AlertTriangle,
   Loader2,
@@ -311,7 +310,7 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
               style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)' }}
             >
-              <Sparkles className="w-4 h-4 text-[#f97316]" />
+              <Target className="w-4 h-4 text-[#f97316]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -424,7 +423,7 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4" />
+                      <Target className="w-4 h-4" />
                       <span>Run Wiser Job Help</span>
                     </>
                   )}
@@ -497,7 +496,7 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4" />
+                      <ShieldCheck className="w-4 h-4" />
                       <span>Run Wiser ATS Audit</span>
                     </>
                   )}
@@ -553,7 +552,7 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
                           : 'border-transparent text-[#6b7280] hover:text-white'
                       }`}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Zap className="w-3.5 h-3.5" />
                       <span>
                         Bullet Enhancements ({currentResult?.section_enhancements?.reduce((acc, s) => acc + (s.suggestions?.length || 0), 0) || 0})
                       </span>
@@ -967,7 +966,7 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
                   className="w-14 h-14 rounded-2xl flex items-center justify-center"
                   style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}
                 >
-                  <Sparkles className="w-7 h-7 text-[#f97316]" />
+                  <FileSearch className="w-7 h-7 text-[#f97316]" />
                 </div>
                 <h3 className="text-sm font-bold text-white">
                   {wiserMode === 'jobhelp'

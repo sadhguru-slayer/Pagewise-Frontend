@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, FileText, Image, Code, Loader2, ChevronDown, Check, Sparkles, X } from 'lucide-react';
+import { Download, FileText, Image, Code, Loader2, ChevronDown, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
 import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';

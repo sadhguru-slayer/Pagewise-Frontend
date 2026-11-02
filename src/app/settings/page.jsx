@@ -17,12 +17,12 @@ import {
   FileText,
   LogOut,
   Type,
-  Sparkles,
   RefreshCw,
   X,
   Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import PilotBanner from '@/components/ui/PilotBanner';
 import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
 import { authApi } from '@/lib/api';
@@ -246,6 +246,9 @@ export default function SettingsPage() {
             Manage your personal profile, authentication credentials, and PageWise Studio settings.
           </p>
         </div>
+
+        {/* Pilot Feedback & Support Card */}
+        <PilotBanner variant="card" dismissible={false} />
 
         {/* Profile Card */}
         <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-6">

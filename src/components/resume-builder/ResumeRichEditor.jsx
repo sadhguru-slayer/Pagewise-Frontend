@@ -9,7 +9,7 @@ import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal, RefreshCw, Sparkles, Check, Plus, ArrowDownToLine, Wand2, X } from 'lucide-react';
+import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal, RefreshCw, Check, Plus, ArrowDownToLine, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
 
@@ -813,7 +813,7 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
             onClick={() => setShowJdEnhancePanel(!showJdEnhancePanel)}
             className="px-2.5 py-1 rounded text-[11px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <Sparkles className="w-3 h-3" />
+            <SlidersHorizontal className="w-3 h-3" />
             <span>{showJdEnhancePanel ? 'Hide Suggestions' : 'View Suggestions'}</span>
           </button>
         </div>
@@ -824,7 +824,7 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
         <div className="bg-[#0C0E16] border-b border-amber-500/25 p-3.5 max-h-80 overflow-y-auto space-y-3 shrink-0">
           <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] text-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
+              <SlidersHorizontal className="w-3.5 h-3.5" />
               JD Enhance Recommendations
             </span>
             <span className="text-[10px] text-[#7E869B]">

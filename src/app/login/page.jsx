@@ -14,7 +14,6 @@ import {
   AlertCircle,
   KeyRound,
   RefreshCw,
-  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -188,7 +187,7 @@ export default function LoginPage() {
                   : 'text-[#7E869B] hover:text-white'
               }`}
             >
-              <Sparkles className="w-3 h-3 text-amber-400" />
+              <KeyRound className="w-3 h-3 text-amber-400" />
               <span>Email OTP</span>
             </button>
           </div>

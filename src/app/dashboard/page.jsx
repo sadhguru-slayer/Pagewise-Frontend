@@ -11,6 +11,7 @@ import { defaultHeader, defaultSections, defaultSettings } from '@/lib/resume/de
 import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
 import Modal from '@/components/ui/Modal';
+import PilotBanner from '@/components/ui/PilotBanner';
 import { useModal } from '@/lib/modal-context';
 
 import {
@@ -39,7 +40,6 @@ import {
   X,
   AlertTriangle,
   ArrowUpRight,
-  Sparkles,
   Bookmark,
   Check,
 } from 'lucide-react';
@@ -459,6 +459,9 @@ export default function DashboardPage() {
 
         {/* Content Body */}
         <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8">
+          {/* Pilot Notification & Feedback Banner */}
+          <PilotBanner variant="card" className="mb-6" />
+
           {/* ── 1. OVERVIEW TAB ──────────────────────────────────────────────── */}
           {activeTab === 'home' && (
             <div className="space-y-8">
@@ -517,7 +520,7 @@ export default function DashboardPage() {
                   highlightColor="#D97706"
                 />
                 <MetricCard
-                  icon={Sparkles}
+                  icon={Cpu}
                   value={wiserTotal}
                   label="Wiser AI Actions"
                   subtext={`${wiserJobHelps} JD + ${wiserAtsChecks} ATS checks`}
@@ -1182,7 +1185,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-orange-400" />
+                        <Cpu className="w-4 h-4 text-orange-400" />
                         <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
                           Wiser AI Quota Tracking
                         </h2>

@@ -3,7 +3,7 @@
 import React from 'react';
 
 /**
- * Single source of truth for Resumo brand identity and visual styling.
+ * Single source of truth for PageWise brand identity and visual styling.
  * Edit this file to change the logo, brand name, tagline, or accent themes across the whole app.
  */
 export const BRAND_CONFIG = {
@@ -13,6 +13,7 @@ export const BRAND_CONFIG = {
   tagline: 'Resume Craft with Precision',
   description: 'Industrial-grade resume craft with deep ATS analysis and cross-resume intelligence.',
   version: 'v2.5',
+  supportEmail: 'pagewises@gmail.com',
 
   // Theme accents (Warm Bronze / Amber / Precision Titanium - NO generic purple/cyan!)
   colors: {
@@ -40,57 +41,22 @@ export const BRAND_CONFIG = {
 };
 
 /**
- * PageWise Dynamic Brand Logo Component.
- * Geometric monolith glyph representing structural precision and progressive elevation.
+ * PageWise Official Brand Logo Component.
+ * Displays the high-resolution PageWise brand emblem with crisp scaling and hover dynamics.
  */
-export function BrandLogo({ size = 28, className = '', showDot = false }) {
+export function BrandLogo({ size = 28, className = '', showDot = false, alt = 'PageWise Studio Logo' }) {
   return (
     <div
-      className={`relative inline-flex items-center justify-center shrink-0 ${className}`}
+      className={`relative inline-flex items-center justify-center shrink-0 rounded-lg overflow-hidden ${className}`}
       style={{ width: size, height: size }}
     >
-      <svg
+      <img
+        src="/pagewise_logo.png"
+        alt={alt}
         width={size}
         height={size}
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="transition-transform group-hover:scale-105 duration-300"
-      >
-        {/* Subtle background tile */}
-        <rect width="32" height="32" rx="8" fill="#141722" />
-        <rect width="32" height="32" rx="8" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-
-        {/* Primary geometric tier (amber monolith pillar) */}
-        <path
-          d="M8 23V9L15 6V20L8 23Z"
-          fill="url(#amber-pillar-grad)"
-        />
-
-        {/* Dynamic rising facet (bronze terrace) */}
-        <path
-          d="M17 20V6L24 9V23L17 20Z"
-          fill="url(#bronze-facet-grad)"
-          opacity="0.85"
-        />
-
-        {/* Center architectural notch */}
-        <path
-          d="M15 11.5L17 12.5V17L15 16V11.5Z"
-          fill="#F59E0B"
-        />
-
-        <defs>
-          <linearGradient id="amber-pillar-grad" x1="8" y1="6" x2="16" y2="23" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#F59E0B" />
-            <stop offset="1" stopColor="#D97706" />
-          </linearGradient>
-          <linearGradient id="bronze-facet-grad" x1="17" y1="6" x2="24" y2="23" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#D97706" />
-            <stop offset="1" stopColor="#78350F" />
-          </linearGradient>
-        </defs>
-      </svg>
+        className="w-full h-full object-contain rounded-lg transition-transform group-hover:scale-105 duration-300 shadow-sm"
+      />
 
       {showDot && (
         <span
