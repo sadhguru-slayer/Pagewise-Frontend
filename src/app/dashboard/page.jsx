@@ -222,7 +222,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
 
   return (
     <aside
-      className="hidden md:flex flex-col w-[230px] shrink-0 h-screen sticky top-0 overflow-hidden"
+      className="hidden md:flex flex-col w-[240px] shrink-0 h-full overflow-hidden"
       style={{
         background: '#0B0D13',
         borderRight: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
@@ -635,7 +635,7 @@ export default function DashboardPage() {
   const recentResumes = [...resumes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-[#090B10] text-[#F1F3F9] flex font-sans">
+    <div className="h-screen w-full bg-[#090B10] text-[#F1F3F9] flex font-sans overflow-hidden">
       {/* Precision Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -647,10 +647,10 @@ export default function DashboardPage() {
       />
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         {/* Mobile Header Bar */}
         <header
-          className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30 border-b backdrop-blur-md"
+          className="md:hidden flex items-center justify-between px-4 py-3 shrink-0 border-b backdrop-blur-md"
           style={{ background: 'rgba(9,11,16,0.9)', borderColor: BRAND_CONFIG.colors.borderSubtle }}
         >
           <BrandLockup
@@ -668,8 +668,8 @@ export default function DashboardPage() {
           </Link>
         </header>
 
-        {/* Content Body */}
-        <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8">
+        {/* Content Body - Independent Vertical Scroll */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-8 w-full max-w-7xl mx-auto pb-24 md:pb-12">
           {/* Mobile Screen Recommendation Notice */}
           <MobileNotice className="mb-4" />
 

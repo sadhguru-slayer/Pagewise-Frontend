@@ -30,6 +30,13 @@ import {
   Sliders,
   Sparkles,
   Zap,
+  ExternalLink,
+  ChevronRight,
+  Home,
+  Filter,
+  CheckSquare,
+  Square,
+  ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -41,6 +48,12 @@ export default function AdminPage() {
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Sidebar & CRM Navigation
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
+  const [runningBulkAction, setRunningBulkAction] = useState(false);
 
   // Admin panel state
   const [activeTab, setActiveTab] = useState('insights'); // 'insights' | 'users' | 'security'
@@ -86,6 +99,66 @@ export default function AdminPage() {
       toast.error('Failed to load user inspection details: ' + err.message);
     } finally {
       setInspectLoading(false);
+    }
+  };
+
+  // Django-style Bulk Action handlers
+  const handleSelectAllUsers = (e) => {
+    if (e.target.checked) {
+      setSelectedUserIds(users.map((u) => u.id));
+    } else {
+      setSelectedUserIds([]);
+    }
+  };
+
+  const handleToggleSelectUser = (userId) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const handleRunBulkAction = async () => {
+    if (!bulkAction) {
+      toast.error('Please select an action from the dropdown.');
+      return;
+    }
+    if (selectedUserIds.length === 0) {
+      toast.error('No users selected. Check one or more rows.');
+      return;
+    }
+
+    if (bulkAction === 'delete_selected') {
+      if (!window.confirm(`Permanently delete ${selectedUserIds.length} user account(s)? This cannot be undone.`)) {
+        return;
+      }
+    }
+
+    try {
+      setRunningBulkAction(true);
+      for (const id of selectedUserIds) {
+        if (bulkAction === 'upgrade_pro') {
+          await adminApi.updateUser(id, { plan_type: 'pro_monthly' });
+        } else if (bulkAction === 'upgrade_day_pass') {
+          await adminApi.updateUser(id, { plan_type: 'day_pass' });
+        } else if (bulkAction === 'set_free') {
+          await adminApi.updateUser(id, { plan_type: 'free' });
+        } else if (bulkAction === 'make_admin') {
+          await adminApi.updateUser(id, { is_admin: true });
+        } else if (bulkAction === 'revoke_admin') {
+          await adminApi.updateUser(id, { is_admin: false });
+        } else if (bulkAction === 'delete_selected') {
+          await adminApi.deleteUser(id);
+        }
+      }
+      toast.success(`Action applied to ${selectedUserIds.length} user(s)!`);
+      setSelectedUserIds([]);
+      setBulkAction('');
+      fetchUsers();
+      fetchInsights();
+    } catch (err) {
+      toast.error('Bulk action failed: ' + err.message);
+    } finally {
+      setRunningBulkAction(false);
     }
   };
 
@@ -563,120 +636,273 @@ export default function AdminPage() {
     );
   }
 
-  // ─── ADMIN CONTROL PANEL INTERFACE ─────────────────────────────────────────
+  // ─── ADMIN CONTROL PANEL INTERFACE (DJANGO CRM STYLE) ──────────────────────
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-zinc-800 bg-zinc-900/60 backdrop-blur sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BrandLogo size={26} />
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm tracking-tight text-white">PageWise Admin</span>
-            <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              SECURE CONSOLE
-            </span>
+    <div className="h-screen w-full bg-[#0A0C10] text-zinc-100 flex font-sans overflow-hidden">
+      {/* ── Fixed Left Sidebar: Django Model Registry / CRM Navigation ── */}
+      <aside
+        className={`bg-[#0C0E14] border-r border-zinc-800/80 flex flex-col h-full shrink-0 select-none transition-all duration-200 z-20 ${
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}
+      >
+        {/* CRM / Django Admin Brand Header */}
+        <div className="h-14 px-4 border-b border-zinc-800 flex items-center justify-between shrink-0 bg-[#0E1018]">
+          {!sidebarCollapsed ? (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold font-mono text-xs shadow-inner shrink-0">
+                PW
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-xs tracking-wide text-zinc-100 block truncate">
+                  PageWise CRM
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono block truncate">
+                  Django Administration
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="mx-auto w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold font-mono text-xs">
+              PW
+            </div>
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs cursor-pointer"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <ChevronRight
+              className={`w-3.5 h-3.5 transition-transform ${sidebarCollapsed ? '' : 'rotate-180'}`}
+            />
+          </button>
+        </div>
+
+        {/* Django App Tree Navigation */}
+        <div className="flex-1 overflow-y-auto px-2 py-4 space-y-5 text-xs">
+          {/* App 1: SYSTEM TELEMETRY */}
+          <div>
+            {!sidebarCollapsed && (
+              <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
+                Core &amp; Telemetry
+              </span>
+            )}
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('insights')}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'insights'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Platform Insights & Telemetry"
+              >
+                <BarChart3 className="w-4 h-4 shrink-0 text-amber-400" />
+                {!sidebarCollapsed && <span>Platform Insights</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* App 2: AUTHENTICATION AND AUTHORIZATION */}
+          <div>
+            {!sidebarCollapsed && (
+              <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
+                Authentication &amp; Access
+              </span>
+            )}
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'users'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="User Accounts"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Users className="w-4 h-4 shrink-0 text-sky-400" />
+                  {!sidebarCollapsed && <span>Users &amp; Accounts</span>}
+                </div>
+                {!sidebarCollapsed && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
+                    {totalUsers}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'security'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Security & Master Keys"
+              >
+                <KeyRound className="w-4 h-4 shrink-0 text-emerald-400" />
+                {!sidebarCollapsed && <span>Master Credentials</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* App 3: BILLING & SUBSCRIPTIONS */}
+          <div>
+            {!sidebarCollapsed && (
+              <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
+                Billing &amp; Plans
+              </span>
+            )}
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('tiers')}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'tiers'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Pricing & Tiers Matrix"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <CreditCard className="w-4 h-4 shrink-0 text-rose-400" />
+                  {!sidebarCollapsed && <span>Pricing &amp; Tiers</span>}
+                </div>
+                {!sidebarCollapsed && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
+                    {adminTiers.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* App 4: RESUME STUDIO & CONTENT */}
+          <div>
+            {!sidebarCollapsed && (
+              <span className="px-2.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold block mb-1.5">
+                Studio Architecture
+              </span>
+            )}
+            <div className="space-y-0.5">
+              <button
+                onClick={() => setActiveTab('templates')}
+                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'templates'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Layout Templates"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Layers className="w-4 h-4 shrink-0 text-purple-400" />
+                  {!sidebarCollapsed && <span>Layout Templates</span>}
+                </div>
+                {!sidebarCollapsed && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-medium">
+                    {adminTemplates.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              fetchInsights();
-              fetchUsers();
-            }}
-            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-            title="Refresh analytics & data"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Sync</span>
-          </button>
-          <div className="h-4 w-px bg-zinc-800" />
-          <div className="flex items-center gap-2 text-xs text-zinc-300 font-mono">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>{adminUser.email}</span>
-          </div>
-          <div className="h-4 w-px bg-zinc-800" />
-          <button
-            onClick={handleAdminLogout}
-            className="p-1.5 text-zinc-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition text-xs flex items-center gap-1 cursor-pointer"
-            title="Sign out of Admin Session"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </header>
+        {/* Sidebar Footer: View Site & Superuser Info */}
+        <div className="shrink-0 border-t border-zinc-800 p-2.5 bg-[#0E1018] space-y-2">
+          {!sidebarCollapsed && (
+            <Link
+              href="/dashboard"
+              target="_blank"
+              className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/80 transition"
+            >
+              <span className="flex items-center gap-2">
+                <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                <span>View Live Site</span>
+              </span>
+              <span className="text-[10px] font-mono text-zinc-500">↗</span>
+            </Link>
+          )}
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 space-y-8">
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <div className="flex items-center gap-3">
+          <div className="px-2.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
+                {adminUser?.email?.[0]?.toUpperCase() || 'A'}
+              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold text-zinc-200 block truncate">
+                    {adminUser?.name || 'Administrator'}
+                  </span>
+                  <span className="text-[9px] text-zinc-500 font-mono block truncate">
+                    Superuser
+                  </span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleAdminLogout}
+              className="p-1 text-zinc-400 hover:text-rose-400 transition rounded cursor-pointer"
+              title="Sign out of CRM"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Main Workspace Area ── */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-[#0A0C10]">
+        {/* Top Breadcrumb & Quick Action Bar */}
+        <header className="h-14 shrink-0 border-b border-zinc-800 bg-[#0C0E14] px-6 flex items-center justify-between z-10">
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-2 text-xs font-mono">
             <button
               onClick={() => setActiveTab('insights')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
-                activeTab === 'insights'
-                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
-              }`}
+              className="text-zinc-500 hover:text-zinc-300 flex items-center gap-1 cursor-pointer"
             >
-              <BarChart3 className="w-4 h-4 text-amber-400" />
-              <span>Platform Insights &amp; Metrics</span>
+              <Home className="w-3 h-3 text-amber-500" />
+              <span>Home</span>
             </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
-                activeTab === 'users'
-                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              <Users className="w-4 h-4 text-sky-400" />
-              <span>User Accounts ({totalUsers})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
-                activeTab === 'templates'
-                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              <Layers className="w-4 h-4 text-purple-400" />
-              <span>Templates &amp; Tier Access ({adminTemplates.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('tiers')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
-                activeTab === 'tiers'
-                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              <CreditCard className="w-4 h-4 text-rose-400" />
-              <span>Pricing &amp; Tier Config ({adminTiers.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('security')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
-                activeTab === 'security'
-                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              <KeyRound className="w-4 h-4 text-emerald-400" />
-              <span>Admin Security &amp; Credentials</span>
-            </button>
+            <span className="text-zinc-600">›</span>
+            <span className="text-zinc-400 font-medium">
+              {activeTab === 'insights' && 'Telemetry'}
+              {activeTab === 'users' && 'Authentication and Authorization'}
+              {activeTab === 'security' && 'Security & Access Control'}
+              {activeTab === 'templates' && 'Resume Studio Content'}
+              {activeTab === 'tiers' && 'Billing & Subscriptions'}
+            </span>
+            <span className="text-zinc-600">›</span>
+            <span className="text-amber-400 font-semibold font-sans">
+              {activeTab === 'insights' && 'Platform Insights'}
+              {activeTab === 'users' && 'Users'}
+              {activeTab === 'security' && 'Master Credentials'}
+              {activeTab === 'templates' && 'Layout Architectures'}
+              {activeTab === 'tiers' && 'Pricing Tiers Config'}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Quick Action Tools */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => {
+                fetchInsights();
+                fetchUsers();
+                fetchAdminTemplates();
+                fetchAdminTiers();
+              }}
+              className="px-2.5 py-1.5 text-xs text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 border border-zinc-800 transition flex items-center gap-1.5 font-medium cursor-pointer"
+              title="Sync with live database"
+            >
+              <RefreshCw className="w-3 h-3 text-amber-400" />
+              <span>Sync DB</span>
+            </button>
+
             {activeTab === 'users' && (
               <button
                 onClick={handleOpenAddUser}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 transition cursor-pointer"
+                className="px-3 py-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add New User</span>
+                <span>Add User +</span>
               </button>
             )}
 
@@ -696,14 +922,23 @@ export default function AdminPage() {
                   });
                   setTemplateModalOpen(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white transition cursor-pointer shadow-sm"
+                className="px-3 py-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white rounded-lg flex items-center gap-1.5 transition cursor-pointer shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Global Template</span>
+                <span>Add Template +</span>
               </button>
             )}
+
+            <div className="h-4 w-px bg-zinc-800" />
+
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+              DJANGO LIVE DB
+            </span>
           </div>
-        </div>
+        </header>
+
+        {/* Content Body - Independent Vertical Scroll */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 space-y-6">
 
         {/* ─── TAB 1: INSIGHTS & METRICS ────────────────────────────────────────── */}
         {activeTab === 'insights' && (
@@ -897,57 +1132,36 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ─── TAB 2: USER MANAGEMENT TABLE ──────────────────────────────────── */}
+        {/* ─── TAB 2: USER MANAGEMENT (DJANGO CRM CHANGELIST) ────────────────── */}
         {activeTab === 'users' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Search and Filters Bar */}
+            {/* Django Search Toolbar */}
             <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-wrap items-center justify-between gap-4">
               <div className="flex-1 min-w-[240px] relative">
                 <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search user by name or email..."
+                  placeholder="Search user accounts by name or email address..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition"
                 />
               </div>
 
-              <div className="flex items-center gap-3">
-                <select
-                  value={planFilter}
-                  onChange={(e) => setPlanFilter(e.target.value)}
-                  className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
-                >
-                  <option value="">All Plans</option>
-                  <option value="free">Pagewise Free</option>
-                  <option value="day_pass">Wiser Day Pass (₹49)</option>
-                  <option value="pro_monthly">Pagewise Pro (₹199)</option>
-                </select>
-
-                <select
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                  className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
-                >
-                  <option value="">All Roles</option>
-                  <option value="admin">Administrators</option>
-                  <option value="user">Regular Users</option>
-                </select>
-
+              <div className="flex items-center gap-2">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
                 >
-                  <option value="created_at">Registered Date</option>
-                  <option value="name">Name</option>
-                  <option value="email">Email</option>
+                  <option value="created_at">Order: Date Registered</option>
+                  <option value="name">Order: Full Name</option>
+                  <option value="email">Order: Email</option>
                 </select>
 
                 <button
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="p-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-400 hover:text-white"
+                  className="p-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-400 hover:text-white cursor-pointer"
                   title="Toggle sort order"
                 >
                   <ArrowUpDown className="w-4 h-4" />
@@ -955,150 +1169,325 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Users Data Table */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-zinc-950/80 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
-                    <tr>
-                      <th className="py-3.5 px-4">User</th>
-                      <th className="py-3.5 px-4">Role</th>
-                      <th className="py-3.5 px-4">Plan</th>
-                      <th className="py-3.5 px-4 text-center">Resumes (Branched)</th>
-                      <th className="py-3.5 px-4 text-center">Exports</th>
-                      <th className="py-3.5 px-4 text-center">Custom Tmpl</th>
-                      <th className="py-3.5 px-4 text-center">Wiser AI (JH / ATS)</th>
-                      <th className="py-3.5 px-4">Registered</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800/60">
-                    {usersLoading ? (
-                      <tr>
-                        <td colSpan="9" className="py-12 text-center text-zinc-500">
-                          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-500" />
-                          Loading accounts...
-                        </td>
-                      </tr>
-                    ) : users.length === 0 ? (
-                      <tr>
-                        <td colSpan="9" className="py-12 text-center text-zinc-500">
-                          No users found matching your filters.
-                        </td>
-                      </tr>
-                    ) : (
-                      users.map((u) => {
-                        const isSelf = u.id === adminUser.id;
-                        const planType = u.subscription?.plan_type || 'free';
-                        return (
-                          <tr key={u.id} className="hover:bg-zinc-800/40 transition">
-                            <td className="py-3 px-4">
-                              <button
-                                onClick={() => handleInspectUser(u)}
-                                className="text-left group cursor-pointer"
-                                title="Click to inspect user purchases, limits & telemetry"
-                              >
-                                <div className="font-semibold text-white group-hover:text-amber-400 flex items-center gap-2 transition-colors">
-                                  <span>{u.name}</span>
-                                  {isSelf && (
-                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
-                                      You
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-zinc-400 group-hover:text-zinc-300 text-[11px] font-mono transition-colors">{u.email}</div>
-                              </button>
-                            </td>
+            {/* Django Admin Actions Bar */}
+            <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 font-mono text-zinc-400">
+                  <span className="font-bold text-zinc-300">Action:</span>
+                  <select
+                    value={bulkAction}
+                    onChange={(e) => setBulkAction(e.target.value)}
+                    className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                  >
+                    <option value="">--------- Choose action ---------</option>
+                    <option value="upgrade_pro">Upgrade selected to Pagewise Pro (₹199)</option>
+                    <option value="upgrade_day_pass">Grant Wiser Day Pass (₹49 / 24h)</option>
+                    <option value="set_free">Demote selected to Pagewise Free</option>
+                    <option value="make_admin">Grant Staff / Superuser Privileges</option>
+                    <option value="revoke_admin">Revoke Staff / Superuser Privileges</option>
+                    <option value="delete_selected">Delete selected user accounts</option>
+                  </select>
+                  <button
+                    onClick={handleRunBulkAction}
+                    disabled={runningBulkAction || selectedUserIds.length === 0}
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white font-semibold rounded-lg border border-zinc-700 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    {runningBulkAction && <Loader2 className="w-3 h-3 animate-spin" />}
+                    <span>Go</span>
+                  </button>
+                </div>
+                <span className="text-[11px] font-mono text-zinc-500">
+                  {selectedUserIds.length} of {users.length} selected
+                </span>
+              </div>
 
-                            <td className="py-3 px-4">
-                              {u.is_admin ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                  <ShieldCheck className="w-3 h-3" />
-                                  Admin
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800 text-zinc-400">
-                                  User
-                                </span>
-                              )}
-                            </td>
+              {selectedUserIds.length > 0 && (
+                <button
+                  onClick={() => setSelectedUserIds([])}
+                  className="text-[11px] text-zinc-400 hover:text-white underline cursor-pointer"
+                >
+                  Clear selection
+                </button>
+              )}
+            </div>
 
-                            <td className="py-3 px-4">
-                              <span
-                                className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                                  planType === 'pro_monthly'
-                                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                                    : planType === 'day_pass'
-                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                                    : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                                }`}
-                              >
-                                {u.subscription?.plan_name || 'Pagewise Free'}
-                              </span>
-                            </td>
-
-                            <td className="py-3 px-4 text-center">
-                              <span className="font-semibold text-white">{u.metrics?.resumes || 0}</span>
-                              <span className="text-zinc-500 text-[10px] ml-1">
-                                ({u.metrics?.branched_resumes || 0})
-                              </span>
-                            </td>
-
-                            <td className="py-3 px-4 text-center font-semibold text-emerald-400">
-                              {u.metrics?.exports || 0}
-                            </td>
-
-                            <td className="py-3 px-4 text-center text-zinc-300">
-                              {u.metrics?.custom_templates || 0}
-                            </td>
-
-                            <td className="py-3 px-4 text-center">
-                              <span className="font-semibold text-amber-400">{u.metrics?.wiser_total || 0}</span>
-                              <span className="text-zinc-500 text-[10px] ml-1">
-                                ({u.metrics?.wiser_job_helps || 0} / {u.metrics?.wiser_ats_checks || 0})
-                              </span>
-                            </td>
-
-                            <td className="py-3 px-4 text-zinc-400 text-[11px]">
-                              {new Date(u.created_at).toLocaleDateString()}
-                            </td>
-
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => handleInspectUser(u)}
-                                  className="p-1.5 rounded-lg text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 transition cursor-pointer"
-                                  title="Inspect user telemetry, quotas & purchases"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleOpenEditUser(u)}
-                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
-                                  title="Edit user & plan"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  disabled={isSelf}
-                                  onClick={() => handleDeleteUser(u)}
-                                  className={`p-1.5 rounded-lg transition ${
-                                    isSelf
-                                      ? 'text-zinc-600 cursor-not-allowed'
-                                      : 'text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 cursor-pointer'
-                                  }`}
-                                  title={isSelf ? 'Cannot delete self' : 'Delete user'}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+            {/* Two-Column: Table + Django Right-hand Filters */}
+            <div className="flex flex-col lg:flex-row gap-5 items-start">
+              {/* Left: Main Data Table */}
+              <div className="flex-1 min-w-0 w-full space-y-3">
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-zinc-950/80 text-zinc-400 uppercase tracking-wider text-[11px] border-b border-zinc-800">
+                        <tr>
+                          <th className="w-9 py-3.5 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedUserIds.length === users.length && users.length > 0}
+                              onChange={handleSelectAllUsers}
+                              className="rounded border-zinc-700 bg-zinc-950 text-amber-500 focus:ring-0 cursor-pointer"
+                              title="Select all on this page"
+                            />
+                          </th>
+                          <th className="py-3.5 px-4">User</th>
+                          <th className="py-3.5 px-4">Role</th>
+                          <th className="py-3.5 px-4">Plan</th>
+                          <th className="py-3.5 px-4 text-center">Resumes (Branched)</th>
+                          <th className="py-3.5 px-4 text-center">Exports</th>
+                          <th className="py-3.5 px-4 text-center">Custom Tmpl</th>
+                          <th className="py-3.5 px-4 text-center">Wiser AI</th>
+                          <th className="py-3.5 px-4">Registered</th>
+                          <th className="py-3.5 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-800/60">
+                        {usersLoading ? (
+                          <tr>
+                            <td colSpan="10" className="py-12 text-center text-zinc-500">
+                              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-500" />
+                              Loading accounts from database...
                             </td>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                        ) : users.length === 0 ? (
+                          <tr>
+                            <td colSpan="10" className="py-12 text-center text-zinc-500">
+                              No users found matching your filters.
+                            </td>
+                          </tr>
+                        ) : (
+                          users.map((u) => {
+                            const isSelf = u.id === adminUser.id;
+                            const isSelected = selectedUserIds.includes(u.id);
+                            const planType = u.subscription?.plan_type || 'free';
+
+                            return (
+                              <tr
+                                key={u.id}
+                                className={`transition ${
+                                  isSelected ? 'bg-amber-500/5' : 'hover:bg-zinc-800/40'
+                                }`}
+                              >
+                                <td className="w-9 py-3 px-3 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleToggleSelectUser(u.id)}
+                                    className="rounded border-zinc-700 bg-zinc-950 text-amber-500 focus:ring-0 cursor-pointer"
+                                  />
+                                </td>
+
+                                <td className="py-3 px-4">
+                                  <button
+                                    onClick={() => handleInspectUser(u)}
+                                    className="text-left group cursor-pointer"
+                                    title="Click to inspect user purchases, limits & telemetry"
+                                  >
+                                    <div className="font-semibold text-white group-hover:text-amber-400 flex items-center gap-2 transition-colors">
+                                      <span>{u.name}</span>
+                                      {isSelf && (
+                                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
+                                          You
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-zinc-400 group-hover:text-zinc-300 text-[11px] font-mono transition-colors">
+                                      {u.email}
+                                    </div>
+                                  </button>
+                                </td>
+
+                                <td className="py-3 px-4">
+                                  {u.is_admin ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                      <ShieldCheck className="w-3 h-3" />
+                                      Superuser
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800 text-zinc-400">
+                                      Member
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="py-3 px-4">
+                                  <span
+                                    className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                      planType === 'pro_monthly'
+                                        ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                                        : planType === 'day_pass'
+                                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                    }`}
+                                  >
+                                    {u.subscription?.plan_name || 'Pagewise Free'}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-4 text-center">
+                                  <span className="font-semibold text-white">{u.metrics?.resumes || 0}</span>
+                                  <span className="text-zinc-500 text-[10px] ml-1">
+                                    ({u.metrics?.branched_resumes || 0})
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-4 text-center font-semibold text-emerald-400">
+                                  {u.metrics?.exports || 0}
+                                </td>
+
+                                <td className="py-3 px-4 text-center text-zinc-300">
+                                  {u.metrics?.custom_templates || 0}
+                                </td>
+
+                                <td className="py-3 px-4 text-center">
+                                  <span className="font-semibold text-amber-400">
+                                    {u.metrics?.wiser_total || 0}
+                                  </span>
+                                  <span className="text-zinc-500 text-[10px] ml-1">
+                                    ({u.metrics?.wiser_job_helps || 0} / {u.metrics?.wiser_ats_checks || 0})
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-4 text-zinc-400 text-[11px] font-mono">
+                                  {new Date(u.created_at).toLocaleDateString()}
+                                </td>
+
+                                <td className="py-3 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => handleInspectUser(u)}
+                                      className="p-1.5 rounded-lg text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 transition cursor-pointer"
+                                      title="Inspect user telemetry, quotas & purchases"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenEditUser(u)}
+                                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+                                      title="Edit user & plan"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      disabled={isSelf}
+                                      onClick={() => handleDeleteUser(u)}
+                                      className={`p-1.5 rounded-lg transition ${
+                                        isSelf
+                                          ? 'text-zinc-600 cursor-not-allowed'
+                                          : 'text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 cursor-pointer'
+                                      }`}
+                                      title={isSelf ? 'Cannot delete self' : 'Delete user'}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Django Changelist Footer Counter */}
+                <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl flex items-center justify-between text-xs text-zinc-400 font-mono">
+                  <span>
+                    {users.length} user{users.length === 1 ? '' : 's'} (of {totalUsers} registered in database)
+                  </span>
+                  {selectedUserIds.length > 0 && (
+                    <span className="text-amber-400 font-semibold">
+                      {selectedUserIds.length} selected for action
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Signature Django Filter Box */}
+              <div className="hidden lg:block w-60 shrink-0 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-xs space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 text-zinc-200 font-bold uppercase tracking-wider text-[11px] pb-2.5 border-b border-zinc-800">
+                  <Filter className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Filter Options</span>
+                </div>
+
+                {/* Filter by Plan */}
+                <div>
+                  <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold block mb-1.5">
+                    By Subscription Plan
+                  </span>
+                  <div className="space-y-0.5">
+                    {[
+                      { id: '', label: 'All Plans' },
+                      { id: 'free', label: 'Pagewise Free' },
+                      { id: 'day_pass', label: 'Wiser Day Pass' },
+                      { id: 'pro_monthly', label: 'Pagewise Pro' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setPlanFilter(opt.id)}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                          planFilter === opt.id
+                            ? 'bg-amber-500/15 text-amber-400 font-semibold'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filter by Staff / Role */}
+                <div className="pt-3 border-t border-zinc-800">
+                  <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold block mb-1.5">
+                    By Staff Status
+                  </span>
+                  <div className="space-y-0.5">
+                    {[
+                      { id: '', label: 'All Staff & Users' },
+                      { id: 'admin', label: 'Yes (Superusers only)' },
+                      { id: 'user', label: 'No (Regular members)' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setRoleFilter(opt.id)}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                          roleFilter === opt.id
+                            ? 'bg-amber-500/15 text-amber-400 font-semibold'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filter by Sort */}
+                <div className="pt-3 border-t border-zinc-800">
+                  <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold block mb-1.5">
+                    Sort Column
+                  </span>
+                  <div className="space-y-0.5">
+                    {[
+                      { id: 'created_at', label: 'Registration Date' },
+                      { id: 'name', label: 'Full Name' },
+                      { id: 'email', label: 'Email Address' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setSortBy(opt.id)}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                          sortBy === opt.id
+                            ? 'bg-amber-500/15 text-amber-400 font-semibold'
+                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1573,6 +1962,7 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+      </div>
 
       {/* ─── ADD / EDIT USER MODAL ─────────────────────────────────────────── */}
       {userModalOpen && (
