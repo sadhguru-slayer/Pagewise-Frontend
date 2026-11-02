@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Monitor, Sparkles, Smartphone } from 'lucide-react';
+import { Monitor, Smartphone } from 'lucide-react';
 
 export default function MobileBlocker() {
   const [mounted, setMounted] = useState(false);
@@ -56,9 +56,8 @@ export default function MobileBlocker() {
 
         {/* Messaging */}
         <div className="space-y-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#C88A58]/10 text-[#D49A6A] border border-[#C88A58]/20">
-            <Sparkles className="w-3 h-3" />
-            <span>Desktop Experience Only</span>
+          <span className="inline-block px-3 py-1 rounded-full text-[11px] font-semibold bg-[#C88A58]/10 text-[#D49A6A] border border-[#C88A58]/20 tracking-wide uppercase font-mono">
+            Desktop Experience Only
           </span>
           <h1 className="text-2xl font-bold text-white tracking-tight pt-1">
             Please Switch to a Laptop or Desktop
@@ -79,7 +78,7 @@ export default function MobileBlocker() {
             </span>
           </div>
           <p className="text-[11px] text-[#8E94A5] leading-normal">
-            We are actively engineering a responsive mobile companion. In the meantime, please open <span className="text-white font-mono font-medium">resumo.app</span> or your PageWise link on a larger display.
+            We are actively engineering a responsive mobile companion. In the meantime, please open <span className="text-white font-mono font-medium">pagewise.sadguruchenu.in</span> or your PageWise link on a larger display.
           </p>
         </div>
 
