@@ -720,6 +720,25 @@ export const adminApi = {
     });
   },
 
+  async createTier(payload) {
+    return fetchAdminApi('/admin/tiers', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteTier(tierKey) {
+    return fetchAdminApi(`/admin/tiers/${tierKey}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async syncDefaultTiers() {
+    return fetchAdminApi('/admin/tiers/sync-defaults', {
+      method: 'POST',
+    });
+  },
+
   async applyPilotAll(archiveOthers = true) {
     return fetchAdminApi(`/admin/apply-pilot-all?archive_others=${archiveOthers}`, {
       method: 'POST',

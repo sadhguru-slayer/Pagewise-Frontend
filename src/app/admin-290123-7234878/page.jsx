@@ -454,6 +454,125 @@ export default function AdminPage() {
     );
   };
 
+  const [tierModalOpen, setTierModalOpen] = useState(false);
+  const [creatingTier, setCreatingTier] = useState(false);
+  const [syncingTiers, setSyncingTiers] = useState(false);
+  const [deletingTierKey, setDeletingTierKey] = useState(null);
+
+  const initialTierForm = {
+    tier_key: '',
+    name: '',
+    tagline: '',
+    badge: '',
+    base_price_inr: 99,
+    discount_price_inr: 99,
+    discount_percent: 0,
+    billing_period_text: 'INR 99 / month',
+    duration_days: 30,
+    resume_limit: 5,
+    export_limit: 25,
+    wiser_ai_limit: 30,
+    wiser_job_help_limit: 20,
+    wiser_ats_limit: 20,
+    custom_template_limit: 5,
+    premium_templates_allowed: 10,
+    features: ['5 resume workspaces', '25 exports/month', '30 Wiser AI runs'],
+    is_active: true,
+    is_archived: false,
+    display_order: 10,
+  };
+  const [tierForm, setTierForm] = useState(initialTierForm);
+
+  const handleSyncDefaults = async () => {
+    if (!window.confirm('Restore and synchronize canonical default plans (Free, Pilot 20 workspaces, Day Pass, Pro)? Any custom tiers you created will remain untouched.')) {
+      return;
+    }
+    try {
+      setSyncingTiers(true);
+      const res = await adminApi.syncDefaultTiers();
+      toast.success(res.message || 'Tiers synced successfully!');
+      fetchAdminTiers();
+    } catch (err) {
+      toast.error('Failed to sync tiers: ' + err.message);
+    } finally {
+      setSyncingTiers(false);
+    }
+  };
+
+  const handleDeleteTier = async (tierKey, tierName) => {
+    if (!window.confirm(`Are you sure you want to delete tier "${tierName}" (${tierKey})? Default core tiers will be archived instead of permanently deleted.`)) {
+      return;
+    }
+    try {
+      setDeletingTierKey(tierKey);
+      const res = await adminApi.deleteTier(tierKey);
+      toast.success(res.message || 'Tier deleted/archived successfully!');
+      fetchAdminTiers();
+    } catch (err) {
+      toast.error('Failed to delete tier: ' + err.message);
+    } finally {
+      setDeletingTierKey(null);
+    }
+  };
+
+  const handleCreateTier = async (e) => {
+    e.preventDefault();
+    if (!tierForm.tier_key.trim() || !tierForm.name.trim()) {
+      toast.error('Tier key and display name are required');
+      return;
+    }
+    try {
+      setCreatingTier(true);
+      await adminApi.createTier({
+        ...tierForm,
+        tier_key: tierForm.tier_key.trim().toLowerCase().replace(/\s+/g, '_'),
+        base_price_inr: Number(tierForm.base_price_inr),
+        discount_price_inr: Number(tierForm.discount_price_inr),
+        discount_percent: Number(tierForm.discount_percent || 0),
+        duration_days: tierForm.duration_days !== null && tierForm.duration_days !== '' ? Number(tierForm.duration_days) : null,
+        resume_limit: Number(tierForm.resume_limit),
+        export_limit: Number(tierForm.export_limit),
+        wiser_ai_limit: Number(tierForm.wiser_ai_limit),
+        wiser_job_help_limit: Number(tierForm.wiser_job_help_limit),
+        wiser_ats_limit: Number(tierForm.wiser_ats_limit),
+        custom_template_limit: Number(tierForm.custom_template_limit),
+        premium_templates_allowed: Number(tierForm.premium_templates_allowed),
+        display_order: Number(tierForm.display_order || 0),
+      });
+      toast.success(`Plan "${tierForm.name}" created successfully!`);
+      setTierModalOpen(false);
+      setTierForm(initialTierForm);
+      fetchAdminTiers();
+    } catch (err) {
+      toast.error('Failed to create tier: ' + err.message);
+    } finally {
+      setCreatingTier(false);
+    }
+  };
+
+  const handleAddCreateFeature = () => {
+    setTierForm((prev) => ({
+      ...prev,
+      features: [...prev.features, 'New feature perk'],
+    }));
+  };
+
+  const handleRemoveCreateFeature = (index) => {
+    setTierForm((prev) => {
+      const copy = [...prev.features];
+      copy.splice(index, 1);
+      return { ...prev, features: copy };
+    });
+  };
+
+  const handleEditCreateFeature = (index, val) => {
+    setTierForm((prev) => {
+      const copy = [...prev.features];
+      copy[index] = val;
+      return { ...prev, features: copy };
+    });
+  };
+
   // 6. Fetch Feedbacks & Moderation
   const fetchFeedbacks = useCallback(async () => {
     try {
@@ -1853,13 +1972,41 @@ export default function AdminPage() {
                     Real-time management for pricing, discounts, limits, and public feature checklists. Edits take effect immediately in checkout, customer billing, and quota enforcement.
                   </p>
                 </div>
-                <button
-                  onClick={fetchAdminTiers}
-                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer self-start md:self-auto border border-zinc-800"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Reload</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTierModalOpen(true)}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-black rounded-lg transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-black" />
+                    <span>+ Add New Tier</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSyncDefaults}
+                    disabled={syncingTiers}
+                    className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg transition flex items-center gap-1.5 text-xs font-medium cursor-pointer border border-zinc-700 disabled:opacity-50"
+                    title="Synchronize and restore canonical default tiers (Pilot 20 workspaces, Free, Day Pass, Pro)"
+                  >
+                    {syncingTiers ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                    ) : (
+                      <Layers className="w-3.5 h-3.5 text-amber-400" />
+                    )}
+                    <span>Sync Default Plans</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={fetchAdminTiers}
+                    className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer border border-zinc-800"
+                    title="Reload Tiers"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Reload</span>
+                  </button>
+                </div>
               </div>
 
               {/* Pilot Program Automation Card */}
@@ -1952,7 +2099,7 @@ export default function AdminPage() {
                                 </span>
                               </div>
 
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 <label className="flex items-center gap-1 text-[11px] text-zinc-400 cursor-pointer">
                                   <input
                                     type="checkbox"
@@ -1972,6 +2119,20 @@ export default function AdminPage() {
                                   />
                                   <span>Archive</span>
                                 </label>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTier(tier.tier_key, tier.name)}
+                                  disabled={deletingTierKey === tier.tier_key}
+                                  className="p-1 text-zinc-500 hover:text-rose-400 rounded transition cursor-pointer hover:bg-rose-500/10"
+                                  title={`Delete or archive tier ${tier.tier_key}`}
+                                >
+                                  {deletingTierKey === tier.tier_key ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                                  ) : (
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
                               </div>
                             </div>
 
@@ -3276,6 +3437,284 @@ export default function AdminPage() {
                 >
                   {tplSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingTemplate ? 'Save Template Changes' : 'Create Architecture'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ADD NEW SUBSCRIPTION TIER MODAL ─── */}
+      {tierModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden p-6 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Create New Plan / Subscription Tier
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Define custom pricing, quotas, and feature list. Immediately accessible via API and checkout.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setTierModalOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTier} className="space-y-4 mt-4 overflow-y-auto pr-1 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                    Tier Key / Identifier <span className="text-amber-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={tierForm.tier_key}
+                    onChange={(e) => setTierForm({ ...tierForm, tier_key: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. starter_monthly or student_pass"
+                  />
+                  <p className="text-[10px] text-zinc-500 mt-1">Unique slug used in database.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                    Display Name <span className="text-amber-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={tierForm.name}
+                    onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. Starter Pack, Student Pass"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Tagline</label>
+                  <input
+                    type="text"
+                    value={tierForm.tagline}
+                    onChange={(e) => setTierForm({ ...tierForm, tagline: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. Essential resume builder for new grads"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Badge Text (Optional)</label>
+                  <input
+                    type="text"
+                    value={tierForm.badge}
+                    onChange={(e) => setTierForm({ ...tierForm, badge: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. Popular, Best Value, 40% OFF"
+                  />
+                </div>
+              </div>
+
+              {/* Pricing Section */}
+              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                <h4 className="text-xs font-semibold text-zinc-200">Pricing & Billing (INR)</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Base Price (INR)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tierForm.base_price_inr}
+                      onChange={(e) => {
+                        const base = Number(e.target.value);
+                        const disc = Number(tierForm.discount_price_inr);
+                        const pct = base > 0 ? Math.max(0, Math.round(((base - disc) / base) * 100)) : 0;
+                        setTierForm({ ...tierForm, base_price_inr: base, discount_percent: pct });
+                      }}
+                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Discount Price (INR)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tierForm.discount_price_inr}
+                      onChange={(e) => {
+                        const disc = Number(e.target.value);
+                        const base = Number(tierForm.base_price_inr);
+                        const pct = base > 0 ? Math.max(0, Math.round(((base - disc) / base) * 100)) : 0;
+                        setTierForm({ ...tierForm, discount_price_inr: disc, discount_percent: pct });
+                      }}
+                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Billing Period Text</label>
+                    <input
+                      type="text"
+                      value={tierForm.billing_period_text}
+                      onChange={(e) => setTierForm({ ...tierForm, billing_period_text: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                      placeholder="e.g. INR 99 / month or One-time"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Duration Days (Empty for recurring)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tierForm.duration_days ?? ''}
+                      onChange={(e) => setTierForm({ ...tierForm, duration_days: e.target.value ? Number(e.target.value) : null })}
+                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                      placeholder="e.g. 30 (or leave empty)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-zinc-400 mb-1">Display Order</label>
+                    <input
+                      type="number"
+                      value={tierForm.display_order}
+                      onChange={(e) => setTierForm({ ...tierForm, display_order: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quotas & Allowances */}
+              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                <h4 className="text-xs font-semibold text-zinc-200">Quotas & Feature Limits</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-1">Workspaces Limit</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={tierForm.resume_limit}
+                      onChange={(e) => setTierForm({ ...tierForm, resume_limit: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs font-mono text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-1">Export Limit</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tierForm.export_limit}
+                      onChange={(e) => setTierForm({ ...tierForm, export_limit: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs font-mono text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-1">Job Help Analyses</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tierForm.wiser_job_help_limit}
+                      onChange={(e) => setTierForm({ ...tierForm, wiser_job_help_limit: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs font-mono text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-zinc-400 mb-1">ATS Evaluations</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tierForm.wiser_ats_limit}
+                      onChange={(e) => setTierForm({ ...tierForm, wiser_ats_limit: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-700 rounded text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Public Features Checklist */}
+              <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-zinc-200">Public Benefit Checklist</h4>
+                  <button
+                    type="button"
+                    onClick={handleAddCreateFeature}
+                    className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold cursor-pointer flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add Bullet</span>
+                  </button>
+                </div>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {(tierForm.features || []).map((feat, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={feat}
+                        onChange={(e) => handleEditCreateFeature(idx, e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                        placeholder="e.g. 5 Resume Workspaces"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCreateFeature(idx)}
+                        className="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status toggles */}
+              <div className="flex items-center gap-6 pt-1">
+                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tierForm.is_active}
+                    onChange={(e) => setTierForm({ ...tierForm, is_active: e.target.checked })}
+                    className="rounded border-zinc-700 bg-zinc-950 text-amber-500 focus:ring-0"
+                  />
+                  <span>Active Plan</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-rose-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tierForm.is_archived}
+                    onChange={(e) => setTierForm({ ...tierForm, is_archived: e.target.checked })}
+                    className="rounded border-zinc-700 bg-zinc-950 text-rose-500 focus:ring-0"
+                  />
+                  <span>Archive Immediately (Hide from users)</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setTierModalOpen(false)}
+                  className="px-4 py-2 text-xs text-zinc-400 hover:text-white transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingTier}
+                  className="px-5 py-2.5 rounded-xl text-xs bg-amber-500 hover:bg-amber-400 text-black flex items-center gap-2 transition cursor-pointer font-bold disabled:opacity-50 shadow-md"
+                >
+                  {creatingTier && <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />}
+                  <span>Create Plan</span>
                 </button>
               </div>
             </form>
