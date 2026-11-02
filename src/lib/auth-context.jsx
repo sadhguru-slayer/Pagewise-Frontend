@@ -56,7 +56,16 @@ export function AuthProvider({ children }) {
       payload = { name: nameOrEmail, email: emailOrPassword, password: passwordOrToken, register_token: maybeToken };
     } else {
       // Called with 2 or 3 arguments: (email, password, register_token)
-      payload = { email: nameOrEmail, password: emailOrPassword, register_token: passwordOrToken };
+      const email = nameOrEmail;
+      const derivedName = (typeof email === 'string' && email.includes('@'))
+        ? email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'user'
+        : 'user';
+      payload = {
+        name: derivedName, // backwards-compatible fallback for running backend containers
+        email,
+        password: emailOrPassword,
+        register_token: passwordOrToken,
+      };
     }
     const res = await authApi.register(payload);
     setUser(res.user);
