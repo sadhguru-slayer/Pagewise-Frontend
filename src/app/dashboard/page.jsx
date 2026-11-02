@@ -212,6 +212,11 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
   ];
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+  const planBadge = planStatus?.plan_type === 'pro_monthly'
+    ? 'Pro'
+    : planStatus?.plan_type === 'day_pass'
+    ? 'Day Pass'
+    : 'Free';
 
   return (
     <aside
@@ -227,7 +232,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
         style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
       >
         <Link href="/" className="group block">
-          <BrandLockup size={28} showTagline={true} />
+          <BrandLockup size={28} showTagline={true} badgeText={planBadge} />
         </Link>
       </div>
 
@@ -612,7 +617,16 @@ export default function DashboardPage() {
           className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30 border-b backdrop-blur-md"
           style={{ background: 'rgba(9,11,16,0.9)', borderColor: BRAND_CONFIG.colors.borderSubtle }}
         >
-          <BrandLockup size={24} />
+          <BrandLockup
+            size={24}
+            badgeText={
+              planStatus?.plan_type === 'pro_monthly'
+                ? 'Pro'
+                : planStatus?.plan_type === 'day_pass'
+                ? 'Day Pass'
+                : 'Free'
+            }
+          />
           <Link href="/settings" className="p-2 text-[#7E869B] hover:text-white">
             <Settings className="w-4 h-4" />
           </Link>

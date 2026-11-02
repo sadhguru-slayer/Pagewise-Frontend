@@ -356,8 +356,16 @@ export const resumesApi = {
   },
 
   async setPrimary(resumeId) {
-    return fetchApi(`/resumes/${resumeId}/set-primary`, {
+    if (!resumeId) {
+      throw new Error('Valid resume ID is required');
+    }
+    const cleanId = parseInt(resumeId, 10);
+    if (isNaN(cleanId)) {
+      throw new Error(`Invalid resume ID: ${resumeId}`);
+    }
+    return fetchApi(`/resumes/${cleanId}/set-primary`, {
       method: 'POST',
+      body: JSON.stringify({}),
     });
   },
 

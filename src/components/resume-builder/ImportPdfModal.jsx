@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Upload,
@@ -11,9 +11,10 @@ import {
   X,
   FileCheck,
   Cpu,
+  Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { resumesApi } from '@/lib/api';
+import { resumesApi, paymentsApi } from '@/lib/api';
 import { useResumeStore } from '@/lib/resume/store';
 
 export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
@@ -25,6 +26,13 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
   const [currentStep, setCurrentStep] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [importOption, setImportOption] = useState(mode); // 'current' | 'new'
+  const [planStatus, setPlanStatus] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      paymentsApi.getStatus().then(setPlanStatus).catch(() => {});
+    }
+  }, [isOpen]);
 
   const updateHeader = useResumeStore((s) => s.updateHeader);
   const setSections = useResumeStore((s) => s.setSections);
@@ -32,6 +40,12 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
   const setResumeName = useResumeStore((s) => s.setResumeName);
 
   if (!isOpen) return null;
+
+  const isResumeLimitReached =
+    importOption === 'new' &&
+    planStatus &&
+    typeof planStatus.remaining?.resumes === 'number' &&
+    planStatus.remaining.resumes <= 0;
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -65,6 +79,15 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
   const handleStartImport = async () => {
     if (!selectedFile) {
       setErrorMessage('Please select a resume PDF file to upload.');
+      return;
+    }
+
+    if (isResumeLimitReached) {
+      setErrorMessage(
+        `Plan limit reached: ${planStatus?.plan_name || 'Your plan'} allows up to ${
+          planStatus?.limits?.resumes || 1
+        } resume workspace(s). Switch to 'Update Current Resume' or upgrade your plan.`
+      );
       return;
     }
 
@@ -240,6 +263,21 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
               <span className="text-[11px] text-zinc-500">Save as separate document</span>
             </button>
           </div>
+
+          {isResumeLimitReached && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2.5 text-xs text-amber-300">
+              <Lock className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <div>
+                <p className="font-semibold text-white">
+                  Workspace Limit Reached ({planStatus?.limits?.resumes || 1} max)
+                </p>
+                <p className="text-[11px] text-amber-300/80 mt-0.5">
+                  Your <strong className="text-white">{planStatus?.plan_name}</strong> plan allows up to {planStatus?.limits?.resumes || 1} resume workspace(s).
+                  Select <strong className="text-white">&quot;Update Current Resume&quot;</strong> to parse into your active workspace, or upgrade your plan.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Processing State */}
@@ -267,7 +305,7 @@ export default function ImportPdfModal({ isOpen, onClose, mode = 'current' }) {
           <button
             type="button"
             onClick={handleStartImport}
-            disabled={isProcessing || !selectedFile}
+            disabled={isProcessing || !selectedFile || isResumeLimitReached}
             className="py-2 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-xs sm:text-sm rounded-xl shadow-md shadow-blue-600/25 flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isProcessing ? (
