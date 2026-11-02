@@ -214,7 +214,10 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
   ];
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
-  const planBadge = planStatus?.plan_type === 'pro_monthly'
+  const isPilot = planStatus?.plan_type === 'pilot';
+  const planBadge = isPilot
+    ? 'Pilot'
+    : planStatus?.plan_type === 'pro_monthly'
     ? 'Pro'
     : planStatus?.plan_type === 'day_pass'
     ? 'Day Pass'
@@ -281,7 +284,9 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
               )}
             </div>
             <p className="text-[11px] text-[#8E94A5] mt-1 line-clamp-2">
-              {planStatus?.plan_type === 'pro_monthly'
+              {isPilot
+                ? '70 workspaces · 100 exports/mo'
+                : planStatus?.plan_type === 'pro_monthly'
                 ? '5 workspaces · 30 exports/mo'
                 : planStatus?.plan_type === 'day_pass'
                 ? '1 workspace · 5 exports (24h)'
@@ -291,7 +296,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
               onClick={onOpenUpgrade}
               className="mt-2.5 w-full py-1.5 px-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] text-[#EDEDF2] text-[11px] font-semibold border border-white/[0.08] flex items-center justify-center transition cursor-pointer"
             >
-              <span>{planStatus?.plan_type === 'pro_monthly' ? 'Subscription Details' : 'Upgrade Plan'}</span>
+              <span>{isPilot ? 'Pilot Plan Details' : planStatus?.plan_type === 'pro_monthly' ? 'Subscription Details' : 'Upgrade Plan'}</span>
             </button>
             {user?.is_admin && (
               <Link
@@ -656,7 +661,9 @@ export default function DashboardPage() {
           <BrandLockup
             size={24}
             badgeText={
-              planStatus?.plan_type === 'pro_monthly'
+              planStatus?.plan_type === 'pilot'
+                ? 'Pilot'
+                : planStatus?.plan_type === 'pro_monthly'
                 ? 'Pro'
                 : planStatus?.plan_type === 'day_pass'
                 ? 'Day Pass'
@@ -1467,7 +1474,9 @@ export default function DashboardPage() {
                       </span>
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                          planStatus?.plan_type === 'pro_monthly'
+                          planStatus?.plan_type === 'pilot'
+                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                            : planStatus?.plan_type === 'pro_monthly'
                             ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                             : planStatus?.plan_type === 'day_pass'
                             ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'

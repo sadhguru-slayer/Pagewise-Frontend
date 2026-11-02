@@ -660,5 +660,21 @@ export const adminApi = {
       body: JSON.stringify(payload),
     });
   },
+
+  async applyPilotAll(archiveOthers = true) {
+    return fetchAdminApi(`/admin/apply-pilot-all?archive_others=${archiveOthers}`, {
+      method: 'POST',
+    });
+  },
+
+  async bulkUpdatePlan(userIds, planType) {
+    return fetchAdminApi('/admin/users/bulk-plan', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_ids: userIds,
+        plan_type: planType,
+      }),
+    });
+  },
 };
 

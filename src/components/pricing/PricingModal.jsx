@@ -9,6 +9,28 @@ import { useAuth } from '@/lib/auth-context';
 
 export const PLANS = [
   {
+    id: 'pilot',
+    name: 'PageWise Pilot',
+    tagline: 'All premium capabilities unlocked during our early pilot program',
+    price: '₹0',
+    period: 'Pilot Access (Free)',
+    badge: 'Early Pilot Active',
+    badgeColor: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    buttonText: 'Current Active Plan',
+    popular: true,
+    features: [
+      '70 resume workspaces',
+      'Unlimited manual editing',
+      '100 exports per month',
+      '50 Wiser Job Help analyses',
+      '50 Wiser ATS evaluations',
+      '30 custom templates',
+      'All premium layout architectures unlocked',
+      'AI improvement suggestions and instant application',
+      'Early Pilot Access (No payment required)'
+    ]
+  },
+  {
     id: 'free',
     name: 'Pagewise Free',
     tagline: 'Essential resume building forever',
@@ -99,9 +121,10 @@ export default function PricingModal({
               period: t.billing_period_text || (t.tier_key === 'pro_monthly' ? '/ month' : t.tier_key === 'day_pass' ? 'one-time purchase (24 hours)' : 'forever'),
               badge: t.badge || (t.tier_key === 'pro_monthly' ? 'Recommended' : t.tier_key === 'day_pass' ? '24 Hours · 1 Resume' : 'Free Forever'),
               badgeColor: t.tier_key === 'pro_monthly' ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' : t.tier_key === 'day_pass' ? 'bg-[#C88A58]/10 text-[#D49A6A] border-[#C88A58]/25' : 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]',
-              buttonText: t.tier_key === 'pro_monthly' ? 'Upgrade to Pro' : t.tier_key === 'day_pass' ? 'Get 24h Day Pass' : 'Current Free Tier',
+              buttonText: t.tier_key === 'pro_monthly' ? 'Upgrade to Pro' : t.tier_key === 'day_pass' ? 'Get 24h Day Pass' : t.tier_key === 'pilot' ? 'Current Active Plan' : 'Current Free Tier',
               popular: t.tier_key === 'pro_monthly',
-              features: t.features || []
+              features: t.features || [],
+              is_archived: t.is_archived,
             }));
             setPlansList(formatted);
           }
@@ -112,14 +135,15 @@ export default function PricingModal({
 
   if (!isOpen) return null;
 
-  const planName = planStatus?.plan_name || (currentPlan === 'pro_monthly' ? 'Pagewise Pro' : currentPlan === 'day_pass' ? 'Wiser Day Pass' : 'Pagewise Free');
+  const isPilot = currentPlan === 'pilot' || planStatus?.plan_type === 'pilot';
+  const planName = planStatus?.plan_name || (isPilot ? 'PageWise Pilot' : currentPlan === 'pro_monthly' ? 'Pagewise Pro' : currentPlan === 'day_pass' ? 'Wiser Day Pass' : 'Pagewise Free');
   const limits = planStatus?.limits || {};
   const usage = planStatus?.usage || {};
   const remaining = planStatus?.remaining || {};
 
   const handleSubscribe = async (plan) => {
-    if (plan.id === 'free') {
-      toast('You are currently on the Free tier.', { icon: 'ℹ️' });
+    if (plan.id === 'free' || plan.id === 'pilot') {
+      toast(`You are currently on the ${plan.name}.`, { icon: 'ℹ️' });
       return;
     }
 
@@ -261,7 +285,9 @@ export default function PricingModal({
                   </div>
                   <h3 className="text-xl font-bold text-[#EDEDF2] mt-1.5">{planName}</h3>
                   <p className="text-xs text-[#8E94A5] mt-0.5">
-                    {currentPlan === 'pro_monthly'
+                    {isPilot
+                      ? '70 workspaces · 100 high-fidelity exports · 100 Wiser AI evaluations · All formats unlocked'
+                      : currentPlan === 'pro_monthly'
                       ? '5 workspaces · 30 high-fidelity exports · 30 Wiser AI runs per cycle'
                       : currentPlan === 'day_pass'
                       ? '1 workspace · 5 exports · 6 Wiser AI runs (24-hour speed pass)'
@@ -270,13 +296,19 @@ export default function PricingModal({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => setActiveTab('plans')}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#C88A58] hover:bg-[#B87A47] text-white shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>Change Plan</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                  {isPilot ? (
+                    <span className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/25 font-mono">
+                      Early Pilot Active
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setActiveTab('plans')}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#C88A58] hover:bg-[#B87A47] text-white shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>Change Plan</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -413,114 +445,142 @@ export default function PricingModal({
             </div>
           ) : (
             /* ── VIEW 2: COMPARE PLANS & UPGRADE ── */
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {plansList.map((plan) => {
-                const isCurrent = currentPlan === plan.id;
-                const isLoading = loadingPlan === plan.id;
+            (() => {
+              const visiblePlans = plansList.filter((p) => !p.is_archived);
+              const onlyPilot = visiblePlans.length === 1 && visiblePlans[0].id === 'pilot';
 
-                return (
-                  <div
-                    key={plan.id}
-                    className={`relative rounded-2xl p-6 flex flex-col justify-between transition-all duration-200 ${
-                      plan.popular
-                        ? 'bg-gradient-to-b from-indigo-950/30 via-[#14161F] to-[#14161F] border-2 border-indigo-500/40 shadow-xl'
-                        : isCurrent
-                        ? 'bg-[#161822] border-2 border-[#C88A58]/50'
-                        : 'bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15]'
-                    }`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-indigo-600 text-white text-[11px] font-bold rounded-full shadow-md">
-                        Recommended
-                      </div>
-                    )}
-
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium ${plan.badgeColor}`}>
-                          {plan.badge}
-                        </span>
-                        {isCurrent && (
-                          <span className="text-[10px] font-mono text-[#D49A6A] font-bold uppercase">
-                            Active Plan
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-xl font-bold text-[#EDEDF2] mt-3">{plan.name}</h3>
-                      <p className="text-xs text-[#8E94A5] mt-1 min-h-[32px]">{plan.tagline}</p>
-
-                      <div className="mt-4 flex items-baseline gap-2">
-                        <span className="text-3xl font-extrabold text-[#EDEDF2] tracking-tight">{plan.price}</span>
-                        {plan.basePrice && (
-                          <span className="text-sm line-through text-[#6A7185] font-mono">{plan.basePrice}</span>
-                        )}
-                        <span className="text-xs text-[#8E94A5]">{plan.period}</span>
-                      </div>
-
-                      <div className="h-px bg-white/[0.08] my-5" />
-
-                      <ul className="space-y-2.5 text-xs text-[#EDEDF2]/90">
-                        {plan.features.map((feat, idx) => (
-                          <li key={idx} className="flex items-start gap-2.5">
-                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                            <span>{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
+              return (
+                <div className="space-y-6">
+                  {isPilot && (
+                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-xs text-amber-200">
+                      <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        <strong>Early Pilot Access Active:</strong> All premium tools, workspaces, high-speed exports, and Wiser AI evaluations are unlocked for your account. No payment or credit card is required.
+                      </span>
                     </div>
+                  )}
 
-                    {(() => {
-                      const isFree = plan.id === 'free';
-                      const isDayPass = plan.id === 'day_pass';
-                      const isPro = plan.id === 'pro_monthly';
-
-                      let buttonLabel = plan.buttonText;
-                      let isDisabled = isCurrent || isLoading;
-
-                      if (isCurrent) {
-                        buttonLabel = 'Current Active Plan';
-                      } else if (isFree) {
-                        buttonLabel = 'Free Forever Plan';
-                        isDisabled = true;
-                      } else if (isDayPass && currentPlan === 'pro_monthly') {
-                        buttonLabel = 'Included in Pro';
-                        isDisabled = true;
-                      } else if (isPro) {
-                        buttonLabel = 'Upgrade to Pro';
-                      } else if (isDayPass) {
-                        buttonLabel = 'Get 24h Day Pass';
-                      }
+                  <div className={`grid gap-6 ${onlyPilot ? 'max-w-md mx-auto' : 'grid-cols-1 md:grid-cols-3'}`}>
+                    {visiblePlans.map((plan) => {
+                      const isCurrent = currentPlan === plan.id || (isPilot && plan.id === 'pilot');
+                      const isLoading = loadingPlan === plan.id;
+                      const isPlanPilot = plan.id === 'pilot';
 
                       return (
-                        <div className="mt-8">
-                          <button
-                            disabled={isDisabled}
-                            onClick={() => handleSubscribe(plan)}
-                            className={`w-full py-2.5 px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                              isDisabled
-                                ? 'bg-white/[0.04] text-[#8E94A5] cursor-not-allowed border border-white/[0.06]'
-                                : plan.popular
-                                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20'
-                                : 'bg-[#C88A58] hover:bg-[#B87A47] text-white'
-                            }`}
-                          >
-                            {isLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Processing...</span>
-                              </>
-                            ) : (
-                              buttonLabel
-                            )}
-                          </button>
+                        <div
+                          key={plan.id}
+                          className={`relative rounded-2xl p-6 flex flex-col justify-between transition-all duration-200 ${
+                            isPlanPilot
+                              ? 'bg-gradient-to-b from-amber-950/20 via-[#161822] to-[#14161F] border-2 border-amber-500/40 shadow-xl'
+                              : plan.popular
+                              ? 'bg-gradient-to-b from-indigo-950/30 via-[#14161F] to-[#14161F] border-2 border-indigo-500/40 shadow-xl'
+                              : isCurrent
+                              ? 'bg-[#161822] border-2 border-[#C88A58]/50'
+                              : 'bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15]'
+                          }`}
+                        >
+                          {isPlanPilot ? (
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-amber-500 text-black text-[11px] font-bold rounded-full shadow-md">
+                              Early Pilot Active
+                            </div>
+                          ) : plan.popular ? (
+                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-indigo-600 text-white text-[11px] font-bold rounded-full shadow-md">
+                              Recommended
+                            </div>
+                          ) : null}
+
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium ${plan.badgeColor}`}>
+                                {plan.badge}
+                              </span>
+                              {isCurrent && (
+                                <span className="text-[10px] font-mono text-[#D49A6A] font-bold uppercase">
+                                  Active Plan
+                                </span>
+                              )}
+                            </div>
+
+                            <h3 className="text-xl font-bold text-[#EDEDF2] mt-3">{plan.name}</h3>
+                            <p className="text-xs text-[#8E94A5] mt-1 min-h-[32px]">{plan.tagline}</p>
+
+                            <div className="mt-4 flex items-baseline gap-2">
+                              <span className="text-3xl font-extrabold text-[#EDEDF2] tracking-tight">{plan.price}</span>
+                              {plan.basePrice && (
+                                <span className="text-sm line-through text-[#6A7185] font-mono">{plan.basePrice}</span>
+                              )}
+                              <span className="text-xs text-[#8E94A5]">{plan.period}</span>
+                            </div>
+
+                            <div className="h-px bg-white/[0.08] my-5" />
+
+                            <ul className="space-y-2.5 text-xs text-[#EDEDF2]/90">
+                              {plan.features.map((feat, idx) => (
+                                <li key={idx} className="flex items-start gap-2.5">
+                                  <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                                  <span>{feat}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {(() => {
+                            const isFree = plan.id === 'free';
+                            const isDayPass = plan.id === 'day_pass';
+                            const isPro = plan.id === 'pro_monthly';
+
+                            let buttonLabel = plan.buttonText;
+                            let isDisabled = isCurrent || isLoading;
+
+                            if (isCurrent || isPlanPilot) {
+                              buttonLabel = 'Current Active Plan';
+                              isDisabled = true;
+                            } else if (isFree) {
+                              buttonLabel = 'Free Forever Plan';
+                              isDisabled = true;
+                            } else if (isDayPass && currentPlan === 'pro_monthly') {
+                              buttonLabel = 'Included in Pro';
+                              isDisabled = true;
+                            } else if (isPro) {
+                              buttonLabel = 'Upgrade to Pro';
+                            } else if (isDayPass) {
+                              buttonLabel = 'Get 24h Day Pass';
+                            }
+
+                            return (
+                              <div className="mt-8">
+                                <button
+                                  disabled={isDisabled}
+                                  onClick={() => handleSubscribe(plan)}
+                                  className={`w-full py-2.5 px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                    isDisabled
+                                      ? 'bg-white/[0.04] text-[#8E94A5] cursor-not-allowed border border-white/[0.06]'
+                                      : isPlanPilot
+                                      ? 'bg-amber-500 hover:bg-amber-400 text-black'
+                                      : plan.popular
+                                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20'
+                                      : 'bg-[#C88A58] hover:bg-[#B87A47] text-white'
+                                  }`}
+                                >
+                                  {isLoading ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      <span>Processing...</span>
+                                    </>
+                                  ) : (
+                                    buttonLabel
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
-                    })()}
+                    })}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })()
           )}
         </div>
 

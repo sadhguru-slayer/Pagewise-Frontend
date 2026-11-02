@@ -136,7 +136,9 @@ export default function AdminPage() {
     try {
       setRunningBulkAction(true);
       for (const id of selectedUserIds) {
-        if (bulkAction === 'upgrade_pro') {
+        if (bulkAction === 'grant_pilot') {
+          await adminApi.updateUser(id, { plan_type: 'pilot' });
+        } else if (bulkAction === 'upgrade_pro') {
           await adminApi.updateUser(id, { plan_type: 'pro_monthly' });
         } else if (bulkAction === 'upgrade_day_pass') {
           await adminApi.updateUser(id, { plan_type: 'day_pass' });
@@ -341,6 +343,29 @@ export default function AdminPage() {
     );
   };
 
+  const [activatingPilot, setActivatingPilot] = useState(false);
+
+  const handleApplyPilotMode = async (archiveOthers = true) => {
+    const promptMsg = archiveOthers
+      ? "Activate Pilot Mode? This will migrate all non-admin users to PageWise Pilot (70 workspaces, 100 exports, 50 AI) and archive paid tiers to prevent payment prompts."
+      : "Restore All Tiers? This will unarchive all tiers so they are visible again.";
+    if (!window.confirm(promptMsg)) {
+      return;
+    }
+    try {
+      setActivatingPilot(true);
+      const res = await adminApi.applyPilotAll(archiveOthers);
+      toast.success(res.message || "Pilot Mode updated successfully!");
+      fetchAdminTiers();
+      fetchUsers();
+      fetchInsights();
+    } catch (err) {
+      toast.error("Failed to update Pilot Mode: " + err.message);
+    } finally {
+      setActivatingPilot(false);
+    }
+  };
+
   const handleSaveTier = async (tier) => {
     try {
       setSavingTierKey(tier.tier_key);
@@ -362,6 +387,7 @@ export default function AdminPage() {
         premium_templates_allowed: Number(tier.premium_templates_allowed),
         features: tier.features || [],
         is_active: tier.is_active,
+        is_archived: Boolean(tier.is_archived),
         display_order: Number(tier.display_order || 0),
       });
       toast.success(`Plan "${tier.name}" saved successfully!`);
@@ -1180,6 +1206,7 @@ export default function AdminPage() {
                     className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
                     <option value="">--------- Choose action ---------</option>
+                    <option value="grant_pilot">Grant PageWise Pilot Access (70 Resumes · 100 Exports · 50 AI)</option>
                     <option value="upgrade_pro">Upgrade selected to Pagewise Pro (₹199)</option>
                     <option value="upgrade_day_pass">Grant Wiser Day Pass (₹49 / 24h)</option>
                     <option value="set_free">Demote selected to Pagewise Free</option>
@@ -1312,7 +1339,9 @@ export default function AdminPage() {
                                 <td className="py-3 px-4">
                                   <span
                                     className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                                      planType === 'pro_monthly'
+                                      planType === 'pilot'
+                                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold'
+                                        : planType === 'pro_monthly'
                                         ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                                         : planType === 'day_pass'
                                         ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
@@ -1749,26 +1778,74 @@ export default function AdminPage() {
                 </button>
               </div>
 
+              {/* Pilot Program Automation Card */}
+              <div className="mt-6 p-5 rounded-2xl bg-gradient-to-r from-amber-950/30 via-zinc-900 to-zinc-900 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Pilot Program Automation
+                    </span>
+                    <span className="text-xs text-zinc-400 font-mono">
+                      VIP Early Testing Controls
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white">
+                    One-Click Pilot Mode Activation
+                  </h3>
+                  <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                    Instantly migrate all non-admin users to the <strong className="text-amber-400">PageWise Pilot</strong> tier (70 workspaces, 100 exports/mo, 50 Wiser Job Help, 50 ATS evaluations, 30 custom templates, all layouts unlocked). Automatically archives paid tiers so users aren’t prompted for payment.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleApplyPilotMode(true)}
+                    disabled={activatingPilot}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black shadow-lg shadow-amber-500/10 transition cursor-pointer flex items-center gap-2"
+                  >
+                    {activatingPilot ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    ) : (
+                      <Zap className="w-4 h-4 text-black" />
+                    )}
+                    <span>Activate Pilot Mode (Archive Paid Tiers)</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleApplyPilotMode(false)}
+                    disabled={activatingPilot}
+                    className="px-3 py-2.5 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition cursor-pointer"
+                    title="Unarchive all paid plans"
+                  >
+                    <span>Restore All Tiers</span>
+                  </button>
+                </div>
+              </div>
+
               {tiersLoading ? (
                 <div className="py-20 flex flex-col items-center justify-center gap-3 text-zinc-500">
                   <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
                   <span className="text-xs font-mono">Loading subscription tiers...</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mt-6">
                   {adminTiers.map((tier) => {
                     const isSaving = savingTierKey === tier.tier_key;
+                    const isPilot = tier.tier_key === 'pilot';
                     const isPro = tier.tier_key === 'pro_monthly';
                     const isDayPass = tier.tier_key === 'day_pass';
+                    const isArchived = Boolean(tier.is_archived);
 
                     return (
                       <div
                         key={tier.tier_key}
                         className={`bg-zinc-950 border rounded-2xl p-6 flex flex-col justify-between transition shadow-md ${
-                          isPro
+                          isPilot
+                            ? 'border-amber-500/50 bg-gradient-to-b from-amber-950/20 to-zinc-950 shadow-amber-500/5'
+                            : isPro
                             ? 'border-indigo-500/40 bg-gradient-to-b from-indigo-950/20 to-zinc-950'
                             : isDayPass
-                            ? 'border-amber-500/40 bg-gradient-to-b from-amber-950/15 to-zinc-950'
+                            ? 'border-amber-500/30 bg-gradient-to-b from-amber-950/10 to-zinc-950'
                             : 'border-zinc-800'
                         }`}
                       >
@@ -1776,18 +1853,42 @@ export default function AdminPage() {
                           {/* Tier Header inputs */}
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
-                                {tier.tier_key}
-                              </span>
-                              <label className="flex items-center gap-1.5 text-xs text-zinc-400 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={tier.is_active}
-                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'is_active', e.target.checked)}
-                                  className="rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-0"
-                                />
-                                <span>Active</span>
-                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold bg-zinc-900 text-zinc-300 border border-zinc-800">
+                                  {tier.tier_key}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
+                                    isArchived
+                                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/25'
+                                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
+                                  }`}
+                                >
+                                  {isArchived ? 'Archived' : 'Published'}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-1 text-[11px] text-zinc-400 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={tier.is_active}
+                                    onChange={(e) => handleUpdateTierField(tier.tier_key, 'is_active', e.target.checked)}
+                                    className="rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-0"
+                                  />
+                                  <span>Active</span>
+                                </label>
+
+                                <label className="flex items-center gap-1 text-[11px] text-rose-400 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isArchived}
+                                    onChange={(e) => handleUpdateTierField(tier.tier_key, 'is_archived', e.target.checked)}
+                                    className="rounded border-zinc-700 bg-zinc-900 text-rose-500 focus:ring-0"
+                                  />
+                                  <span>Archive</span>
+                                </label>
+                              </div>
                             </div>
 
                             <label className="block text-[11px] font-medium text-zinc-400 mb-1">Plan Display Name</label>
@@ -2027,9 +2128,10 @@ export default function AdminPage() {
                     onChange={(e) => setFormData({ ...formData, plan_type: e.target.value })}
                     className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
                   >
-                    <option value="free">Pagewise Free</option>
-                    <option value="day_pass">Wiser Day Pass (₹49)</option>
+                    <option value="pilot">PageWise Pilot (Generous Quotas: 70 Resumes, 100 Exports, 50 AI)</option>
                     <option value="pro_monthly">Pagewise Pro (₹199)</option>
+                    <option value="day_pass">Wiser Day Pass (₹49)</option>
+                    <option value="free">Pagewise Free</option>
                   </select>
                 </div>
 
