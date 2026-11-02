@@ -57,6 +57,7 @@ import TemplateModal from '@/components/resume-builder/TemplateModal';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
 import JDAnalyzerModal from '@/components/resume-builder/JDAnalyzerModal';
 import PricingModal from '@/components/pricing/PricingModal';
+import MobileNotice from '@/components/layout/MobileNotice';
 
 function BuilderContent() {
   const router = useRouter();
@@ -382,6 +383,9 @@ function BuilderContent() {
 
   return (
     <div className="h-screen max-h-screen bg-[#090b13] text-[#e2e8f0] flex flex-col overflow-hidden select-none">
+      {/* Mobile Screen Recommendation Notice */}
+      <MobileNotice className="mx-2 mt-2 z-40" />
+
       {/* ─── STUDIO HEADER ─────────────────────────────────────────────────── */}
       <header className="h-12 border-b border-white/[0.07] bg-[#111420]/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between shrink-0 z-30">
         {/* Left: Back + Resume Name + Save Status */}
@@ -965,6 +969,7 @@ function BuilderContent() {
         isOpen={isPricingModalOpen}
         onClose={() => setIsPricingModalOpen(false)}
         currentPlan={planStatus?.plan_type || 'free'}
+        planStatus={planStatus}
         onPlanUpdated={(newPlan) => {
           setPlanStatus(newPlan);
           fetchPlan();

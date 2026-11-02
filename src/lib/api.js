@@ -410,6 +410,10 @@ export const templatesApi = {
     return fetchApi('/templates');
   },
 
+  async getSystemTemplates() {
+    return fetchApi('/templates/system');
+  },
+
   async save({ name, description, settingsJson, headerStyleJson, sectionDefaultsJson }) {
     return fetchApi('/templates', {
       method: 'POST',
@@ -523,6 +527,10 @@ export const paymentsApi = {
     return fetchApi('/payments/config');
   },
 
+  async getPlans() {
+    return fetchApi('/payments/plans');
+  },
+
   async getStatus() {
     return fetchApi('/payments/status');
   },
@@ -613,6 +621,41 @@ export const adminApi = {
 
   async updateSelfSecurity(payload) {
     return fetchAdminApi('/admin/me/security', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async listTemplates() {
+    return fetchAdminApi('/admin/templates');
+  },
+
+  async createTemplate(payload) {
+    return fetchAdminApi('/admin/templates', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateTemplate(templateId, payload) {
+    return fetchAdminApi(`/admin/templates/${templateId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteTemplate(templateId) {
+    return fetchAdminApi(`/admin/templates/${templateId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async listTiers() {
+    return fetchAdminApi('/admin/tiers');
+  },
+
+  async updateTier(tierKey, payload) {
+    return fetchAdminApi(`/admin/tiers/${tierKey}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });

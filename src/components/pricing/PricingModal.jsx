@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, X, Loader2, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Check, X, Loader2, Shield, Sparkles, ArrowRight, BarChart2, Zap, Layers, FileDown, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { paymentsApi } from '@/lib/api';
 import { loadRazorpayScript } from '@/lib/razorpay';
@@ -15,9 +15,8 @@ export const PLANS = [
     price: '₹0',
     period: 'forever',
     badge: 'Free Forever',
-    badgeColor: 'bg-zinc-800 text-zinc-300 border-zinc-700',
-    buttonText: 'Free Plan',
-    buttonVariant: 'secondary',
+    badgeColor: 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]',
+    buttonText: 'Current Free Tier',
     features: [
       '1 resume workspace',
       'Unlimited manual editing',
@@ -35,9 +34,8 @@ export const PLANS = [
     price: '₹49',
     period: 'one-time purchase (24 hours)',
     badge: '24 Hours · 1 Resume',
-    badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    badgeColor: 'bg-[#C88A58]/10 text-[#D49A6A] border-[#C88A58]/25',
     buttonText: 'Get 24h Day Pass',
-    buttonVariant: 'primary',
     popular: false,
     features: [
       '1 resume workspace',
@@ -56,9 +54,8 @@ export const PLANS = [
     price: '₹199',
     period: '/ month',
     badge: 'Recommended',
-    badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+    badgeColor: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
     buttonText: 'Upgrade to Pro',
-    buttonVariant: 'accent',
     popular: true,
     features: [
       '5 resume workspaces',
@@ -74,11 +71,51 @@ export const PLANS = [
   }
 ];
 
-export default function PricingModal({ isOpen, onClose, currentPlan = 'free', onPlanUpdated }) {
+export default function PricingModal({
+  isOpen,
+  onClose,
+  currentPlan = 'free',
+  planStatus = null,
+  onPlanUpdated = null,
+  onNavigateUsage = null,
+}) {
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState(null);
+  const [activeTab, setActiveTab] = useState('benefits'); // 'benefits' | 'plans'
+  const [plansList, setPlansList] = useState(PLANS);
+
+  useEffect(() => {
+    if (isOpen) {
+      paymentsApi.getPlans()
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            const formatted = data.map((t) => ({
+              id: t.tier_key,
+              name: t.name,
+              tagline: t.tagline || '',
+              price: t.discount_price_inr === 0 ? '₹0' : `₹${t.discount_price_inr}`,
+              basePrice: t.base_price_inr > t.discount_price_inr ? `₹${t.base_price_inr}` : null,
+              discountPercent: t.discount_percent || 0,
+              period: t.billing_period_text || (t.tier_key === 'pro_monthly' ? '/ month' : t.tier_key === 'day_pass' ? 'one-time purchase (24 hours)' : 'forever'),
+              badge: t.badge || (t.tier_key === 'pro_monthly' ? 'Recommended' : t.tier_key === 'day_pass' ? '24 Hours · 1 Resume' : 'Free Forever'),
+              badgeColor: t.tier_key === 'pro_monthly' ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' : t.tier_key === 'day_pass' ? 'bg-[#C88A58]/10 text-[#D49A6A] border-[#C88A58]/25' : 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]',
+              buttonText: t.tier_key === 'pro_monthly' ? 'Upgrade to Pro' : t.tier_key === 'day_pass' ? 'Get 24h Day Pass' : 'Current Free Tier',
+              popular: t.tier_key === 'pro_monthly',
+              features: t.features || []
+            }));
+            setPlansList(formatted);
+          }
+        })
+        .catch((err) => console.warn('Could not load dynamic plans, using fallback:', err));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const planName = planStatus?.plan_name || (currentPlan === 'pro_monthly' ? 'Pagewise Pro' : currentPlan === 'day_pass' ? 'Wiser Day Pass' : 'Pagewise Free');
+  const limits = planStatus?.limits || {};
+  const usage = planStatus?.usage || {};
+  const remaining = planStatus?.remaining || {};
 
   const handleSubscribe = async (plan) => {
     if (plan.id === 'free') {
@@ -110,7 +147,7 @@ export default function PricingModal({ isOpen, onClose, currentPlan = 'free', on
           email: orderData.user_email || user?.email || '',
         },
         theme: {
-          color: '#4f46e5',
+          color: '#C88A58',
         },
         handler: async function (response) {
           try {
@@ -145,137 +182,355 @@ export default function PricingModal({ isOpen, onClose, currentPlan = 'free', on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="p-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-4xl bg-[#111319] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        
+        {/* Top Header */}
+        <div className="p-5 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-[#0E0F14]/60">
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                Transparent Pricing
+              <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-[#C88A58]/10 text-[#D49A6A] border border-[#C88A58]/20 flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3" />
+                <span>Subscription &amp; Allowances</span>
               </span>
-              <span className="text-xs text-zinc-500">· Razorpay Secure</span>
+              <span className="text-xs text-[#8E94A5]">· Razorpay Encrypted</span>
             </div>
-            <h2 className="text-2xl font-bold text-white mt-1">Upgrade Your PageWise Plan</h2>
-            <p className="text-sm text-zinc-400 mt-0.5">
-              Supercharge your job applications with Wiser ATS scoring and unlimited high-fidelity exports.
+            <h2 className="text-xl sm:text-2xl font-bold text-[#EDEDF2] mt-1.5 tracking-tight">
+              {activeTab === 'benefits' ? 'Your Plan & Active Allowances' : 'Compare Plans & Upgrades'}
+            </h2>
+            <p className="text-xs sm:text-sm text-[#8E94A5] mt-0.5">
+              {activeTab === 'benefits'
+                ? `Review your active ${planName} quota, live benefits, and usage limits.`
+                : 'Choose the ideal tier for your job applications and career growth.'}
             </p>
           </div>
+          
           <button
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+            className="p-2 text-[#8E94A5] hover:text-[#EDEDF2] rounded-lg hover:bg-white/[0.05] transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content / Plan Cards */}
-        <div className="p-6 md:p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-6 bg-zinc-950/60">
-          {PLANS.map((plan) => {
-            const isCurrent = currentPlan === plan.id;
-            const isLoading = loadingPlan === plan.id;
+        {/* View Switcher Tabs (Sarvam AI style) */}
+        <div className="px-6 pt-3 pb-1 border-b border-white/[0.06] bg-[#0E0F14]/30 flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('benefits')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'benefits'
+                ? 'bg-white/[0.08] text-[#EDEDF2] border border-white/[0.12] shadow-sm'
+                : 'text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.03]'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-[#D49A6A]" />
+            <span>Active Plan &amp; Allowances</span>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('plans')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'plans'
+                ? 'bg-white/[0.08] text-[#EDEDF2] border border-white/[0.12] shadow-sm'
+                : 'text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.03]'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5 text-[#D49A6A]" />
+            <span>All Pricing Plans</span>
+          </button>
+        </div>
 
-            return (
-              <div
-                key={plan.id}
-                className={`relative rounded-2xl p-6 flex flex-col justify-between transition-all duration-200 ${
-                  plan.popular
-                    ? 'bg-gradient-to-b from-indigo-950/40 via-zinc-900 to-zinc-900 border-2 border-indigo-500/60 shadow-xl shadow-indigo-500/10'
-                    : 'bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-md">
-                    Most Popular
-                  </div>
-                )}
-
+        {/* Body Content */}
+        <div className="p-6 md:p-8 overflow-y-auto flex-1 bg-[#0C0D11]">
+          {activeTab === 'benefits' ? (
+            /* ── VIEW 1: ACTIVE PLAN BENEFITS & ALLOWANCES ── */
+            <div className="space-y-6">
+              {/* Active Plan Summary Banner */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-[#181A22] to-[#14161C] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${plan.badgeColor}`}>
-                      {plan.badge}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider bg-[#C88A58]/15 text-[#D49A6A] border border-[#C88A58]/30">
+                      Active Tier
                     </span>
+                    {planStatus?.expires_at && (
+                      <span className="text-[11px] text-[#8E94A5] flex items-center gap-1 font-mono">
+                        <Clock className="w-3 h-3 text-[#D49A6A]" />
+                        Valid until: {new Date(planStatus.expires_at).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
-
-                  <h3 className="text-xl font-bold text-white mt-3">{plan.name}</h3>
-                  <p className="text-xs text-zinc-400 mt-1 min-h-[32px]">{plan.tagline}</p>
-
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-extrabold text-white tracking-tight">{plan.price}</span>
-                    <span className="text-xs text-zinc-400">{plan.period}</span>
-                  </div>
-
-                  <div className="h-px bg-zinc-800 my-5" />
-
-                  <ul className="space-y-2.5 text-xs text-zinc-300">
-                    {plan.features.map((feat, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <h3 className="text-xl font-bold text-[#EDEDF2] mt-1.5">{planName}</h3>
+                  <p className="text-xs text-[#8E94A5] mt-0.5">
+                    {currentPlan === 'pro_monthly'
+                      ? '5 workspaces · 30 high-fidelity exports · 30 Wiser AI runs per cycle'
+                      : currentPlan === 'day_pass'
+                      ? '1 workspace · 5 exports · 6 Wiser AI runs (24-hour speed pass)'
+                      : 'Essential resume building workspace · 1 export/month'}
+                  </p>
                 </div>
 
-                {(() => {
-                  const isFree = plan.id === 'free';
-                  const isDayPass = plan.id === 'day_pass';
-                  const isPro = plan.id === 'pro_monthly';
-
-                  let buttonLabel = plan.buttonText;
-                  let isDisabled = isCurrent || isLoading;
-
-                  if (isCurrent) {
-                    buttonLabel = 'Current Active Plan';
-                  } else if (isFree) {
-                    buttonLabel = 'Free Forever Plan';
-                    isDisabled = true;
-                  } else if (isDayPass && currentPlan === 'pro_monthly') {
-                    buttonLabel = 'Included in Pro';
-                    isDisabled = true;
-                  } else if (isPro) {
-                    buttonLabel = 'Upgrade to Pro';
-                  } else if (isDayPass) {
-                    buttonLabel = 'Get 24h Day Pass';
-                  }
-
-                  return (
-                    <div className="mt-8">
-                      <button
-                        disabled={isDisabled}
-                        onClick={() => handleSubscribe(plan)}
-                        className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                          isDisabled
-                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-800'
-                            : plan.popular
-                            ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30'
-                            : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700'
-                        }`}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          buttonLabel
-                        )}
-                      </button>
-                    </div>
-                  );
-                })()}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setActiveTab('plans')}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#C88A58] hover:bg-[#B87A47] text-white shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Change Plan</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            );
-          })}
+
+              {/* Quota Progress Cards Grid */}
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#8E94A5] mb-3">
+                  Current Billing Cycle Allowances
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  {/* Resumes */}
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.07]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">Workspaces</span>
+                      <span className="font-mono font-semibold text-[#EDEDF2]">
+                        {usage.active_resumes ?? 0} / {limits.resumes ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-white/[0.05] rounded-full mt-2.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(100, Math.round(((usage.active_resumes ?? 0) / (limits.resumes ?? 1)) * 100))}%`,
+                          background: 'linear-gradient(90deg, #C88A58, #E0A97E)',
+                        }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#8E94A5] mt-2 font-mono">
+                      {remaining.resumes ?? 0} workspace(s) remaining
+                    </p>
+                  </div>
+
+                  {/* Exports */}
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.07]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">Exports</span>
+                      <span className="font-mono font-semibold text-[#EDEDF2]">
+                        {usage.exports_used ?? 0} / {limits.exports ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-white/[0.05] rounded-full mt-2.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(100, Math.round(((usage.exports_used ?? 0) / (limits.exports ?? 1)) * 100))}%`,
+                          background: 'linear-gradient(90deg, #C88A58, #E0A97E)',
+                        }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#8E94A5] mt-2 font-mono">
+                      {remaining.exports ?? 0} export(s) remaining
+                    </p>
+                  </div>
+
+                  {/* Wiser AI */}
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.07]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">Wiser AI Evals</span>
+                      <span className="font-mono font-semibold text-[#EDEDF2]">
+                        {usage.wiser_ai_total_used ?? 0} / {limits.wiser_ai_combined ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-white/[0.05] rounded-full mt-2.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(100, Math.round(((usage.wiser_ai_total_used ?? 0) / (limits.wiser_ai_combined ?? 1)) * 100))}%`,
+                          background: 'linear-gradient(90deg, #C88A58, #E0A97E)',
+                        }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#8E94A5] mt-2 font-mono">
+                      {remaining.wiser_ai_combined ?? 0} evaluation(s) remaining
+                    </p>
+                  </div>
+
+                  {/* Custom Templates */}
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.07]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#8E94A5]">Custom Templates</span>
+                      <span className="font-mono font-semibold text-[#EDEDF2]">
+                        {usage.custom_templates_count ?? 0} / {limits.custom_templates ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-white/[0.05] rounded-full mt-2.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(100, Math.round(((usage.custom_templates_count ?? 0) / (limits.custom_templates ?? 1)) * 100))}%`,
+                          background: 'linear-gradient(90deg, #C88A58, #E0A97E)',
+                        }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#8E94A5] mt-2 font-mono">
+                      {remaining.custom_templates ?? 0} template(s) remaining
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Included Benefits List */}
+              <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.07]">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#8E94A5] mb-3">
+                  Included In Your Active Tier
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-[#EDEDF2]">
+                  {(planStatus?.features || PLANS.find(p => p.id === currentPlan)?.features || []).map((feat, idx) => (
+                    <div key={idx} className="flex items-center gap-2.5 py-1">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Navigation Action to Intelligence / Telemetry */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.07]">
+                <div className="flex items-center gap-2.5 text-xs text-[#8E94A5]">
+                  <BarChart2 className="w-4 h-4 text-[#D49A6A]" />
+                  <span>Looking for per-resume analytics, ATS breakdowns, and export logs?</span>
+                </div>
+                {onNavigateUsage && (
+                  <button
+                    onClick={() => {
+                      onNavigateUsage();
+                      onClose();
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-[#EDEDF2] border border-white/[0.1] transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>View Intelligence &amp; Usage</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* ── VIEW 2: COMPARE PLANS & UPGRADE ── */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {plansList.map((plan) => {
+                const isCurrent = currentPlan === plan.id;
+                const isLoading = loadingPlan === plan.id;
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={`relative rounded-2xl p-6 flex flex-col justify-between transition-all duration-200 ${
+                      plan.popular
+                        ? 'bg-gradient-to-b from-indigo-950/30 via-[#14161F] to-[#14161F] border-2 border-indigo-500/40 shadow-xl'
+                        : isCurrent
+                        ? 'bg-[#161822] border-2 border-[#C88A58]/50'
+                        : 'bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.15]'
+                    }`}
+                  >
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-indigo-600 text-white text-[11px] font-bold rounded-full shadow-md">
+                        Recommended
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium ${plan.badgeColor}`}>
+                          {plan.badge}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[10px] font-mono text-[#D49A6A] font-bold uppercase">
+                            Active Plan
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-xl font-bold text-[#EDEDF2] mt-3">{plan.name}</h3>
+                      <p className="text-xs text-[#8E94A5] mt-1 min-h-[32px]">{plan.tagline}</p>
+
+                      <div className="mt-4 flex items-baseline gap-2">
+                        <span className="text-3xl font-extrabold text-[#EDEDF2] tracking-tight">{plan.price}</span>
+                        {plan.basePrice && (
+                          <span className="text-sm line-through text-[#6A7185] font-mono">{plan.basePrice}</span>
+                        )}
+                        <span className="text-xs text-[#8E94A5]">{plan.period}</span>
+                      </div>
+
+                      <div className="h-px bg-white/[0.08] my-5" />
+
+                      <ul className="space-y-2.5 text-xs text-[#EDEDF2]/90">
+                        {plan.features.map((feat, idx) => (
+                          <li key={idx} className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {(() => {
+                      const isFree = plan.id === 'free';
+                      const isDayPass = plan.id === 'day_pass';
+                      const isPro = plan.id === 'pro_monthly';
+
+                      let buttonLabel = plan.buttonText;
+                      let isDisabled = isCurrent || isLoading;
+
+                      if (isCurrent) {
+                        buttonLabel = 'Current Active Plan';
+                      } else if (isFree) {
+                        buttonLabel = 'Free Forever Plan';
+                        isDisabled = true;
+                      } else if (isDayPass && currentPlan === 'pro_monthly') {
+                        buttonLabel = 'Included in Pro';
+                        isDisabled = true;
+                      } else if (isPro) {
+                        buttonLabel = 'Upgrade to Pro';
+                      } else if (isDayPass) {
+                        buttonLabel = 'Get 24h Day Pass';
+                      }
+
+                      return (
+                        <div className="mt-8">
+                          <button
+                            disabled={isDisabled}
+                            onClick={() => handleSubscribe(plan)}
+                            className={`w-full py-2.5 px-4 rounded-xl font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                              isDisabled
+                                ? 'bg-white/[0.04] text-[#8E94A5] cursor-not-allowed border border-white/[0.06]'
+                                : plan.popular
+                                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20'
+                                : 'bg-[#C88A58] hover:bg-[#B87A47] text-white'
+                            }`}
+                          >
+                            {isLoading ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Processing...</span>
+                              </>
+                            ) : (
+                              buttonLabel
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer Guarantee */}
-        <div className="p-4 bg-zinc-900 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-500 px-6">
+        <div className="p-4 bg-[#0E0F14] border-t border-white/[0.08] flex items-center justify-between text-xs text-[#8E94A5] px-6">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-zinc-400" />
-            <span>Encrypted 256-bit Razorpay Payments. Cancel anytime.</span>
+            <Shield className="w-4 h-4 text-[#D49A6A]" />
+            <span>Encrypted 256-bit Razorpay Payments. Real-time quota activation.</span>
           </div>
-          <span>Instant quota activation on checkout.</span>
+          <span className="hidden sm:inline">Transparent pricing · No hidden fees</span>
         </div>
       </div>
     </div>

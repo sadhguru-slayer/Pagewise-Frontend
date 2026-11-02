@@ -13,6 +13,7 @@ import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
 import Modal from '@/components/ui/Modal';
 import PilotBanner from '@/components/ui/PilotBanner';
 import PricingModal from '@/components/pricing/PricingModal';
+import MobileNotice from '@/components/layout/MobileNotice';
 import { useModal } from '@/lib/modal-context';
 import { paymentsApi } from '@/lib/api';
 
@@ -49,6 +50,7 @@ import {
   Database,
   Sparkles,
   Zap,
+  Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -127,7 +129,7 @@ function ResourceBar({
   secondaryValue,
   max = 10,
   unit = '',
-  primaryColor = '#D97706',
+  primaryColor = '#C88A58',
   secondaryColor = '#10B981',
 }) {
   const actualPrimary = primaryValue !== undefined ? primaryValue : (value ?? 0);
@@ -165,8 +167,8 @@ function ResourceBar({
             className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
             style={{
               width: `${Math.max(primaryPct, 3)}%`,
-              background: isDualLayer ? 'rgba(217, 119, 6, 0.4)' : `linear-gradient(90deg, ${primaryColor}, #F59E0B)`,
-              borderRight: isDualLayer ? '1px solid rgba(245, 158, 11, 0.8)' : 'none',
+              background: isDualLayer ? 'rgba(200, 138, 88, 0.35)' : `linear-gradient(90deg, ${primaryColor}, #E0A97E)`,
+              borderRight: isDualLayer ? '1px solid rgba(200, 138, 88, 0.7)' : 'none',
             }}
           />
         )}
@@ -220,7 +222,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
 
   return (
     <aside
-      className="hidden md:flex flex-col w-[230px] shrink-0 min-h-screen sticky top-0"
+      className="hidden md:flex flex-col w-[230px] shrink-0 h-screen sticky top-0 overflow-hidden"
       style={{
         background: '#0B0D13',
         borderRight: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
@@ -228,7 +230,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
     >
       {/* Brand Header */}
       <div
-        className="px-5 py-5 border-b"
+        className="px-5 py-4 border-b shrink-0"
         style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
       >
         <Link href="/" className="group block">
@@ -236,8 +238,8 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
         </Link>
       </div>
 
-      {/* Nav List */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      {/* Nav List - Independently scrollable */}
+      <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
         {navItems.map(({ id, label, icon: Icon }) => {
           const isActive = activeTab === id;
           return (
@@ -258,21 +260,27 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
             </button>
           );
         })}
+      </nav>
 
-        {/* Upgrade / Plan Card in Nav */}
-        <div className="pt-4 px-1">
-          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-left">
+      {/* Bottom Pinned Section: Upgrade Card above Settings after margin */}
+      <div
+        className="shrink-0 mt-auto border-t"
+        style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
+      >
+        {/* Upgrade / Plan Card */}
+        <div className="p-3 pb-2">
+          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.08] text-left">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#D49A6A]">
                 {planStatus?.plan_name || 'Pagewise Free'}
               </span>
               {user?.is_admin && (
-                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 font-mono font-bold">
+                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-[#D49A6A] font-mono font-bold">
                   ADMIN
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
+            <p className="text-[11px] text-[#8E94A5] mt-1 line-clamp-2">
               {planStatus?.plan_type === 'pro_monthly'
                 ? '5 workspaces · 30 exports/mo'
                 : planStatus?.plan_type === 'day_pass'
@@ -281,56 +289,53 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planS
             </p>
             <button
               onClick={onOpenUpgrade}
-              className="mt-2.5 w-full py-1.5 px-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-[11px] font-semibold border border-zinc-700 flex items-center justify-center transition"
+              className="mt-2.5 w-full py-1.5 px-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] text-[#EDEDF2] text-[11px] font-semibold border border-white/[0.08] flex items-center justify-center transition cursor-pointer"
             >
-              <span>{planStatus?.plan_type === 'pro_monthly' ? 'Manage Plan' : 'Upgrade Plan'}</span>
+              <span>{planStatus?.plan_type === 'pro_monthly' ? 'Subscription Details' : 'Upgrade Plan'}</span>
             </button>
             {user?.is_admin && (
               <Link
                 href="/admin-290123-7234878"
-                className="mt-2 text-[10px] text-amber-400 hover:text-amber-300 font-mono block text-center border-t border-zinc-800/80 pt-1.5 transition"
+                className="mt-2 text-[10px] text-[#D49A6A] hover:underline font-mono block text-center border-t border-white/[0.06] pt-1.5 transition"
               >
                 → Secret Admin Panel
               </Link>
             )}
           </div>
         </div>
-      </nav>
 
-      {/* User Section */}
-      <div
-        className="px-3 pb-4 space-y-2 border-t pt-4"
-        style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
-      >
-        <Link
-          href="/settings"
-          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-[#7E869B] hover:text-[#F1F3F9] hover:bg-white/[0.04] transition-all"
-        >
-          <Settings className="w-4 h-4" />
-          <span>Account &amp; Studio</span>
-        </Link>
+        {/* User & Settings Section */}
+        <div className="px-3 pb-3 space-y-1.5">
+          <Link
+            href="/settings"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.04] transition-all"
+          >
+            <Settings className="w-4 h-4" />
+            <span>Account &amp; Studio</span>
+          </Link>
 
-        <div
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
-          style={{ background: BRAND_CONFIG.colors.surfaceCard }}
-        >
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-            style={{ background: BRAND_CONFIG.colors.primary }}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+            style={{ background: BRAND_CONFIG.colors.surfaceCard }}
           >
-            {initial}
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+              style={{ background: BRAND_CONFIG.colors.primary }}
+            >
+              {initial}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-[#EDEDF2] truncate">{user?.name || 'User'}</p>
+              <p className="text-[10px] text-[#8E94A5] truncate">{user?.email}</p>
+            </div>
+            <button
+              onClick={onLogout}
+              title="Sign out"
+              className="p-1 text-[#8E94A5] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-[#F1F3F9] truncate">{user?.name || 'User'}</p>
-            <p className="text-[10px] text-[#7E869B] truncate">{user?.email}</p>
-          </div>
-          <button
-            onClick={onLogout}
-            title="Sign out"
-            className="p-1 text-[#7E869B] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
     </aside>
@@ -373,6 +378,7 @@ export default function DashboardPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [newResumeName, setNewResumeName] = useState('Senior Engineer Resume');
+  const [systemTemplates, setSystemTemplates] = useState(builtInTemplates);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState(builtInTemplates[0].id);
   const [creatingResume, setCreatingResume] = useState(false);
   const [exportingId, setExportingId] = useState(null);
@@ -406,17 +412,36 @@ export default function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     try {
       setLoadingData(true);
-      const [resumesData, exportsData, templatesData, statsData] = await Promise.all([
+      const [resumesData, exportsData, templatesData, statsData, sysTemplatesData] = await Promise.all([
         resumesApi.list().catch(() => []),
         exportsApi.list().catch(() => []),
         templatesApi.list().catch(() => []),
         resumesApi.getUsageStats({ period: selectedPeriod }).catch(() => null),
+        templatesApi.getSystemTemplates().catch(() => []),
       ]);
 
       setResumes(Array.isArray(resumesData) ? resumesData : []);
       setExportsList(Array.isArray(exportsData) ? exportsData : []);
       setUserTemplates(Array.isArray(templatesData) ? templatesData : []);
       setUsageStats(statsData);
+
+      if (Array.isArray(sysTemplatesData) && sysTemplatesData.length > 0) {
+        const mapped = sysTemplatesData.map((t) => ({
+          id: t.template_key || String(t.id),
+          dbId: t.id,
+          name: t.name,
+          category: t.category || 'General',
+          tag: t.badge || (t.min_plan_tier === 'pro_monthly' ? 'Pagewise Pro' : t.min_plan_tier === 'day_pass' ? 'Day Pass' : 'Standard Free'),
+          badgeColor: t.min_plan_tier === 'pro_monthly' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : t.min_plan_tier === 'day_pass' ? 'bg-[#C88A58]/10 text-[#D49A6A] border-[#C88A58]/25' : 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]',
+          min_plan_tier: t.min_plan_tier || 'free',
+          is_locked: !!t.is_locked,
+          description: t.description || '',
+          settings: t.settings_json || {},
+          header: t.header_style_json || {},
+          sectionDefaults: t.section_defaults_json || {},
+        }));
+        setSystemTemplates(mapped);
+      }
     } catch (err) {
       console.error('[Dashboard fetch error]:', err);
       toast.error('Could not load dashboard data');
@@ -441,13 +466,24 @@ export default function DashboardPage() {
 
     try {
       setCreatingResume(true);
-      const selectedTpl = builtInTemplates.find((t) => t.id === selectedTemplateKey) || builtInTemplates[0];
+      const selectedTpl = systemTemplates.find((t) => t.id === selectedTemplateKey) || systemTemplates[0];
+
+      if (selectedTpl?.is_locked) {
+        toast.error(`The '${selectedTpl.name}' layout requires ${selectedTpl.min_plan_tier === 'pro_monthly' ? 'Pagewise Pro' : 'Wiser Day Pass'}. Please upgrade.`);
+        setPricingModalOpen(true);
+        return;
+      }
+
+      const headerData = typeof defaultHeader === 'function' ? defaultHeader() : defaultHeader;
+      const settingsData = typeof defaultSettings === 'function' ? defaultSettings() : defaultSettings;
+      const sectionsData = typeof defaultSections === 'function' ? defaultSections() : defaultSections;
 
       const newResume = await resumesApi.create({
         name: newResumeName.trim(),
-        header_json: { ...defaultHeader, ...(selectedTpl?.header || {}) },
-        settings_json: { ...defaultSettings, ...(selectedTpl?.settings || {}) },
-        sections_json: defaultSections.map((s) => ({
+        template_key: selectedTemplateKey,
+        header_json: { ...headerData, ...(selectedTpl?.header || {}) },
+        settings_json: { ...settingsData, ...(selectedTpl?.settings || {}) },
+        sections_json: (Array.isArray(sectionsData) ? sectionsData : []).map((s) => ({
           ...s,
           ...(selectedTpl?.sectionDefaults || {}),
         })),
@@ -589,7 +625,7 @@ export default function DashboardPage() {
   const targetedCount = usageStats?.targeted_resume_count ?? resumes.filter((r) => r.target_job_title).length;
   const exportCount = usageStats?.export_count ?? exportsList.length;
   const totalExports = Math.max(usageStats?.total_exports_generated ?? 0, exportCount);
-  const templateCount = builtInTemplates.length + userTemplates.length;
+  const templateCount = systemTemplates.length + userTemplates.length;
   const totalCustomTemplates = Math.max(usageStats?.total_templates_created ?? 0, userTemplates.length);
   const wiserJobHelps = Math.max(usageStats?.wiser_job_helps_count ?? 0, targetedCount);
   const wiserAtsChecks = usageStats?.wiser_ats_checks_count ?? 0;
@@ -634,6 +670,9 @@ export default function DashboardPage() {
 
         {/* Content Body */}
         <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8">
+          {/* Mobile Screen Recommendation Notice */}
+          <MobileNotice className="mb-4" />
+
           {/* Pilot Notification & Feedback Banner */}
           <PilotBanner variant="card" className="mb-6" />
 
@@ -713,7 +752,7 @@ export default function DashboardPage() {
                   value={resumeCount}
                   label="Master Resumes"
                   subtext={`${totalResumes} all-time crafted`}
-                  highlightColor="#D97706"
+                  highlightColor="#C88A58"
                 />
                 <MetricCard
                   icon={Cpu}
@@ -726,7 +765,7 @@ export default function DashboardPage() {
                   icon={Palette}
                   value={templateCount}
                   label="Available Formats"
-                  subtext={`${builtInTemplates.length} Standard + ${userTemplates.length} Custom`}
+                  subtext={`${systemTemplates.length} Standard + ${userTemplates.length} Custom`}
                   highlightColor="#10B981"
                 />
                 <MetricCard
@@ -777,7 +816,7 @@ export default function DashboardPage() {
                     </p>
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
-                      className="mt-4 px-4 py-2 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 transition-colors inline-flex items-center gap-1.5"
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#C88A58] hover:bg-[#B87A47] transition-all inline-flex items-center gap-1.5 shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Create First Resume</span>
@@ -832,7 +871,7 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-1.5">
                             <Link
                               href={`/builder?id=${resume.id}`}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-amber-500 hover:text-black text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1"
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] transition-all cursor-pointer flex items-center gap-1"
                             >
                               <span>{resume.is_locked ? 'View' : 'Open'}</span>
                               <ArrowUpRight className="w-3 h-3" />
@@ -841,7 +880,7 @@ export default function DashboardPage() {
                             {!resume.is_primary && (
                               <button
                                 onClick={() => handleSetPrimary(resume.id)}
-                                className="px-2 py-1.5 rounded-lg text-[10px] font-mono text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/20 transition cursor-pointer"
+                                className="px-2 py-1.5 rounded-lg text-[10px] font-mono text-[#D49A6A] hover:text-white bg-[#C88A58]/10 hover:bg-[#C88A58]/25 border border-[#C88A58]/20 transition cursor-pointer"
                                 title="Set this resume as your Primary Master workspace"
                               >
                                 Set Master
@@ -897,7 +936,7 @@ export default function DashboardPage() {
                     setNewResumeName('Senior Engineer Resume');
                     setIsCreateModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer self-start sm:self-auto"
+                  className="px-4 py-2 bg-[#C88A58] hover:bg-[#B87A47] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Resume</span>
@@ -1002,7 +1041,7 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-1.5">
                             <Link
                               href={`/builder?id=${resume.id}`}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1.5"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] transition-all cursor-pointer flex items-center gap-1.5"
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>{resume.is_locked ? 'View (Read-Only)' : 'Launch Studio'}</span>
@@ -1011,7 +1050,7 @@ export default function DashboardPage() {
                             {!resume.is_primary && (
                               <button
                                 onClick={() => handleSetPrimary(resume.id)}
-                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/20 transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-[#D49A6A] hover:text-white bg-[#C88A58]/10 hover:bg-[#C88A58]/25 border border-[#C88A58]/20 transition cursor-pointer"
                                 title="Promote this resume to your Master active workspace"
                               >
                                 Set as Master
@@ -1072,7 +1111,7 @@ export default function DashboardPage() {
                         : 'text-[#7E869B] hover:text-white'
                     }`}
                   >
-                    Industry Formats ({builtInTemplates.length})
+                    Industry Formats ({systemTemplates.length})
                   </button>
                   <button
                     onClick={() => setTemplateSubTab('saved')}
@@ -1090,62 +1129,94 @@ export default function DashboardPage() {
               {/* Subtab 1: Built-in Industry Formats */}
               {templateSubTab === 'formats' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {builtInTemplates.map((tpl) => (
-                    <div
-                      key={tpl.id}
-                      className="rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
-                      style={{
-                        background: BRAND_CONFIG.colors.surfaceCard,
-                        border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-                      }}
-                    >
-                      <div>
-                        {/* Format category badge */}
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-semibold">
-                            {tpl.tag || 'Standard'}
-                          </span>
-                          <span className="text-[10px] text-[#7E869B] font-mono">
-                            {tpl.settings?.bodyFont?.split(',')[0]}
-                          </span>
+                  {systemTemplates.map((tpl) => {
+                    const isLocked = tpl.is_locked;
+                    const isPro = tpl.min_plan_tier === 'pro_monthly';
+                    const isDayPass = tpl.min_plan_tier === 'day_pass';
+
+                    return (
+                      <div
+                        key={tpl.id}
+                        className={`rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group relative ${
+                          isLocked ? 'border-white/[0.08] opacity-90' : 'hover:border-amber-500/40'
+                        }`}
+                        style={{
+                          background: BRAND_CONFIG.colors.surfaceCard,
+                          border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                        }}
+                      >
+                        <div>
+                          {/* Format category badge */}
+                          <div className="flex items-center justify-between mb-3">
+                            <span className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border font-semibold flex items-center gap-1 ${
+                              isPro
+                                ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                                : isDayPass
+                                ? 'bg-[#C88A58]/15 text-[#D49A6A] border-[#C88A58]/30'
+                                : 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]'
+                            }`}>
+                              {isLocked && <Lock className="w-2.5 h-2.5" />}
+                              {tpl.tag || (isPro ? 'Pro Exclusive' : isDayPass ? 'Day Pass' : 'Standard Free')}
+                            </span>
+                            <span className="text-[10px] text-[#7E869B] font-mono">
+                              {tpl.settings?.bodyFont?.split(',')[0]}
+                            </span>
+                          </div>
+
+                          <h3 className="font-bold text-base text-[#F1F3F9] group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                            <span>{tpl.name}</span>
+                            {isLocked && <Lock className="w-3.5 h-3.5 text-[#7E869B] shrink-0" />}
+                          </h3>
+
+                          <p className="text-xs text-[#7E869B] mt-2 leading-relaxed">
+                            {tpl.description}
+                          </p>
+
+                          {/* Format Specs Preview */}
+                          <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1.5 text-[11px] font-mono text-[#7E869B]">
+                            <div className="flex justify-between">
+                              <span>Font Family:</span>
+                              <span className="text-[#F1F3F9] font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Target Industry:</span>
+                              <span className="text-[#F1F3F9] font-sans truncate max-w-[130px]">{tpl.category}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Required Plan:</span>
+                              <span className={`font-semibold ${isPro ? 'text-indigo-400' : isDayPass ? 'text-[#D49A6A]' : 'text-emerald-400'}`}>
+                                {isPro ? 'Pagewise Pro' : isDayPass ? 'Day Pass / Pro' : 'Free Forever'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
-                        <h3 className="font-bold text-base text-[#F1F3F9] group-hover:text-amber-400 transition-colors">
-                          {tpl.name}
-                        </h3>
-
-                        <p className="text-xs text-[#7E869B] mt-2 leading-relaxed">
-                          {tpl.description}
-                        </p>
-
-                        {/* Format Specs Preview */}
-                        <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1.5 text-[11px] font-mono text-[#7E869B]">
-                          <div className="flex justify-between">
-                            <span>Font Family:</span>
-                            <span className="text-[#F1F3F9] font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Target Industry:</span>
-                            <span className="text-[#F1F3F9] font-sans truncate max-w-[130px]">{tpl.category}</span>
-                          </div>
+                        <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
+                          {isLocked ? (
+                            <button
+                              onClick={() => setPricingModalOpen(true)}
+                              className="w-full py-2 bg-gradient-to-r from-amber-500/10 to-[#C88A58]/20 hover:from-amber-500/20 hover:to-[#C88A58]/30 text-[#D49A6A] border border-[#C88A58]/30 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <Lock className="w-3.5 h-3.5 text-[#D49A6A]" />
+                              <span>Unlock with {isPro ? 'Pagewise Pro' : 'Wiser Day Pass'}</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSelectedTemplateKey(tpl.id);
+                                setNewResumeName(`${tpl.name} Resume`);
+                                setIsCreateModalOpen(true);
+                              }}
+                              className="w-full py-2 bg-white/[0.06] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Use This Architecture</span>
+                            </button>
+                          )}
                         </div>
                       </div>
-
-                      <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
-                        <button
-                          onClick={() => {
-                            setSelectedTemplateKey(tpl.id);
-                            setNewResumeName(`${tpl.name} Resume`);
-                            setIsCreateModalOpen(true);
-                          }}
-                          className="w-full py-2 bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Use This Architecture</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -1210,7 +1281,7 @@ export default function DashboardPage() {
                                 setNewResumeName(`${tpl.name} Resume`);
                                 setIsCreateModalOpen(true);
                               }}
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] transition-all cursor-pointer"
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] transition-all cursor-pointer"
                             >
                               Create with Preset
                             </button>
@@ -1322,7 +1393,7 @@ export default function DashboardPage() {
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => exportsApi.downloadFile(exp.id, exp.file_name)}
-                                  className="px-2.5 py-1 bg-white/[0.06] hover:bg-amber-600 hover:text-white rounded-lg text-xs font-semibold text-[#F1F3F9] transition-all flex items-center gap-1 cursor-pointer"
+                                  className="px-2.5 py-1 bg-white/[0.06] hover:bg-[#C88A58] hover:text-white rounded-lg text-xs font-semibold text-[#EDEDF2] transition-all flex items-center gap-1 cursor-pointer"
                                   title="Download this file"
                                 >
                                   <Download className="w-3.5 h-3.5" />
@@ -1418,14 +1489,14 @@ export default function DashboardPage() {
                     {planStatus?.expires_at && (
                       <div className="text-right">
                         <span className="text-[10px] text-[#7E869B] uppercase font-mono block">Pass Expires</span>
-                        <span className="text-xs font-mono font-bold text-amber-400">
+                        <span className="text-xs font-mono font-bold text-[#D49A6A]">
                           {new Date(planStatus.expires_at).toLocaleString()}
                         </span>
                       </div>
                     )}
                     <button
                       onClick={() => setPricingModalOpen(true)}
-                      className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition cursor-pointer shadow-md"
+                      className="px-3.5 py-1.5 rounded-xl bg-[#C88A58] hover:bg-[#B87A47] text-white font-semibold text-xs transition-all cursor-pointer shadow-sm"
                     >
                       {planStatus?.plan_type === 'pro_monthly' ? 'Manage Plan' : 'Upgrade Plan'}
                     </button>
@@ -1445,7 +1516,7 @@ export default function DashboardPage() {
                     <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
-                          (planStatus?.remaining?.resumes ?? 0) === 0 ? 'bg-rose-500' : 'bg-amber-500'
+                          (planStatus?.remaining?.resumes ?? 0) === 0 ? 'bg-rose-500' : 'bg-[#C88A58]'
                         }`}
                         style={{
                           width: `${Math.min(100, Math.round(((planStatus?.usage?.active_resumes ?? 0) / (planStatus?.limits?.resumes || 1)) * 100))}%`,
@@ -1615,7 +1686,7 @@ export default function DashboardPage() {
                   value={selectedPeriod === 'all' ? totalResumes : (usageStats?.period_resumes_created ?? 0)}
                   label={selectedPeriod === 'all' ? 'Master Resumes' : `Resumes (${usageStats?.period_label || 'Period'})`}
                   subtext={`${resumeCount} active in studio`}
-                  highlightColor="#D97706"
+                  highlightColor="#C88A58"
                 />
                 <MetricCard
                   icon={Cpu}
@@ -1868,27 +1939,49 @@ export default function DashboardPage() {
               Choose Layout Template
             </label>
             <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
-              {builtInTemplates.map((tpl) => (
-                <div
-                  key={tpl.id}
-                  onClick={() => setSelectedTemplateKey(tpl.id)}
-                  className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                    selectedTemplateKey === tpl.id
-                      ? 'border-amber-500 bg-amber-500/10'
-                      : 'hover:border-white/20'
-                  }`}
-                  style={{
-                    background: BRAND_CONFIG.colors.surfaceCard,
-                    borderColor: selectedTemplateKey === tpl.id ? undefined : BRAND_CONFIG.colors.borderSubtle,
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-white line-clamp-1">{tpl.name}</span>
-                    {selectedTemplateKey === tpl.id && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+              {systemTemplates.map((tpl) => {
+                const isLocked = tpl.is_locked;
+                const isSelected = selectedTemplateKey === tpl.id;
+
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => {
+                      if (isLocked) {
+                        toast.error(`'${tpl.name}' requires ${tpl.min_plan_tier === 'pro_monthly' ? 'Pagewise Pro' : 'Day Pass'}. Please upgrade.`);
+                        setPricingModalOpen(true);
+                        return;
+                      }
+                      setSelectedTemplateKey(tpl.id);
+                    }}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all relative ${
+                      isSelected
+                        ? 'border-amber-500 bg-amber-500/10'
+                        : isLocked
+                        ? 'border-white/[0.04] bg-white/[0.01] opacity-75 hover:border-amber-500/30'
+                        : 'hover:border-white/20'
+                    }`}
+                    style={{
+                      background: BRAND_CONFIG.colors.surfaceCard,
+                      borderColor: isSelected ? undefined : BRAND_CONFIG.colors.borderSubtle,
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-xs text-white line-clamp-1">{tpl.name}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                      {isLocked && !isSelected && <Lock className="w-3 h-3 text-[#7E869B] shrink-0" />}
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-[10px] text-[#7E869B] line-clamp-1">{tpl.tag || tpl.category}</p>
+                      {isLocked && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                          {tpl.min_plan_tier === 'pro_monthly' ? 'Pro' : 'Day Pass'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[10px] text-[#7E869B] line-clamp-2">{tpl.tag || tpl.category}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -1904,7 +1997,7 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={creatingResume}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 bg-[#C88A58] hover:bg-[#B87A47] text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {creatingResume ? (
                 <>
@@ -1936,6 +2029,8 @@ export default function DashboardPage() {
         isOpen={pricingModalOpen}
         onClose={() => setPricingModalOpen(false)}
         currentPlan={planStatus?.plan_type || 'free'}
+        planStatus={planStatus}
+        onNavigateUsage={() => setActiveTab('usage')}
         onPlanUpdated={(newPlan) => {
           setPlanStatus(newPlan);
           fetchPlanStatus();

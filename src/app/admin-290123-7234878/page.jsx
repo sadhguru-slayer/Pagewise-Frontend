@@ -24,6 +24,12 @@ import {
   KeyRound,
   Lock,
   LogOut,
+  Layers,
+  CreditCard,
+  Check,
+  Sliders,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -93,6 +99,28 @@ export default function AdminPage() {
   });
   const [updatingSelf, setUpdatingSelf] = useState(false);
 
+  // Global Templates Management state
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [tplForm, setTplForm] = useState({
+    name: '',
+    template_key: '',
+    description: '',
+    category: '',
+    badge: '',
+    min_plan_tier: 'free',
+    display_order: 0,
+    is_active: true,
+  });
+  const [tplSubmitting, setTplSubmitting] = useState(false);
+
+  // Pricing & Tiers Management state
+  const [adminTiers, setAdminTiers] = useState([]);
+  const [tiersLoading, setTiersLoading] = useState(false);
+  const [savingTierKey, setSavingTierKey] = useState(null);
+
   // 1. Check existing admin session on mount
   const checkAdminAuth = useCallback(async () => {
     try {
@@ -152,12 +180,164 @@ export default function AdminPage() {
     }
   }, [search, planFilter, roleFilter, sortBy, sortOrder]);
 
+  // 4. Fetch Global Templates
+  const fetchAdminTemplates = useCallback(async () => {
+    try {
+      setTemplatesLoading(true);
+      const data = await adminApi.listTemplates();
+      setAdminTemplates(data || []);
+    } catch (err) {
+      toast.error('Failed to load templates: ' + err.message);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, []);
+
+  const handleQuickTierChange = async (templateId, newTier) => {
+    try {
+      await adminApi.updateTemplate(templateId, { min_plan_tier: newTier });
+      setAdminTemplates((prev) =>
+        prev.map((t) => (t.id === templateId ? { ...t, min_plan_tier: newTier } : t))
+      );
+      toast.success(`Template tier updated to "${newTier}"!`);
+    } catch (err) {
+      toast.error('Failed to update template tier: ' + err.message);
+    }
+  };
+
+  const handleToggleTemplateActive = async (template) => {
+    try {
+      const nextState = !template.is_active;
+      await adminApi.updateTemplate(template.id, { is_active: nextState });
+      setAdminTemplates((prev) =>
+        prev.map((t) => (t.id === template.id ? { ...t, is_active: nextState } : t))
+      );
+      toast.success(`Template ${nextState ? 'activated' : 'hidden'}.`);
+    } catch (err) {
+      toast.error('Failed to update status: ' + err.message);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this global template?')) return;
+    try {
+      await adminApi.deleteTemplate(templateId);
+      setAdminTemplates((prev) => prev.filter((t) => t.id !== templateId));
+      toast.success('Template deleted.');
+    } catch (err) {
+      toast.error('Failed to delete template: ' + err.message);
+    }
+  };
+
+  const handleSubmitTemplate = async (e) => {
+    e.preventDefault();
+    setTplSubmitting(true);
+    try {
+      if (editingTemplate) {
+        await adminApi.updateTemplate(editingTemplate.id, tplForm);
+        toast.success('Template updated successfully!');
+      } else {
+        await adminApi.createTemplate(tplForm);
+        toast.success('Template created successfully!');
+      }
+      setTemplateModalOpen(false);
+      fetchAdminTemplates();
+    } catch (err) {
+      toast.error('Failed to save template: ' + err.message);
+    } finally {
+      setTplSubmitting(false);
+    }
+  };
+
+  // 5. Fetch Dynamic Tiers & Pricing
+  const fetchAdminTiers = useCallback(async () => {
+    try {
+      setTiersLoading(true);
+      const data = await adminApi.listTiers();
+      setAdminTiers(data || []);
+    } catch (err) {
+      toast.error('Failed to load tiers: ' + err.message);
+    } finally {
+      setTiersLoading(false);
+    }
+  }, []);
+
+  const handleUpdateTierField = (tierKey, field, val) => {
+    setAdminTiers((prev) =>
+      prev.map((t) => (t.tier_key === tierKey ? { ...t, [field]: val } : t))
+    );
+  };
+
+  const handleSaveTier = async (tier) => {
+    try {
+      setSavingTierKey(tier.tier_key);
+      await adminApi.updateTier(tier.tier_key, {
+        name: tier.name,
+        tagline: tier.tagline,
+        badge: tier.badge,
+        base_price_inr: Number(tier.base_price_inr),
+        discount_price_inr: Number(tier.discount_price_inr),
+        discount_percent: Number(tier.discount_percent || 0),
+        billing_period_text: tier.billing_period_text,
+        duration_days: tier.duration_days !== null && tier.duration_days !== '' ? Number(tier.duration_days) : null,
+        resume_limit: Number(tier.resume_limit),
+        export_limit: Number(tier.export_limit),
+        wiser_ai_limit: Number(tier.wiser_ai_limit),
+        wiser_job_help_limit: Number(tier.wiser_job_help_limit),
+        wiser_ats_limit: Number(tier.wiser_ats_limit),
+        custom_template_limit: Number(tier.custom_template_limit),
+        premium_templates_allowed: Number(tier.premium_templates_allowed),
+        features: tier.features || [],
+        is_active: tier.is_active,
+        display_order: Number(tier.display_order || 0),
+      });
+      toast.success(`Plan "${tier.name}" saved successfully!`);
+    } catch (err) {
+      toast.error(`Failed to save tier: ` + err.message);
+    } finally {
+      setSavingTierKey(null);
+    }
+  };
+
+  const handleAddTierFeature = (tierKey) => {
+    setAdminTiers((prev) =>
+      prev.map((t) => {
+        if (t.tier_key !== tierKey) return t;
+        return { ...t, features: [...(t.features || []), 'New feature perk'] };
+      })
+    );
+  };
+
+  const handleRemoveTierFeature = (tierKey, index) => {
+    setAdminTiers((prev) =>
+      prev.map((t) => {
+        if (t.tier_key !== tierKey) return t;
+        const copy = [...(t.features || [])];
+        copy.splice(index, 1);
+        return { ...t, features: copy };
+      })
+    );
+  };
+
+  const handleEditTierFeature = (tierKey, index, val) => {
+    setAdminTiers((prev) =>
+      prev.map((t) => {
+        if (t.tier_key !== tierKey) return t;
+        const copy = [...(t.features || [])];
+        copy[index] = val;
+        return { ...t, features: copy };
+      })
+    );
+  };
+
   useEffect(() => {
     if (adminUser) {
       fetchInsights();
       fetchUsers();
+      fetchAdminTemplates();
+      fetchAdminTiers();
     }
-  }, [adminUser, fetchInsights, fetchUsers]);
+  }, [adminUser, fetchInsights, fetchUsers, fetchAdminTemplates, fetchAdminTiers]);
 
   // Handle dedicated Admin Login
   const handleAdminLogin = async (e) => {
@@ -455,6 +635,28 @@ export default function AdminPage() {
               <span>User Accounts ({totalUsers})</span>
             </button>
             <button
+              onClick={() => setActiveTab('templates')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
+                activeTab === 'templates'
+                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-purple-400" />
+              <span>Templates &amp; Tier Access ({adminTemplates.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('tiers')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
+                activeTab === 'tiers'
+                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
+              }`}
+            >
+              <CreditCard className="w-4 h-4 text-rose-400" />
+              <span>Pricing &amp; Tier Config ({adminTiers.length})</span>
+            </button>
+            <button
               onClick={() => setActiveTab('security')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
                 activeTab === 'security'
@@ -467,15 +669,40 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {activeTab === 'users' && (
-            <button
-              onClick={handleOpenAddUser}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add New User</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {activeTab === 'users' && (
+              <button
+                onClick={handleOpenAddUser}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add New User</span>
+              </button>
+            )}
+
+            {activeTab === 'templates' && (
+              <button
+                onClick={() => {
+                  setEditingTemplate(null);
+                  setTplForm({
+                    name: '',
+                    template_key: '',
+                    description: '',
+                    category: 'Standard',
+                    badge: '',
+                    min_plan_tier: 'free',
+                    display_order: adminTemplates.length + 1,
+                    is_active: true,
+                  });
+                  setTemplateModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white transition cursor-pointer shadow-sm"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Global Template</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ─── TAB 1: INSIGHTS & METRICS ────────────────────────────────────────── */}
@@ -976,6 +1203,372 @@ export default function AdminPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 4: TEMPLATES & TIER ACCESS ──────────────────────────────────── */}
+        {activeTab === 'templates' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-purple-400" />
+                    <span>Global Resume Layout Architectures</span>
+                  </h2>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Dynamic template management. Instantly change which plan tier unlocks each template, configure industry metadata, or create custom global layouts.
+                  </p>
+                </div>
+                <button
+                  onClick={fetchAdminTemplates}
+                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer self-start md:self-auto border border-zinc-800"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reload</span>
+                </button>
+              </div>
+
+              {templatesLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3 text-zinc-500">
+                  <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                  <span className="text-xs font-mono">Loading layout templates...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {adminTemplates.map((tpl) => {
+                    const isFree = tpl.min_plan_tier === 'free';
+                    const isDayPass = tpl.min_plan_tier === 'day_pass';
+                    const isPro = tpl.min_plan_tier === 'pro_monthly';
+
+                    return (
+                      <div
+                        key={tpl.id}
+                        className="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-2xl p-5 flex flex-col justify-between transition group relative shadow-sm"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold bg-zinc-900 text-zinc-400 border border-zinc-800">
+                              {tpl.category || 'General'}
+                            </span>
+                            <button
+                              onClick={() => handleToggleTemplateActive(tpl)}
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold cursor-pointer transition ${
+                                tpl.is_active
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
+                                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
+                              }`}
+                              title="Click to toggle visibility"
+                            >
+                              {tpl.is_active ? 'Active' : 'Hidden'}
+                            </button>
+                          </div>
+
+                          <h3 className="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
+                            {tpl.name}
+                          </h3>
+                          <p className="text-[11px] font-mono text-zinc-500 mt-0.5">
+                            key: {tpl.template_key}
+                          </p>
+
+                          <p className="text-xs text-zinc-400 mt-2.5 line-clamp-3 leading-relaxed">
+                            {tpl.description}
+                          </p>
+
+                          {/* Plan Tier Selector */}
+                          <div className="mt-4 p-3 rounded-xl bg-zinc-900 border border-zinc-800/80 space-y-2">
+                            <label className="block text-[11px] font-medium text-zinc-300">
+                              Assigned Access Tier
+                            </label>
+                            <select
+                              value={tpl.min_plan_tier}
+                              onChange={(e) => handleQuickTierChange(tpl.id, e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs font-semibold text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                            >
+                              <option value="free">Pagewise Free (Available to all)</option>
+                              <option value="day_pass">Wiser Day Pass &amp; Pro</option>
+                              <option value="pro_monthly">Pagewise Pro Only (Exclusive)</option>
+                            </select>
+                            <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 pt-1">
+                              <span>Live status:</span>
+                              <span className={`font-semibold ${isPro ? 'text-indigo-400' : isDayPass ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {isPro ? 'Pro Exclusive' : isDayPass ? 'Day Pass Tier' : 'Free Standard'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 mt-5 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingTemplate(tpl);
+                              setTplForm({
+                                name: tpl.name,
+                                template_key: tpl.template_key,
+                                description: tpl.description || '',
+                                category: tpl.category || '',
+                                badge: tpl.badge || '',
+                                min_plan_tier: tpl.min_plan_tier || 'free',
+                                display_order: tpl.display_order || 0,
+                                is_active: tpl.is_active,
+                              });
+                              setTemplateModalOpen(true);
+                            }}
+                            className="flex-1 py-1.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-lg text-xs font-medium transition cursor-pointer flex items-center justify-center gap-1.5 border border-zinc-800"
+                          >
+                            <Edit2 className="w-3 h-3 text-amber-400" />
+                            <span>Edit Metadata</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTemplate(tpl.id)}
+                            className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
+                            title="Delete template"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 5: PRICING & TIER CONFIGURATION ─────────────────────────────── */}
+        {activeTab === 'tiers' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-rose-400" />
+                    <span>Dynamic Tiers &amp; Pricing Configuration</span>
+                  </h2>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Real-time management for pricing, discounts, limits, and public feature checklists. Edits take effect immediately in checkout, customer billing, and quota enforcement.
+                  </p>
+                </div>
+                <button
+                  onClick={fetchAdminTiers}
+                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition flex items-center gap-1.5 text-xs font-medium cursor-pointer self-start md:self-auto border border-zinc-800"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reload</span>
+                </button>
+              </div>
+
+              {tiersLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3 text-zinc-500">
+                  <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                  <span className="text-xs font-mono">Loading subscription tiers...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                  {adminTiers.map((tier) => {
+                    const isSaving = savingTierKey === tier.tier_key;
+                    const isPro = tier.tier_key === 'pro_monthly';
+                    const isDayPass = tier.tier_key === 'day_pass';
+
+                    return (
+                      <div
+                        key={tier.tier_key}
+                        className={`bg-zinc-950 border rounded-2xl p-6 flex flex-col justify-between transition shadow-md ${
+                          isPro
+                            ? 'border-indigo-500/40 bg-gradient-to-b from-indigo-950/20 to-zinc-950'
+                            : isDayPass
+                            ? 'border-amber-500/40 bg-gradient-to-b from-amber-950/15 to-zinc-950'
+                            : 'border-zinc-800'
+                        }`}
+                      >
+                        <div className="space-y-4">
+                          {/* Tier Header inputs */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">
+                                {tier.tier_key}
+                              </span>
+                              <label className="flex items-center gap-1.5 text-xs text-zinc-400 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={tier.is_active}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'is_active', e.target.checked)}
+                                  className="rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-0"
+                                />
+                                <span>Active</span>
+                              </label>
+                            </div>
+
+                            <label className="block text-[11px] font-medium text-zinc-400 mb-1">Plan Display Name</label>
+                            <input
+                              type="text"
+                              value={tier.name}
+                              onChange={(e) => handleUpdateTierField(tier.tier_key, 'name', e.target.value)}
+                              className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-sm font-bold text-white focus:outline-none focus:border-amber-500"
+                            />
+
+                            <label className="block text-[11px] font-medium text-zinc-400 mt-2 mb-1">Tagline</label>
+                            <input
+                              type="text"
+                              value={tier.tagline || ''}
+                              onChange={(e) => handleUpdateTierField(tier.tier_key, 'tagline', e.target.value)}
+                              className="w-full px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
+                              placeholder="e.g. Essential resume building forever"
+                            />
+
+                            <label className="block text-[11px] font-medium text-zinc-400 mt-2 mb-1">Badge Text</label>
+                            <input
+                              type="text"
+                              value={tier.badge || ''}
+                              onChange={(e) => handleUpdateTierField(tier.tier_key, 'badge', e.target.value)}
+                              className="w-full px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
+                              placeholder="e.g. Recommended"
+                            />
+                          </div>
+
+                          {/* Pricing Fields */}
+                          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-3">
+                            <h4 className="text-xs font-semibold text-zinc-200">Pricing &amp; Discounts (INR)</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-1">Base Price (₹)</label>
+                                <input
+                                  type="number"
+                                  value={tier.base_price_inr}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'base_price_inr', Number(e.target.value))}
+                                  className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-1">Effective / Discounted (₹)</label>
+                                <input
+                                  type="number"
+                                  value={tier.discount_price_inr}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'discount_price_inr', Number(e.target.value))}
+                                  className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-1">Billing Text</label>
+                                <input
+                                  type="text"
+                                  value={tier.billing_period_text || ''}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'billing_period_text', e.target.value)}
+                                  className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                                  placeholder="/ month"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-1">Duration Days</label>
+                                <input
+                                  type="number"
+                                  value={tier.duration_days ?? ''}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'duration_days', e.target.value ? Number(e.target.value) : null)}
+                                  className="w-full px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500"
+                                  placeholder="Empty for recurring"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quotas & Limits */}
+                          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-3">
+                            <h4 className="text-xs font-semibold text-zinc-200">Quotas &amp; Allowances</h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-0.5">Resume Limit</label>
+                                <input
+                                  type="number"
+                                  value={tier.resume_limit}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'resume_limit', Number(e.target.value))}
+                                  className="w-full px-2 py-1 bg-zinc-950 border border-zinc-700 rounded text-xs font-mono text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-0.5">Export Limit</label>
+                                <input
+                                  type="number"
+                                  value={tier.export_limit}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'export_limit', Number(e.target.value))}
+                                  className="w-full px-2 py-1 bg-zinc-950 border border-zinc-700 rounded text-xs font-mono text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-0.5">Job Help Analyses</label>
+                                <input
+                                  type="number"
+                                  value={tier.wiser_job_help_limit}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'wiser_job_help_limit', Number(e.target.value))}
+                                  className="w-full px-2 py-1 bg-zinc-950 border border-zinc-700 rounded text-xs font-mono text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 mb-0.5">ATS Evaluations</label>
+                                <input
+                                  type="number"
+                                  value={tier.wiser_ats_limit}
+                                  onChange={(e) => handleUpdateTierField(tier.tier_key, 'wiser_ats_limit', Number(e.target.value))}
+                                  className="w-full px-2 py-1 bg-zinc-950 border border-zinc-700 rounded text-xs font-mono text-white"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Public Feature Bullets */}
+                          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-semibold text-zinc-200">Public Benefit Checklist</h4>
+                              <button
+                                type="button"
+                                onClick={() => handleAddTierFeature(tier.tier_key)}
+                                className="text-[10px] text-amber-400 hover:text-amber-300 font-semibold cursor-pointer flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>Add Bullet</span>
+                              </button>
+                            </div>
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                              {(tier.features || []).map((feat, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5">
+                                  <input
+                                    type="text"
+                                    value={feat}
+                                    onChange={(e) => handleEditTierFeature(tier.tier_key, idx, e.target.value)}
+                                    className="flex-1 px-2 py-1 bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-200 focus:outline-none focus:border-amber-500"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTierFeature(tier.tier_key, idx)}
+                                    className="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 mt-5 border-t border-zinc-800">
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => handleSaveTier(tier)}
+                            className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2 shadow-md"
+                          >
+                            {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            <span>Save {tier.name} Settings</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1606,6 +2199,127 @@ export default function AdminPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── ADD / EDIT GLOBAL TEMPLATE MODAL ──────────────────────────────── */}
+      {templateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden p-6">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+              <h3 className="text-base font-bold text-white">
+                {editingTemplate ? `Edit Template: ${editingTemplate.name}` : 'Create New Global Resume Architecture'}
+              </h3>
+              <button
+                onClick={() => setTemplateModalOpen(false)}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitTemplate} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">Architecture Name</label>
+                <input
+                  type="text"
+                  required
+                  value={tplForm.name}
+                  onChange={(e) => setTplForm({ ...tplForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. Modern Product Specialist"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">Template Key (Unique Identifier)</label>
+                <input
+                  type="text"
+                  value={tplForm.template_key}
+                  onChange={(e) => setTplForm({ ...tplForm, template_key: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  placeholder="e.g. modern-product-specialist (auto-generated if empty)"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Category / Industry</label>
+                  <input
+                    type="text"
+                    value={tplForm.category}
+                    onChange={(e) => setTplForm({ ...tplForm, category: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. Tech, SaaS & Product"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Badge Tag</label>
+                  <input
+                    type="text"
+                    value={tplForm.badge}
+                    onChange={(e) => setTplForm({ ...tplForm, badge: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. Recommended"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">Minimum Plan Tier Access</label>
+                <select
+                  value={tplForm.min_plan_tier}
+                  onChange={(e) => setTplForm({ ...tplForm, min_plan_tier: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="free">Pagewise Free (Available to all users)</option>
+                  <option value="day_pass">Wiser Day Pass &amp; Pro</option>
+                  <option value="pro_monthly">Pagewise Pro Only (Exclusive)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  value={tplForm.description}
+                  onChange={(e) => setTplForm({ ...tplForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  placeholder="Details about layout, typography, ATS compatibility..."
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tplForm.is_active}
+                    onChange={(e) => setTplForm({ ...tplForm, is_active: e.target.checked })}
+                    className="rounded border-zinc-700 bg-zinc-950 text-amber-500 focus:ring-0"
+                  />
+                  <span>Active &amp; Visible in User Library</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setTemplateModalOpen(false)}
+                  className="px-4 py-2 text-xs text-zinc-400 hover:text-white transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={tplSubmitting}
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white flex items-center gap-2 transition cursor-pointer"
+                >
+                  {tplSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{editingTemplate ? 'Save Template Changes' : 'Create Architecture'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

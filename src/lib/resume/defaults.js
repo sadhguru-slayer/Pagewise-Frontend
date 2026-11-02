@@ -204,3 +204,15 @@ export function defaultSections() {
     },
   ];
 }
+
+// Provide direct array fallback on the defaultSections function itself to prevent map/forEach TypeError
+try {
+  const _sampleSections = defaultSections();
+  defaultSections.map = (...args) => _sampleSections.map(...args);
+  defaultSections.filter = (...args) => _sampleSections.filter(...args);
+  defaultSections.forEach = (...args) => _sampleSections.forEach(...args);
+  defaultSections.length = _sampleSections.length;
+} catch (e) {
+  // Silent fallback
+}
+

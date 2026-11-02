@@ -15,28 +15,28 @@ export const BRAND_CONFIG = {
   version: 'v2.5',
   supportEmail: 'pagewises@gmail.com',
 
-  // Theme accents (Warm Bronze / Amber / Precision Titanium - NO generic purple/cyan!)
+  // Theme accents (Sarvam AI Inspired: Warm Terracotta Sand / Muted Champagne / Soft Stone Slate)
   colors: {
-    primary: '#D97706',       // Warm Amber / Bronze
-    primaryHover: '#B45309',
-    primaryMuted: '#92400E',
-    primaryGlow: 'rgba(217, 119, 6, 0.22)',
-    primarySurface: 'rgba(217, 119, 6, 0.08)',
-    primaryBorder: 'rgba(217, 119, 6, 0.28)',
+    primary: '#C88A58',       // Soothing Earthen Sand / Terracotta
+    primaryHover: '#B87A47',
+    primaryMuted: '#8E5A30',
+    primaryGlow: 'rgba(200, 138, 88, 0.14)',
+    primarySurface: 'rgba(200, 138, 88, 0.07)',
+    primaryBorder: 'rgba(200, 138, 88, 0.22)',
 
-    secondary: '#10B981',     // Precision Emerald (for success/matched ATS)
-    secondarySurface: 'rgba(16, 185, 129, 0.08)',
-    secondaryBorder: 'rgba(16, 185, 129, 0.24)',
+    secondary: '#10B981',     // Soft Sage Emerald
+    secondarySurface: 'rgba(16, 185, 129, 0.07)',
+    secondaryBorder: 'rgba(16, 185, 129, 0.20)',
 
-    accentDark: '#0A0B0E',    // Deep Void Obsidian
-    surfaceCard: '#111319',   // Precision Titanium Slate
-    surfaceSubtle: '#161922', // Slightly elevated surface
-    borderSubtle: 'rgba(255, 255, 255, 0.07)',
-    borderHover: 'rgba(255, 255, 255, 0.14)',
+    accentDark: '#0C0D10',    // Warm Charcoal Obsidian
+    surfaceCard: '#13151B',   // Warm Slate Surface
+    surfaceSubtle: '#181A22', // Slightly elevated surface
+    borderSubtle: 'rgba(255, 255, 255, 0.065)',
+    borderHover: 'rgba(255, 255, 255, 0.13)',
 
-    textPrimary: '#F1F3F9',
-    textMuted: '#7E869B',
-    textSubtle: '#4A5063',
+    textPrimary: '#EDEDF2',   // Soft eye-soothing off-white
+    textMuted: '#8E94A5',     // Stone Gray
+    textSubtle: '#545A6D',
   },
 };
 
@@ -93,19 +93,19 @@ export function BrandLockup({
               className="text-[9px] font-mono px-1.5 py-0.5 rounded tracking-wide uppercase font-semibold border"
               style={{
                 background: displayBadge.toLowerCase().includes('pro')
-                  ? 'rgba(79, 70, 229, 0.15)'
+                  ? 'rgba(99, 102, 241, 0.12)'
                   : displayBadge.toLowerCase().includes('day')
-                  ? 'rgba(217, 119, 6, 0.15)'
+                  ? 'rgba(200, 138, 88, 0.12)'
                   : BRAND_CONFIG.colors.primarySurface,
                 color: displayBadge.toLowerCase().includes('pro')
-                  ? '#818cf8'
+                  ? '#a5b4fc'
                   : displayBadge.toLowerCase().includes('day')
-                  ? '#fbbf24'
+                  ? '#D49A6A'
                   : BRAND_CONFIG.colors.primary,
                 borderColor: displayBadge.toLowerCase().includes('pro')
-                  ? 'rgba(79, 70, 229, 0.35)'
+                  ? 'rgba(99, 102, 241, 0.28)'
                   : displayBadge.toLowerCase().includes('day')
-                  ? 'rgba(217, 119, 6, 0.35)'
+                  ? 'rgba(200, 138, 88, 0.28)'
                   : BRAND_CONFIG.colors.primaryBorder,
               }}
             >
