@@ -292,7 +292,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
             </div>
             <p className="text-[11px] text-[#8E94A5] mt-1 line-clamp-2">
               {isPilot
-                ? '70 workspaces · 100 exports/mo'
+                ? '20 workspaces · 100 exports/mo'
                 : planStatus?.plan_type === 'pro_monthly'
                 ? '5 workspaces · 30 exports/mo'
                 : planStatus?.plan_type === 'day_pass'

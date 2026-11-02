@@ -19,7 +19,7 @@ export const PLANS = [
     buttonText: 'Current Active Plan',
     popular: true,
     features: [
-      '70 resume workspaces',
+      '20 resume workspaces',
       'Unlimited manual editing',
       '100 exports per month',
       '50 Wiser Job Help analyses',
@@ -286,7 +286,7 @@ export default function PricingModal({
                   <h3 className="text-xl font-bold text-[#EDEDF2] mt-1.5">{planName}</h3>
                   <p className="text-xs text-[#8E94A5] mt-0.5">
                     {isPilot
-                      ? '70 workspaces · 100 high-fidelity exports · 100 Wiser AI evaluations · All formats unlocked'
+                      ? '20 workspaces · 100 high-fidelity exports · 100 Wiser AI evaluations · All formats unlocked'
                       : currentPlan === 'pro_monthly'
                       ? '5 workspaces · 30 high-fidelity exports · 30 Wiser AI runs per cycle'
                       : currentPlan === 'day_pass'

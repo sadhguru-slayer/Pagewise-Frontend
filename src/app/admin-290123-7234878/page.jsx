@@ -372,7 +372,7 @@ export default function AdminPage() {
 
   const handleApplyPilotMode = async (archiveOthers = true) => {
     const promptMsg = archiveOthers
-      ? "Activate Pilot Mode? This will migrate all non-admin users to PageWise Pilot (70 workspaces, 100 exports, 50 AI) and archive paid tiers to prevent payment prompts."
+      ? "Activate Pilot Mode? This will migrate all non-admin users to PageWise Pilot (20 workspaces, 100 exports, 50 AI) and archive paid tiers to prevent payment prompts."
       : "Restore All Tiers? This will unarchive all tiers so they are visible again.";
     if (!window.confirm(promptMsg)) {
       return;
@@ -1395,7 +1395,7 @@ export default function AdminPage() {
                     className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
                     <option value="">--------- Choose action ---------</option>
-                    <option value="grant_pilot">Grant PageWise Pilot Access (70 Resumes · 100 Exports · 50 AI)</option>
+                    <option value="grant_pilot">Grant PageWise Pilot Access (20 Resumes · 100 Exports · 50 AI)</option>
                     <option value="upgrade_pro">Upgrade selected to Pagewise Pro (₹199)</option>
                     <option value="upgrade_day_pass">Grant Wiser Day Pass (₹49 / 24h)</option>
                     <option value="set_free">Demote selected to Pagewise Free</option>
@@ -1877,7 +1877,7 @@ export default function AdminPage() {
                     One-Click Pilot Mode Activation
                   </h3>
                   <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-                    Instantly migrate all non-admin users to the <strong className="text-amber-400">PageWise Pilot</strong> tier (70 workspaces, 100 exports/mo, 50 Wiser Job Help, 50 ATS evaluations, 30 custom templates, all layouts unlocked). Automatically archives paid tiers so users aren’t prompted for payment.
+                    Instantly migrate all non-admin users to the <strong className="text-amber-400">PageWise Pilot</strong> tier (20 workspaces, 100 exports/mo, 50 Wiser Job Help, 50 ATS evaluations, 30 custom templates, all layouts unlocked). Automatically archives paid tiers so users aren’t prompted for payment.
                   </p>
                 </div>
 
@@ -2595,7 +2595,7 @@ export default function AdminPage() {
                     onChange={(e) => setFormData({ ...formData, plan_type: e.target.value })}
                     className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
                   >
-                    <option value="pilot">PageWise Pilot (Generous Quotas: 70 Resumes, 100 Exports, 50 AI)</option>
+                    <option value="pilot">PageWise Pilot (Generous Quotas: 20 Resumes, 100 Exports, 50 AI)</option>
                     <option value="pro_monthly">Pagewise Pro (₹199)</option>
                     <option value="day_pass">Wiser Day Pass (₹49)</option>
                     <option value="free">Pagewise Free</option>
