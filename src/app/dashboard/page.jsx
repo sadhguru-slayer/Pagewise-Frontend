@@ -12,7 +12,9 @@ import { generateResumeDocumentHtml } from '@/lib/resume/renderDocument';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
 import Modal from '@/components/ui/Modal';
 import PilotBanner from '@/components/ui/PilotBanner';
+import PricingModal from '@/components/pricing/PricingModal';
 import { useModal } from '@/lib/modal-context';
+import { paymentsApi } from '@/lib/api';
 
 import {
   Home,
@@ -45,6 +47,8 @@ import {
   Activity,
   ShieldCheck,
   Database,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -198,7 +202,7 @@ function ResourceBar({
 }
 
 // ─── Sidebar Navigation ───────────────────────────────────────────────────────
-function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
+function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, planStatus }) {
   const navItems = [
     { id: 'home', label: 'Overview', icon: Home },
     { id: 'resumes', label: 'My Resumes', icon: FileText },
@@ -249,6 +253,43 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
             </button>
           );
         })}
+
+        {/* Upgrade / Plan Card in Nav */}
+        <div className="pt-4 px-1">
+          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
+                {planStatus?.plan_name || 'Pagewise Free'}
+              </span>
+              {user?.is_admin && (
+                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 font-mono font-bold">
+                  ADMIN
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
+              {planStatus?.plan_type === 'pro_monthly'
+                ? '5 workspaces · 30 exports/mo'
+                : planStatus?.plan_type === 'day_pass'
+                ? '1 workspace · 5 exports (24h)'
+                : '1 workspace · 1 export/mo'}
+            </p>
+            <button
+              onClick={onOpenUpgrade}
+              className="mt-2.5 w-full py-1.5 px-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-[11px] font-semibold border border-zinc-700 flex items-center justify-center transition"
+            >
+              <span>{planStatus?.plan_type === 'pro_monthly' ? 'Manage Plan' : 'Upgrade Plan'}</span>
+            </button>
+            {user?.is_admin && (
+              <Link
+                href="/admin-290123-7234878"
+                className="mt-2 text-[10px] text-amber-400 hover:text-amber-300 font-mono block text-center border-t border-zinc-800/80 pt-1.5 transition"
+              >
+                → Secret Admin Panel
+              </Link>
+            )}
+          </div>
+        </div>
       </nav>
 
       {/* User Section */}
@@ -330,6 +371,25 @@ export default function DashboardPage() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState(builtInTemplates[0].id);
   const [creatingResume, setCreatingResume] = useState(false);
   const [exportingId, setExportingId] = useState(null);
+
+  // Pricing & Subscription state
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [planStatus, setPlanStatus] = useState(null);
+
+  const fetchPlanStatus = useCallback(async () => {
+    try {
+      const data = await paymentsApi.getStatus();
+      setPlanStatus(data);
+    } catch (e) {
+      console.warn('Could not load plan status:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchPlanStatus();
+    }
+  }, [isAuthenticated, fetchPlanStatus]);
 
   // Authentication Guard
   useEffect(() => {
@@ -416,6 +476,17 @@ export default function DashboardPage() {
       loadDashboardData();
     } catch (err) {
       toast.error('Failed to delete resume: ' + err.message);
+    }
+  };
+
+  // Set Master / Primary Resume Action
+  const handleSetPrimary = async (resumeId) => {
+    try {
+      const updated = await resumesApi.setPrimary(resumeId);
+      toast.success(`'${updated.name}' set as Master Workspace.`);
+      await Promise.all([loadDashboardData(), fetchPlanStatus()]);
+    } catch (err) {
+      toast.error(err.message || 'Failed to set master workspace');
     }
   };
 
@@ -525,7 +596,14 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#090B10] text-[#F1F3F9] flex font-sans">
       {/* Precision Sidebar */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={logout} />
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        user={user}
+        onLogout={logout}
+        onOpenUpgrade={() => setPricingModalOpen(true)}
+        planStatus={planStatus}
+      />
 
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
@@ -564,6 +642,13 @@ export default function DashboardPage() {
 
                 {/* Primary Action Buttons */}
                 <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setPricingModalOpen(true)}
+                    className="flex items-center px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700"
+                  >
+                    <span>{planStatus?.plan_name || 'Upgrade Plan'}</span>
+                  </button>
+
                   <button
                     onClick={() => setIsImportModalOpen(true)}
                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border hover:border-white/20 text-[#F1F3F9]"
@@ -696,20 +781,28 @@ export default function DashboardPage() {
                         }}
                       >
                         <div>
-                          {/* Target Job Pill if present */}
-                          {resume.target_job_title ? (
-                            <div className="flex items-center gap-1.5 mb-2.5">
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 truncate">
+                          {/* Status and Targeting Pill */}
+                          <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+                            {resume.is_primary ? (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40">
+                                ★ Master Workspace
+                              </span>
+                            ) : resume.is_locked ? (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30">
+                                🔒 Read-Only
+                              </span>
+                            ) : null}
+
+                            {resume.target_job_title ? (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 truncate max-w-[170px]">
                                 🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
                               </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5 mb-2.5">
+                            ) : !resume.is_primary && !resume.is_locked ? (
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-[#7E869B] bg-white/[0.04] border border-white/[0.06]">
-                                Master Draft
+                                Workspace
                               </span>
-                            </div>
-                          )}
+                            ) : null}
+                          </div>
 
                           <h3 className="font-bold text-sm text-[#F1F3F9] group-hover:text-amber-400 transition-colors line-clamp-1">
                             {resume.name}
@@ -721,14 +814,26 @@ export default function DashboardPage() {
                           </p>
                         </div>
 
-                        <div className="pt-4 mt-3 border-t border-white/[0.06] flex items-center justify-between">
-                          <Link
-                            href={`/builder?id=${resume.id}`}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-amber-500 hover:text-black text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1"
-                          >
-                            <span>Open</span>
-                            <ArrowUpRight className="w-3 h-3" />
-                          </Link>
+                        <div className="pt-4 mt-3 border-t border-white/[0.06] flex items-center justify-between gap-1 flex-wrap">
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/builder?id=${resume.id}`}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-amber-500 hover:text-black text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <span>{resume.is_locked ? 'View' : 'Open'}</span>
+                              <ArrowUpRight className="w-3 h-3" />
+                            </Link>
+
+                            {!resume.is_primary && (
+                              <button
+                                onClick={() => handleSetPrimary(resume.id)}
+                                className="px-2 py-1.5 rounded-lg text-[10px] font-mono text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/20 transition cursor-pointer"
+                                title="Set this resume as your Primary Master workspace"
+                              >
+                                Set Master
+                              </button>
+                            )}
+                          </div>
 
                           <div className="flex items-center gap-1">
                             <button
@@ -832,16 +937,28 @@ export default function DashboardPage() {
                       >
                         <div>
                           {/* Tags header */}
-                          <div className="flex items-center justify-between gap-2 mb-3">
-                            {resume.target_job_title ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-semibold truncate max-w-[180px]">
-                                🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-[#7E869B] bg-white/[0.04] border border-white/[0.06]">
-                                Master Architecture
-                              </span>
-                            )}
+                          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {resume.is_primary ? (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40">
+                                  ★ Master Workspace
+                                </span>
+                              ) : resume.is_locked ? (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30">
+                                  🔒 Read-Only Workspace
+                                </span>
+                              ) : null}
+
+                              {resume.target_job_title ? (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-semibold truncate max-w-[180px]">
+                                  🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
+                                </span>
+                              ) : !resume.is_primary && !resume.is_locked ? (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-[#7E869B] bg-white/[0.04] border border-white/[0.06]">
+                                  Workspace
+                                </span>
+                              ) : null}
+                            </div>
 
                             {score !== null && score !== undefined && (
                               <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold border ${badgeCls}`}>
@@ -867,14 +984,26 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
-                          <Link
-                            href={`/builder?id=${resume.id}`}
-                            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1.5"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                            <span>Launch Studio</span>
-                          </Link>
+                        <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between gap-1 flex-wrap">
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/builder?id=${resume.id}`}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-amber-600 hover:text-white text-[#F1F3F9] transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>{resume.is_locked ? 'View (Read-Only)' : 'Launch Studio'}</span>
+                            </Link>
+
+                            {!resume.is_primary && (
+                              <button
+                                onClick={() => handleSetPrimary(resume.id)}
+                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-amber-400 hover:text-white bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/20 transition cursor-pointer"
+                                title="Promote this resume to your Master active workspace"
+                              >
+                                Set as Master
+                              </button>
+                            )}
+                          </div>
 
                           <div className="flex items-center gap-1">
                             <button
@@ -1237,6 +1366,202 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Dedicated Plan Allowance & Telemetry Limits Card */}
+              <div
+                className="rounded-2xl p-6 space-y-6"
+                style={{
+                  background: BRAND_CONFIG.colors.surfaceCard,
+                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                }}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.06]">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
+                        Plan Quota Matrix
+                      </span>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                          planStatus?.plan_type === 'pro_monthly'
+                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                            : planStatus?.plan_type === 'day_pass'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            : 'bg-zinc-800 text-zinc-300 border-zinc-700'
+                        }`}
+                      >
+                        {planStatus?.plan_name || 'Pagewise Free'}
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-bold text-[#F1F3F9] mt-1">
+                      Current Plan Allowance &amp; Telemetry Limits
+                    </h2>
+                    <p className="text-xs text-[#7E869B] mt-0.5">
+                      Strict limit tracking across your active workspaces, exports, and Wiser AI evaluations.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {planStatus?.expires_at && (
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#7E869B] uppercase font-mono block">Pass Expires</span>
+                        <span className="text-xs font-mono font-bold text-amber-400">
+                          {new Date(planStatus.expires_at).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setPricingModalOpen(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition cursor-pointer shadow-md"
+                    >
+                      {planStatus?.plan_type === 'pro_monthly' ? 'Manage Plan' : 'Upgrade Plan'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quota Progress Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* 1. Resume Workspaces */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#F1F3F9]">Resume Workspaces</span>
+                      <span className="text-xs font-mono text-[#7E869B]">
+                        <strong className="text-white">{planStatus?.usage?.active_resumes ?? 0}</strong> / {planStatus?.limits?.resumes ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          (planStatus?.remaining?.resumes ?? 0) === 0 ? 'bg-rose-500' : 'bg-amber-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.active_resumes ?? 0) / (planStatus?.limits?.resumes || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                      <span>{planStatus?.remaining?.resumes ?? 0} workspace(s) left</span>
+                      {(planStatus?.remaining?.resumes ?? 0) === 0 ? (
+                        <span className="text-rose-400 font-semibold">Limit Reached</span>
+                      ) : (
+                        <span className="text-emerald-400 font-semibold">Active</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Verified Exports */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#F1F3F9]">Verified Exports</span>
+                      <span className="text-xs font-mono text-[#7E869B]">
+                        <strong className="text-white">{planStatus?.usage?.exports_used ?? 0}</strong> / {planStatus?.limits?.exports ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          (planStatus?.remaining?.exports ?? 0) === 0 ? 'bg-rose-500' : 'bg-emerald-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.exports_used ?? 0) / (planStatus?.limits?.exports || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                      <span>{planStatus?.remaining?.exports ?? 0} export(s) left</span>
+                      {(planStatus?.remaining?.exports ?? 0) === 0 ? (
+                        <span className="text-rose-400 font-semibold">Exhausted</span>
+                      ) : (
+                        <span className="text-emerald-400 font-semibold">Available</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. Wiser Job Help */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#F1F3F9]">Wiser Job Help (JD Match)</span>
+                      <span className="text-xs font-mono text-[#7E869B]">
+                        <strong className="text-white">{planStatus?.usage?.wiser_job_help_used ?? 0}</strong> / {planStatus?.limits?.wiser_job_help ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          (planStatus?.remaining?.wiser_job_help ?? 0) === 0 ? 'bg-rose-500' : 'bg-sky-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.wiser_job_help_used ?? 0) / (planStatus?.limits?.wiser_job_help || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                      <span>{planStatus?.remaining?.wiser_job_help ?? 0} analysis left</span>
+                      {(planStatus?.remaining?.wiser_job_help ?? 0) === 0 ? (
+                        <span className="text-rose-400 font-semibold">Exhausted</span>
+                      ) : (
+                        <span className="text-sky-400 font-semibold">Available</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. Wiser ATS Check */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#F1F3F9]">Wiser ATS Evaluations</span>
+                      <span className="text-xs font-mono text-[#7E869B]">
+                        <strong className="text-white">{planStatus?.usage?.wiser_ats_used ?? 0}</strong> / {planStatus?.limits?.wiser_ats ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          (planStatus?.remaining?.wiser_ats ?? 0) === 0 ? 'bg-rose-500' : 'bg-indigo-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.wiser_ats_used ?? 0) / (planStatus?.limits?.wiser_ats || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                      <span>{planStatus?.remaining?.wiser_ats ?? 0} evaluation(s) left</span>
+                      {(planStatus?.remaining?.wiser_ats ?? 0) === 0 ? (
+                        <span className="text-rose-400 font-semibold">Exhausted</span>
+                      ) : (
+                        <span className="text-indigo-400 font-semibold">Available</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 5. Custom Templates */}
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#F1F3F9]">Custom Style Presets</span>
+                      <span className="text-xs font-mono text-[#7E869B]">
+                        <strong className="text-white">{planStatus?.usage?.custom_templates_count ?? 0}</strong> / {planStatus?.limits?.custom_templates ?? 1}
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          (planStatus?.remaining?.custom_templates ?? 0) === 0 ? 'bg-rose-500' : 'bg-purple-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, Math.round(((planStatus?.usage?.custom_templates_count ?? 0) / (planStatus?.limits?.custom_templates || 1)) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                      <span>{planStatus?.remaining?.custom_templates ?? 0} preset(s) left</span>
+                      {(planStatus?.remaining?.custom_templates ?? 0) === 0 ? (
+                        <span className="text-rose-400 font-semibold">Exhausted</span>
+                      ) : (
+                        <span className="text-purple-400 font-semibold">Available</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Active Duration Status Banner */}
               <div className="p-4 rounded-2xl bg-[#111319] border border-white/[0.07] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -1591,6 +1916,18 @@ export default function DashboardPage() {
           mode="new"
         />
       )}
+
+      {/* ── MODAL: PRICING & RAZORPAY UPGRADE ────────────────────────────── */}
+      <PricingModal
+        isOpen={pricingModalOpen}
+        onClose={() => setPricingModalOpen(false)}
+        currentPlan={planStatus?.plan_type || 'free'}
+        onPlanUpdated={(newPlan) => {
+          setPlanStatus(newPlan);
+          fetchPlanStatus();
+          loadDashboardData();
+        }}
+      />
     </div>
   );
 }

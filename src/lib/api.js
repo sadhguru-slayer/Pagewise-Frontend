@@ -27,6 +27,65 @@ export function clearToken() {
   localStorage.removeItem('resumo_token');
 }
 
+// ─── Admin Dedicated Session Management ─────────────────────────────────────
+export function getAdminToken() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('resumo_admin_token') || localStorage.getItem('resumo_token');
+}
+
+export function setAdminToken(token) {
+  if (typeof window === 'undefined') return;
+  if (token) {
+    localStorage.setItem('resumo_admin_token', token);
+  } else {
+    localStorage.removeItem('resumo_admin_token');
+  }
+}
+
+export function clearAdminToken() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('resumo_admin_token');
+}
+
+export async function fetchAdminApi(endpoint, options = {}) {
+  const token = getAdminToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const apiBase = getApiBase();
+  let res;
+  try {
+    res = await fetch(`${apiBase}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    if (apiBase !== '/api') {
+      res = await fetch(`/api${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } else {
+      throw err;
+    }
+  }
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const errorMsg = data?.detail || data?.error || res.statusText || 'An unexpected error occurred';
+    throw new Error(errorMsg);
+  }
+
+  return data;
+}
+
 export async function fetchApi(endpoint, options = {}) {
   const token = getToken();
   const headers = {
@@ -296,6 +355,12 @@ export const resumesApi = {
     });
   },
 
+  async setPrimary(resumeId) {
+    return fetchApi(`/resumes/${resumeId}/set-primary`, {
+      method: 'POST',
+    });
+  },
+
   async cloneResume(resumeId, { newName, targetJobTitle, targetCompany, targetJobDescription, targetAtsScore } = {}) {
     return fetchApi(`/resumes/${resumeId}/clone`, {
       method: 'POST',
@@ -443,3 +508,106 @@ export const exportsApi = {
     });
   },
 };
+
+// ─── Payment & Subscription API ──────────────────────────────────────────────
+export const paymentsApi = {
+  async getConfig() {
+    return fetchApi('/payments/config');
+  },
+
+  async getStatus() {
+    return fetchApi('/payments/status');
+  },
+
+  async createOrder(planType) {
+    return fetchApi('/payments/create-order', {
+      method: 'POST',
+      body: JSON.stringify({ plan_type: planType }),
+    });
+  },
+
+  async verifyPayment({ razorpay_order_id, razorpay_payment_id, razorpay_signature }) {
+    return fetchApi('/payments/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+      }),
+    });
+  },
+};
+
+// ─── Admin API ───────────────────────────────────────────────────────────────
+export const adminApi = {
+  async login(usernameOrEmail, password) {
+    const res = await fetchApi('/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username_or_email: usernameOrEmail,
+        password,
+      }),
+    });
+    if (res?.access_token) {
+      setAdminToken(res.access_token);
+    }
+    return res;
+  },
+
+  async getMe() {
+    return fetchAdminApi('/admin/me');
+  },
+
+  logout() {
+    clearAdminToken();
+  },
+
+  async listUsers(params = {}) {
+    const query = new URLSearchParams();
+    if (params.search) query.set('search', params.search);
+    if (params.plan) query.set('plan', params.plan);
+    if (params.role) query.set('role', params.role);
+    if (params.sortBy) query.set('sort_by', params.sortBy);
+    if (params.sortOrder) query.set('sort_order', params.sortOrder);
+    if (params.skip !== undefined) query.set('skip', params.skip);
+    if (params.limit !== undefined) query.set('limit', params.limit);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return fetchAdminApi(`/admin/users${qs}`);
+  },
+
+  async getUserDetail(userId) {
+    return fetchAdminApi(`/admin/users/${userId}`);
+  },
+
+  async createUser(payload) {
+    return fetchAdminApi('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateUser(userId, payload) {
+    return fetchAdminApi(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteUser(userId) {
+    return fetchAdminApi(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getInsights() {
+    return fetchAdminApi('/admin/insights');
+  },
+
+  async updateSelfSecurity(payload) {
+    return fetchAdminApi('/admin/me/security', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+};
+

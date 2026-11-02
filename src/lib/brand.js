@@ -69,14 +69,17 @@ export function BrandLogo({ size = 28, className = '', showDot = false, alt = 'P
 }
 
 /**
- * Full Brand Lockup with Logo + Typography + Version Badge
+ * Full Brand Lockup with Logo + Typography + Plan Tier Badge
  */
 export function BrandLockup({
   size = 28,
   showTagline = false,
   showBadge = true,
+  badgeText = null,
   className = '',
 }) {
+  const displayBadge = badgeText || 'Free';
+
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <BrandLogo size={size} />
@@ -87,14 +90,26 @@ export function BrandLockup({
           </span>
           {showBadge && (
             <span
-              className="text-[9px] font-mono px-1.5 py-0.5 rounded tracking-wide uppercase font-semibold"
+              className="text-[9px] font-mono px-1.5 py-0.5 rounded tracking-wide uppercase font-semibold border"
               style={{
-                background: BRAND_CONFIG.colors.primarySurface,
-                color: BRAND_CONFIG.colors.primary,
-                border: `1px solid ${BRAND_CONFIG.colors.primaryBorder}`,
+                background: displayBadge.toLowerCase().includes('pro')
+                  ? 'rgba(79, 70, 229, 0.15)'
+                  : displayBadge.toLowerCase().includes('day')
+                  ? 'rgba(217, 119, 6, 0.15)'
+                  : BRAND_CONFIG.colors.primarySurface,
+                color: displayBadge.toLowerCase().includes('pro')
+                  ? '#818cf8'
+                  : displayBadge.toLowerCase().includes('day')
+                  ? '#fbbf24'
+                  : BRAND_CONFIG.colors.primary,
+                borderColor: displayBadge.toLowerCase().includes('pro')
+                  ? 'rgba(79, 70, 229, 0.35)'
+                  : displayBadge.toLowerCase().includes('day')
+                  ? 'rgba(217, 119, 6, 0.35)'
+                  : BRAND_CONFIG.colors.primaryBorder,
               }}
             >
-              {BRAND_CONFIG.version}
+              {displayBadge}
             </span>
           )}
         </div>

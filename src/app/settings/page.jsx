@@ -25,7 +25,8 @@ import toast from 'react-hot-toast';
 import PilotBanner from '@/components/ui/PilotBanner';
 import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
-import { authApi } from '@/lib/api';
+import { authApi, paymentsApi } from '@/lib/api';
+import PricingModal from '@/components/pricing/PricingModal';
 
 function getAllowBoldPref(usr) {
   if (!usr?.preferences_json) return false;
@@ -85,6 +86,23 @@ export default function SettingsPage() {
   }, [pwCountdown]);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const [planStatus, setPlanStatus] = useState(null);
+
+  const loadPlan = async () => {
+    try {
+      const res = await paymentsApi.getStatus();
+      setPlanStatus(res);
+    } catch (err) {
+      console.warn('Failed to fetch plan in settings:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadPlan();
+    }
+  }, [isAuthenticated]);
 
   const handleUpdateName = async (e) => {
     e.preventDefault();
@@ -541,24 +559,145 @@ export default function SettingsPage() {
         </div>
 
         {/* Plan / Quota Info */}
-        <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-5">
+          <div className="flex items-center justify-between pb-4 border-b border-white/[0.06]">
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#f97316]">
-                Current Tier
+              <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500">
+                Current Subscription Tier
               </span>
-              <h3 className="text-base font-bold text-white mt-0.5">PageWise Studio v2.5 Beta</h3>
+              <h3 className="text-lg font-bold text-white mt-0.5">
+                {planStatus?.plan_name || 'Pagewise Free'}
+              </h3>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {planStatus?.expires_at
+                  ? `Active until ${new Date(planStatus.expires_at).toLocaleDateString()} (${Math.max(0, Math.ceil((new Date(planStatus.expires_at) - new Date()) / (1000 * 60 * 60 * 24)))} days remaining)`
+                  : 'Free Forever · Quotas refresh on calendar month'}
+              </p>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Active Unlimited
-            </span>
+            <button
+              onClick={() => setPricingOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 transition"
+            >
+              {planStatus?.plan_type === 'pro_monthly' ? 'Manage Plan' : 'Upgrade Plan'}
+            </button>
           </div>
-          <p className="text-xs text-[#6b7280] leading-relaxed">
-            During the v2.5 beta phase, you have access to unlimited resume branches, AI JD matching,
-            Wiser XYZ metric bullet formula, and high-fidelity PDF exports.
-          </p>
+
+          {/* Granular Tracking Counters */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
+              Quota &amp; Usage Balance
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Resumes */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Resume Workspaces</span>
+                  <span className="font-mono font-semibold text-white">
+                    {planStatus?.usage?.active_resumes || 0} / {planStatus?.limits?.resumes ?? 1}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full bg-amber-500 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(((planStatus?.usage?.active_resumes || 0) / (planStatus?.limits?.resumes || 1)) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 mt-1.5 block">
+                  {planStatus?.remaining?.resumes ?? 0} workspace(s) remaining
+                </span>
+              </div>
+
+              {/* Exports */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Exports (Current Period)</span>
+                  <span className="font-mono font-semibold text-white">
+                    {planStatus?.usage?.exports_used || 0} / {planStatus?.limits?.exports ?? 1}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(((planStatus?.usage?.exports_used || 0) / (planStatus?.limits?.exports || 1)) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 mt-1.5 block">
+                  {planStatus?.remaining?.exports ?? 0} export(s) remaining
+                </span>
+              </div>
+
+              {/* Wiser Job Help */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Wiser Job Help (JD Analyses)</span>
+                  <span className="font-mono font-semibold text-white">
+                    {planStatus?.usage?.wiser_job_help_used || 0} / {planStatus?.limits?.wiser_job_help ?? 1}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-500 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(((planStatus?.usage?.wiser_job_help_used || 0) / (planStatus?.limits?.wiser_job_help || 1)) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 mt-1.5 block">
+                  {planStatus?.remaining?.wiser_job_help ?? 0} analysis run(s) remaining
+                </span>
+              </div>
+
+              {/* Wiser ATS checks */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Wiser ATS Audits</span>
+                  <span className="font-mono font-semibold text-white">
+                    {planStatus?.usage?.wiser_ats_used || 0} / {planStatus?.limits?.wiser_ats ?? 1}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className="h-full bg-sky-500 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(((planStatus?.usage?.wiser_ats_used || 0) / (planStatus?.limits?.wiser_ats || 1)) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 mt-1.5 block">
+                  {planStatus?.remaining?.wiser_ats ?? 0} ATS audit(s) remaining
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Pricing Modal */}
+        <PricingModal
+          isOpen={pricingOpen}
+          onClose={() => setPricingOpen(false)}
+          currentPlan={planStatus?.plan_type || 'free'}
+          onPlanUpdated={(newPlan) => {
+            setPlanStatus(newPlan);
+            loadPlan();
+          }}
+        />
 
         {/* Danger Zone */}
         <div className="bg-rose-950/15 border border-rose-500/20 rounded-2xl p-6 shadow-xl space-y-3">

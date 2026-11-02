@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FileSearch,
@@ -20,8 +20,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { resumesApi } from '@/lib/api';
+import { resumesApi, paymentsApi } from '@/lib/api';
 import { useResumeStore } from '@/lib/resume/store';
+import PricingModal from '@/components/pricing/PricingModal';
 
 /* ─── ATS Score SVG Gauge ─────────────────────────────────────────── */
 function AtsGauge({ score }) {
@@ -106,6 +107,21 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('ats'); // 'ats' | 'jobmatch' | 'enhancements'
   const [isCloningResume, setIsCloningResume] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [planStatus, setPlanStatus] = useState(null);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+
+  const fetchPlanStatus = useCallback(async () => {
+    try {
+      const data = await paymentsApi.getStatus();
+      setPlanStatus(data);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchPlanStatus();
+    }
+  }, [isOpen, fetchPlanStatus]);
 
   useEffect(() => {
     setMounted(true);
@@ -181,6 +197,7 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
         });
         setActiveTab('ats');
         toast.success('Wiser Job Help analysis ready!', { id: toastId });
+        fetchPlanStatus();
       } else {
         throw new Error('Analysis completed with unexpected response structure.');
       }
@@ -219,6 +236,7 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
           targetJobTitle: inferred.title || useResumeStore.getState().targetJobTitle,
         });
         toast.success('Wiser Standalone ATS Audit complete!', { id: toastId });
+        fetchPlanStatus();
       } else {
         throw new Error('Standalone ATS analysis returned unexpected structure.');
       }
@@ -405,9 +423,37 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
                   }}
                 />
 
+                {planStatus && (
+                  <div className="flex items-center justify-between text-[11px] px-1 font-mono">
+                    <span className="text-[#7E869B]">Plan Allowance:</span>
+                    <span className={`font-semibold ${planStatus?.remaining?.wiser_job_help <= 0 ? 'text-rose-400' : 'text-amber-400'}`}>
+                      {planStatus?.remaining?.wiser_job_help ?? 0} / {planStatus?.limits?.wiser_job_help ?? 1} remaining
+                    </span>
+                  </div>
+                )}
+
+                {planStatus && (planStatus?.remaining?.wiser_job_help ?? 0) <= 0 && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-2">
+                    <div className="flex items-center gap-1.5 text-rose-400 font-bold">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>Job Help Allowance Exhausted</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      You have used all {planStatus?.limits?.wiser_job_help ?? 1} evaluations for {planStatus?.plan_name}. Upgrade to Wiser Day Pass or Pagewise Pro to continue.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsPricingModalOpen(true)}
+                      className="w-full py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition cursor-pointer"
+                    >
+                      Upgrade Plan
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  disabled={isAnalyzing || !jobDescription.trim()}
+                  disabled={isAnalyzing || !jobDescription.trim() || Boolean(planStatus && (planStatus?.remaining?.wiser_job_help ?? 0) <= 0)}
                   onClick={handleStartJdAnalysis}
                   className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shrink-0 cursor-pointer disabled:opacity-50"
                   style={{
@@ -478,9 +524,37 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
+                {planStatus && (
+                  <div className="flex items-center justify-between text-[11px] px-1 font-mono">
+                    <span className="text-[#7E869B]">Plan Allowance:</span>
+                    <span className={`font-semibold ${planStatus?.remaining?.wiser_ats <= 0 ? 'text-rose-400' : 'text-amber-400'}`}>
+                      {planStatus?.remaining?.wiser_ats ?? 0} / {planStatus?.limits?.wiser_ats ?? 1} remaining
+                    </span>
+                  </div>
+                )}
+
+                {planStatus && (planStatus?.remaining?.wiser_ats ?? 0) <= 0 && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-2">
+                    <div className="flex items-center gap-1.5 text-rose-400 font-bold">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>ATS Evaluation Allowance Exhausted</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      You have used all {planStatus?.limits?.wiser_ats ?? 1} evaluations for {planStatus?.plan_name}. Upgrade to Wiser Day Pass or Pagewise Pro to continue.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsPricingModalOpen(true)}
+                      className="w-full py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition cursor-pointer"
+                    >
+                      Upgrade Plan
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || Boolean(planStatus && (planStatus?.remaining?.wiser_ats ?? 0) <= 0)}
                   onClick={handleStartStandaloneAts}
                   className="w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shrink-0 cursor-pointer disabled:opacity-50"
                   style={{
@@ -983,6 +1057,16 @@ export default function JDAnalyzerModal({ isOpen, onClose }) {
           </div>
         </div>
       </div>
+
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        currentPlan={planStatus?.plan_type || 'free'}
+        onPlanUpdated={(newPlan) => {
+          setPlanStatus(newPlan);
+          fetchPlanStatus();
+        }}
+      />
     </div>
   );
 

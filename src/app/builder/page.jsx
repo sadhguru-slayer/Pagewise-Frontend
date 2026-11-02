@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
-import { resumesApi, templatesApi } from '@/lib/api';
+import { resumesApi, templatesApi, paymentsApi } from '@/lib/api';
 import { useResumeStore } from '@/lib/resume/store';
 import { BrandLogo, BRAND_CONFIG } from '@/lib/brand';
 import SectionManager from '@/components/resume-builder/SectionManager';
@@ -56,6 +56,7 @@ import ExportMenu from '@/components/resume-builder/ExportMenu';
 import TemplateModal from '@/components/resume-builder/TemplateModal';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
 import JDAnalyzerModal from '@/components/resume-builder/JDAnalyzerModal';
+import PricingModal from '@/components/pricing/PricingModal';
 
 function BuilderContent() {
   const router = useRouter();
@@ -89,7 +90,35 @@ function BuilderContent() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isJdModalOpen, setIsJdModalOpen] = useState(false);
   const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isPrimary, setIsPrimary] = useState(false);
+  const [planStatus, setPlanStatus] = useState(null);
   const studioMenuRef = useRef(null);
+
+  const fetchPlan = useCallback(async () => {
+    try {
+      const p = await paymentsApi.getStatus();
+      setPlanStatus(p);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchPlan();
+  }, [fetchPlan]);
+
+  const handleSetMasterFromBuilder = async () => {
+    if (!resumeId) return;
+    try {
+      await resumesApi.setPrimary(resumeId);
+      setIsLocked(false);
+      setIsPrimary(true);
+      toast.success('Resume promoted to Primary Master! Editing enabled.');
+      fetchPlan();
+    } catch (err) {
+      toast.error(err.message || 'Failed to set as master resume');
+    }
+  };
 
   // Close studio quick menu on click outside
   useEffect(() => {
@@ -135,6 +164,8 @@ function BuilderContent() {
       try {
         if (resumeQueryId) {
           const data = await resumesApi.get(resumeQueryId);
+          setIsLocked(Boolean(data.is_locked));
+          setIsPrimary(Boolean(data.is_primary));
           loadResume({
             id: data.id,
             name: data.name,
@@ -173,7 +204,7 @@ function BuilderContent() {
 
   // ─── Auto-Save ─────────────────────────────────────────────────────────────
   const saveResume = useCallback(async () => {
-    if (!resumeId) return;
+    if (!resumeId || isLocked) return;
     setSaving(true);
     try {
       const data = await resumesApi.update(resumeId, {
@@ -187,10 +218,14 @@ function BuilderContent() {
       setSaveError(err.message);
       toast.error('Auto-save error: ' + err.message);
     }
-  }, [resumeId, resumeName, sections, header, settings, setSaving, markSaved, setSaveError]);
+  }, [resumeId, isLocked, resumeName, sections, header, settings, setSaving, markSaved, setSaveError]);
 
   const handleManualSave = async () => {
     if (!resumeId) return;
+    if (isLocked) {
+      toast.error('This resume is in Read-Only mode under your workspace limit. Click "Set as Master Resume" above to edit.');
+      return;
+    }
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     setSaving(true);
     try {
@@ -217,14 +252,14 @@ function BuilderContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [resumeId, resumeName, sections, header, settings]);
+  }, [resumeId, isLocked, resumeName, sections, header, settings]);
 
   useEffect(() => {
-    if (!isDirty || !resumeId) return;
+    if (!isDirty || !resumeId || isLocked) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(saveResume, 1500);
     return () => clearTimeout(saveTimeoutRef.current);
-  }, [isDirty, resumeId, saveResume]);
+  }, [isDirty, resumeId, isLocked, saveResume]);
 
   useEffect(() => {
     if (sections && sections.length > 0 && !activeSectionId) {
@@ -361,6 +396,9 @@ function BuilderContent() {
 
           <Link href="/dashboard" className="hidden sm:flex items-center gap-1.5 shrink-0" title="Resumo Studio">
             <BrandLogo size={22} />
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
+              {planStatus?.plan_name || 'Free'}
+            </span>
           </Link>
 
           <div className="h-4 w-px bg-white/[0.07] shrink-0" />
@@ -544,8 +582,17 @@ function BuilderContent() {
 
           <ExportMenu />
 
-          {/* Manual Save — visible only when dirty */}
-          {isDirty && (
+          {/* Manual Save or Read-Only Indicator */}
+          {isLocked ? (
+            <button
+              type="button"
+              onClick={handleSetMasterFromBuilder}
+              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Set this resume as your Master Resume to enable editing"
+            >
+              <span>🔒 Read-Only (Set Master)</span>
+            </button>
+          ) : isDirty ? (
             <button
               type="button"
               onClick={handleManualSave}
@@ -560,9 +607,35 @@ function BuilderContent() {
               )}
               <span>Save</span>
             </button>
-          )}
+          ) : null}
         </div>
       </header>
+
+      {/* Read-Only Workspace Alert Banner */}
+      {isLocked && (
+        <div className="bg-amber-950/90 border-b border-amber-500/40 px-4 py-2.5 flex items-center justify-between text-xs text-amber-200 z-30 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">🔒 Read-Only Workspace</span>
+            <span className="text-zinc-300 hidden md:inline">
+              — You have reached your active workspace limit for {planStatus?.plan_name || 'your current plan'}. You can inspect and export this resume, but changes cannot be saved.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSetMasterFromBuilder}
+              className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition cursor-pointer shadow-sm"
+            >
+              Set as Master Resume
+            </button>
+            <button
+              onClick={() => setIsPricingModalOpen(true)}
+              className="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-medium text-xs border border-zinc-700 transition cursor-pointer"
+            >
+              Upgrade Plan
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ─── 3-PANEL WORKSPACE WITH LEETCODE-STYLE RESIZERS ─────────────────── */}
       <div className="flex-1 flex overflow-hidden relative min-h-0">
@@ -886,6 +959,17 @@ function BuilderContent() {
           </div>
         </div>
       )}
+
+      {/* Pricing & Upgrade Modal */}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={() => setIsPricingModalOpen(false)}
+        currentPlan={planStatus?.plan_type || 'free'}
+        onPlanUpdated={(newPlan) => {
+          setPlanStatus(newPlan);
+          fetchPlan();
+        }}
+      />
     </div>
   );
 }
