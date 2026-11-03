@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useResumeStore } from '@/lib/resume/store';
 import { renderTiptapJson } from '@/lib/resume/renderTiptap';
+import { renderStructuredSectionHtml } from '@/lib/resume/sectionSchemas';
 import {
   A4_PX_WIDTH,
   A4_PX_HEIGHT,
@@ -298,11 +299,16 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
               </div>
             )}
 
-            {/* Tiptap content */}
+            {/* Structured or Tiptap content */}
             <div
               className="section-content"
               // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: renderTiptapJson(section.content) }}
+              dangerouslySetInnerHTML={{
+                __html:
+                  section.items && section.items.length > 0
+                    ? renderStructuredSectionHtml(section, settings)
+                    : renderTiptapJson(section.content),
+              }}
             />
 
             {/* Divider after section */}

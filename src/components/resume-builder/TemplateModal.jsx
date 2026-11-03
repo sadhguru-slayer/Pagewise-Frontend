@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
 import { RESUME_TEMPLATES } from '@/lib/resume/templates';
 import { renderTiptapJson } from '@/lib/resume/renderTiptap';
+import { renderStructuredSectionHtml } from '@/lib/resume/sectionSchemas';
 import { formatRelativeTime } from '@/lib/resume/utils';
 import { getContactLineHtml, isPortfolioSection, normalizeFontFamily } from '@/lib/resume/renderDocument';
 import { resumesApi } from '@/lib/api';
@@ -783,7 +784,12 @@ export default function TemplateModal({ isOpen, onClose }) {
 
                       <div
                         className="tiptap-preview"
-                        dangerouslySetInnerHTML={{ __html: renderTiptapJson(sec.content) }}
+                        dangerouslySetInnerHTML={{
+                          __html:
+                            sec.items && sec.items.length > 0
+                              ? renderStructuredSectionHtml(sec, currentTemplate.settings || {})
+                              : renderTiptapJson(sec.content),
+                        }}
                         style={{ color: currentTemplate.previewColors.text }}
                       />
                     </div>
@@ -923,7 +929,12 @@ export default function TemplateModal({ isOpen, onClose }) {
 
                           <div
                             className="tiptap-preview"
-                            dangerouslySetInnerHTML={{ __html: renderTiptapJson(sec.content) }}
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                sec.items && sec.items.length > 0
+                                  ? renderStructuredSectionHtml(sec, sSettings)
+                                  : renderTiptapJson(sec.content),
+                            }}
                             style={{ color: '#1f2937' }}
                           />
                         </div>

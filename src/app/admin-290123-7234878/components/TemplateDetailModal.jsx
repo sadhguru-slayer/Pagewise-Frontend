@@ -15,8 +15,15 @@ import {
   AlignCenter,
   Maximize2,
   Lock,
+  Plus,
+  Trash2,
+  MoveUp,
+  MoveDown,
+  Info,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { CANONICAL_SECTION_SCHEMAS, SECTION_TYPES } from '@/lib/resume/sectionSchemas';
 
 const FONT_OPTIONS = [
   { label: 'Georgia (Classic Editorial Serif)', value: 'Georgia, serif' },
@@ -72,6 +79,13 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
   const [settingsJsonStr, setSettingsJsonStr] = useState('{}');
   const [headerStyleJsonStr, setHeaderStyleJsonStr] = useState('{}');
   const [sectionDefaultsJsonStr, setSectionDefaultsJsonStr] = useState('{}');
+  const [sectionSchemaJsonStr, setSectionSchemaJsonStr] = useState('{}');
+
+  // Section Schema & Structure State
+  const [templateSections, setTemplateSections] = useState([]);
+  const [newSecType, setNewSecType] = useState('experience');
+  const [newSecLabel, setNewSecLabel] = useState('');
+  const [newSecRequired, setNewSecRequired] = useState(false);
 
   useEffect(() => {
     if (template) {
@@ -111,10 +125,36 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
       setSectionHeadingUnderline(sectionDefaults?.headingUnderline ?? false);
       setSectionShowDivider(sectionDefaults?.showDividerAfterHeading ?? true);
 
+      // Extract section schema
+      let rawSchema = {};
+      if (typeof template.section_schema_json === 'string' && template.section_schema_json.trim()) {
+        try {
+          rawSchema = JSON.parse(template.section_schema_json);
+        } catch (e) {
+          rawSchema = {};
+        }
+      } else if (typeof template.section_schema_json === 'object' && template.section_schema_json) {
+        rawSchema = template.section_schema_json;
+      }
+
+      const initialSections = Array.isArray(rawSchema.sections) && rawSchema.sections.length > 0
+        ? rawSchema.sections
+        : [
+            { id: 'sec_sum', type: 'summary', label: 'Professional Summary', required: false, enabled: true },
+            { id: 'sec_exp', type: 'experience', label: 'Work Experience', required: true, enabled: true },
+            { id: 'sec_edu', type: 'education', label: 'Education', required: true, enabled: true },
+            { id: 'sec_skl', type: 'skills', label: 'Skills & Technologies', required: true, enabled: true },
+            { id: 'sec_prj', type: 'projects', label: 'Projects', required: false, enabled: true },
+            { id: 'sec_crt', type: 'certifications', label: 'Certifications', required: false, enabled: false },
+          ];
+
+      setTemplateSections(initialSections);
+
       // Raw JSON strings formatted
       setSettingsJsonStr(JSON.stringify(settings || {}, null, 2));
       setHeaderStyleJsonStr(JSON.stringify(header || {}, null, 2));
       setSectionDefaultsJsonStr(JSON.stringify(sectionDefaults || {}, null, 2));
+      setSectionSchemaJsonStr(JSON.stringify({ schema_version: template.schema_version || 1, sections: initialSections }, null, 2));
     }
   }, [template]);
 
@@ -128,12 +168,14 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
       let finalSettings = {};
       let finalHeader = {};
       let finalSectionDefaults = {};
+      let finalSectionSchema = {};
 
       if (activeTab === 'json') {
         try {
           finalSettings = JSON.parse(settingsJsonStr);
           finalHeader = JSON.parse(headerStyleJsonStr);
           finalSectionDefaults = JSON.parse(sectionDefaultsJsonStr);
+          finalSectionSchema = JSON.parse(sectionSchemaJsonStr);
         } catch (jsonErr) {
           toast.error('Invalid JSON syntax: ' + jsonErr.message);
           setSaving(false);
@@ -177,6 +219,11 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
           headingUnderline: sectionHeadingUnderline,
           showDividerAfterHeading: sectionShowDivider,
         };
+
+        finalSectionSchema = {
+          schema_version: 1,
+          sections: templateSections,
+        };
       }
 
       await adminApi.updateTemplate(template.id, {
@@ -191,9 +238,11 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
         settings_json: finalSettings,
         header_style_json: finalHeader,
         section_defaults_json: finalSectionDefaults,
+        section_schema_json: finalSectionSchema,
+        schema_version: 1,
       });
 
-      toast.success('Template & Styles updated successfully!');
+      toast.success('Template, Styles & Section Formats updated successfully!');
       if (onUpdated) onUpdated();
       onClose();
     } catch (err) {
@@ -201,6 +250,77 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAddSectionToTemplate = (e) => {
+    if (e) e.preventDefault();
+    const type = newSecType;
+    const label = newSecLabel.trim() || CANONICAL_SECTION_SCHEMAS[type]?.label || type.toUpperCase();
+    const newSec = {
+      id: 'sec_' + Math.random().toString(36).substring(2, 7),
+      type,
+      label,
+      enabled: true,
+      required: newSecRequired,
+    };
+    const updated = [...templateSections, newSec];
+    setTemplateSections(updated);
+    setSectionSchemaJsonStr(JSON.stringify({ schema_version: 1, sections: updated }, null, 2));
+    setNewSecLabel('');
+    setNewSecRequired(false);
+    toast.success(`Added ${label} format to template!`);
+  };
+
+  const handleRemoveSectionFromTemplate = (idx) => {
+    const updated = templateSections.filter((_, i) => i !== idx);
+    setTemplateSections(updated);
+    setSectionSchemaJsonStr(JSON.stringify({ schema_version: 1, sections: updated }, null, 2));
+  };
+
+  const handleReorderTemplateSections = (fromIdx, toIdx) => {
+    if (toIdx < 0 || toIdx >= templateSections.length) return;
+    const updated = [...templateSections];
+    const [moved] = updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, moved);
+    setTemplateSections(updated);
+    setSectionSchemaJsonStr(JSON.stringify({ schema_version: 1, sections: updated }, null, 2));
+  };
+
+  const handleUpdateTemplateSection = (idx, patch) => {
+    const updated = templateSections.map((s, i) => (i === idx ? { ...s, ...patch } : s));
+    setTemplateSections(updated);
+    setSectionSchemaJsonStr(JSON.stringify({ schema_version: 1, sections: updated }, null, 2));
+  };
+
+  const handleApplyPreset = (presetName) => {
+    let sections = [];
+    if (presetName === 'standard') {
+      sections = [
+        { id: 'sec_sum', type: 'summary', label: 'Professional Summary', required: false, enabled: true },
+        { id: 'sec_exp', type: 'experience', label: 'Work Experience', required: true, enabled: true },
+        { id: 'sec_edu', type: 'education', label: 'Education', required: true, enabled: true },
+        { id: 'sec_skl', type: 'skills', label: 'Skills & Technologies', required: true, enabled: true },
+      ];
+    } else if (presetName === 'tech') {
+      sections = [
+        { id: 'sec_sum', type: 'summary', label: 'Summary', required: false, enabled: true },
+        { id: 'sec_exp', type: 'experience', label: 'Work Experience', required: true, enabled: true },
+        { id: 'sec_prj', type: 'projects', label: 'Key Projects', required: false, enabled: true },
+        { id: 'sec_skl', type: 'skills', label: 'Technical Skills', required: true, enabled: true },
+        { id: 'sec_edu', type: 'education', label: 'Education', required: true, enabled: true },
+        { id: 'sec_crt', type: 'certifications', label: 'Certifications', required: false, enabled: true },
+      ];
+    } else if (presetName === 'executive') {
+      sections = [
+        { id: 'sec_sum', type: 'summary', label: 'Executive Narrative', required: true, enabled: true },
+        { id: 'sec_exp', type: 'experience', label: 'Executive Leadership', required: true, enabled: true },
+        { id: 'sec_prj', type: 'projects', label: 'Major Initiatives & Transformations', required: false, enabled: true },
+        { id: 'sec_edu', type: 'education', label: 'Academic Credentials', required: true, enabled: true },
+      ];
+    }
+    setTemplateSections(sections);
+    setSectionSchemaJsonStr(JSON.stringify({ schema_version: 1, sections }, null, 2));
+    toast.success(`Loaded ${presetName} section structure!`);
   };
 
   return (
@@ -243,6 +363,19 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
           >
             <Palette className="w-3.5 h-3.5" />
             <span>Visual Styles &amp; Typography</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('sections')}
+            className={`pb-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition cursor-pointer ${
+              activeTab === 'sections'
+                ? 'border-amber-500 text-amber-400'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Section Formats &amp; Structure</span>
           </button>
 
           <button
@@ -466,7 +599,198 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
             </div>
           )}
 
-          {/* TAB 2: METADATA & ACCESS TIER */}
+          {/* TAB 2: SECTION FORMATS & STRUCTURE */}
+          {activeTab === 'sections' && (
+            <div className="space-y-6 animate-in fade-in duration-150">
+              {/* Architecture Banner */}
+              <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-start gap-3">
+                <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-zinc-300 leading-relaxed">
+                  <span className="font-bold text-white block mb-0.5">
+                    Template &amp; Section Architecture:
+                  </span>
+                  Templates hold the sections where sections hold their structure, but template holds the visual styling and formatting. Configure which section formats are bundled into this template.
+                </div>
+              </div>
+
+              {/* Presets Quick-Load */}
+              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2.5">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold block">
+                  Load Section Structure Presets
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPreset('standard')}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition cursor-pointer"
+                  >
+                    Standard Professional (Summary, Exp, Edu, Skills)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPreset('tech')}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition cursor-pointer"
+                  >
+                    Modern Tech (Summary, Exp, Projects, Skills, Edu, Certs)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPreset('executive')}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition cursor-pointer"
+                  >
+                    Executive Leadership (Narrative, Leadership, Initiatives, Edu)
+                  </button>
+                </div>
+              </div>
+
+              {/* Configured Section Formats in Template */}
+              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold block">
+                    Sections in this Template ({templateSections.length})
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    Reorder to change default layout
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {templateSections.map((sec, idx) => (
+                    <div
+                      key={sec.id || idx}
+                      className="p-3 bg-zinc-900/80 border border-zinc-800/80 rounded-xl flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <span className="text-zinc-500 font-mono text-[10px] w-4 text-center">
+                          {idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={sec.label || ''}
+                          onChange={(e) => handleUpdateTemplateSection(idx, { label: e.target.value })}
+                          className="px-2 py-1 bg-zinc-950 border border-zinc-800 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-amber-500 w-full max-w-[200px]"
+                          placeholder="Section Title"
+                        />
+                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60 shrink-0">
+                          {sec.type}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <label className="inline-flex items-center gap-1.5 text-[11px] text-zinc-400 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={sec.enabled !== false}
+                            onChange={(e) => handleUpdateTemplateSection(idx, { enabled: e.target.checked })}
+                            className="rounded border-zinc-700 text-amber-600 focus:ring-0"
+                          />
+                          <span>Enabled</span>
+                        </label>
+
+                        <label className="inline-flex items-center gap-1.5 text-[11px] text-zinc-400 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(sec.required)}
+                            onChange={(e) => handleUpdateTemplateSection(idx, { required: e.target.checked })}
+                            className="rounded border-zinc-700 text-amber-600 focus:ring-0"
+                          />
+                          <span>Required</span>
+                        </label>
+
+                        <div className="flex items-center gap-1 border-l border-zinc-800 pl-2">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleReorderTemplateSections(idx, idx - 1)}
+                            className="p-1 text-zinc-400 hover:text-white disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                            title="Move Up"
+                          >
+                            <MoveUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === templateSections.length - 1}
+                            onClick={() => handleReorderTemplateSections(idx, idx + 1)}
+                            className="p-1 text-zinc-400 hover:text-white disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed"
+                            title="Move Down"
+                          >
+                            <MoveDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSectionFromTemplate(idx)}
+                            className="p-1 text-zinc-400 hover:text-rose-400 transition cursor-pointer"
+                            title="Delete Section from Template"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Section Creator Form */}
+              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-bold block">
+                  Add New Section Format to Template
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-5">
+                    <label className="block text-[11px] text-zinc-400 mb-1">
+                      Section Type
+                    </label>
+                    <select
+                      value={newSecType}
+                      onChange={(e) => {
+                        setNewSecType(e.target.value);
+                        if (!newSecLabel) {
+                          setNewSecLabel(CANONICAL_SECTION_SCHEMAS[e.target.value]?.label || '');
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="experience">Work Experience (Structured Form)</option>
+                      <option value="education">Education (Structured Form)</option>
+                      <option value="projects">Projects (Structured Form)</option>
+                      <option value="skills">Skills &amp; Technologies (Structured Form)</option>
+                      <option value="certifications">Certifications (Structured Form)</option>
+                      <option value="summary">Professional Summary (Rich Text)</option>
+                      <option value="custom">Custom Section (Rich Text)</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-4">
+                    <label className="block text-[11px] text-zinc-400 mb-1">
+                      Display Label in Template
+                    </label>
+                    <input
+                      type="text"
+                      value={newSecLabel}
+                      onChange={(e) => setNewSecLabel(e.target.value)}
+                      placeholder="e.g. Work History"
+                      className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <button
+                      type="button"
+                      onClick={handleAddSectionToTemplate}
+                      className="w-full py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Section</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: METADATA & ACCESS TIER */}
           {activeTab === 'meta' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -591,6 +915,18 @@ export default function TemplateDetailModal({ template, isOpen, onClose, onUpdat
                   value={sectionDefaultsJsonStr}
                   onChange={(e) => setSectionDefaultsJsonStr(e.target.value)}
                   className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-purple-400 font-mono focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-1 font-bold">
+                  section_schema_json (Template Section Structure &amp; Format Specifications)
+                </label>
+                <textarea
+                  rows={6}
+                  value={sectionSchemaJsonStr}
+                  onChange={(e) => setSectionSchemaJsonStr(e.target.value)}
+                  className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>

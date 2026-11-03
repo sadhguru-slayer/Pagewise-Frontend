@@ -784,6 +784,31 @@ export const adminApi = {
       method: 'DELETE',
     });
   },
+
+  // ── Custom Section Schemas / Section Maker ──
+  async getSectionSchemas() {
+    return fetchAdminApi('/admin/section-schemas');
+  },
+
+  async createSectionSchema(payload) {
+    return fetchAdminApi('/admin/section-schemas', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateSectionSchema(schemaId, payload) {
+    return fetchAdminApi(`/admin/section-schemas/${schemaId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteSectionSchema(schemaId) {
+    return fetchAdminApi(`/admin/section-schemas/${schemaId}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // ─── Feedback API (In-House Feedback System) ───────────────────────────────

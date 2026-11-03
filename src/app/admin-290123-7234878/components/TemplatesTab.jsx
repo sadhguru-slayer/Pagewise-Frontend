@@ -119,6 +119,17 @@ export default function TemplatesTab() {
           headingUppercase: true,
           showDividerAfterHeading: true,
         },
+        section_schema_json: {
+          schema_version: 1,
+          sections: [
+            { id: 'sec_sum', type: 'summary', label: 'Professional Summary', required: false, enabled: true },
+            { id: 'sec_exp', type: 'experience', label: 'Work Experience', required: true, enabled: true },
+            { id: 'sec_edu', type: 'education', label: 'Education', required: true, enabled: true },
+            { id: 'sec_skl', type: 'skills', label: 'Skills & Technologies', required: true, enabled: true },
+            { id: 'sec_prj', type: 'projects', label: 'Projects', required: false, enabled: true },
+          ],
+        },
+        schema_version: 1,
       });
       toast.success('New template created!');
       setCreateModalOpen(false);

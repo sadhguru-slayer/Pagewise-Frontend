@@ -49,7 +49,7 @@ import { useResumeStore } from '@/lib/resume/store';
 import { BrandLogo, BRAND_CONFIG } from '@/lib/brand';
 import SectionManager from '@/components/resume-builder/SectionManager';
 import SectionTitleStyleEditor from '@/components/resume-builder/SectionTitleStyleEditor';
-import ResumeRichEditor from '@/components/resume-builder/ResumeRichEditor';
+import StructuredSectionEditor from '@/components/resume-builder/StructuredSectionEditor';
 import ResumeHeaderEditor from '@/components/resume-builder/ResumeHeaderEditor';
 import PageSettingsEditor from '@/components/resume-builder/PageSettingsEditor';
 import SectionDividerEditor from '@/components/resume-builder/SectionDividerEditor';
@@ -387,7 +387,7 @@ function BuilderContent() {
       <div className="min-h-screen flex items-center justify-center bg-[#090b13] text-zinc-100">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <p className="text-sm text-zinc-400">Loading Resume Studio...</p>
+          <p className="text-sm text-zinc-400">Loading PageWise...</p>
         </div>
       </div>
     );
@@ -837,7 +837,7 @@ function BuilderContent() {
               isPreviewCollapsed ? 'flex-1' : ''
             } ${mobileView === 'preview' ? 'hidden lg:flex' : 'flex'}`}
           >
-            <ResumeRichEditor onCollapse={() => setIsEditorCollapsed(true)} />
+            <StructuredSectionEditor onCollapse={() => setIsEditorCollapsed(true)} />
           </div>
         )}
 

@@ -28,6 +28,7 @@ import {
   Lock,
   LogOut,
   Layers,
+  Code2,
   CreditCard,
   Check,
   Sliders,
@@ -50,6 +51,7 @@ import OrdersTab from './components/OrdersTab';
 import SubscriptionsTab from './components/SubscriptionsTab';
 import TemplatesTab from './components/TemplatesTab';
 import AIUsageTab from './components/AIUsageTab';
+import SectionMakerTab from './components/SectionMakerTab';
 
 export default function AdminPage() {
   const [adminUser, setAdminUser] = useState(null);
@@ -1057,7 +1059,24 @@ export default function AdminPage() {
               </span>
             )}
             <div className="space-y-0.5">
-              <button
+                          <button
+              onClick={() => setActiveTab('section_maker')}
+              className={`w-full flex items-center ${
+                sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-2.5 rounded-xl font-medium text-xs transition-all cursor-pointer ${
+                activeTab === 'section_maker'
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/25'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+              }`}
+              title={sidebarCollapsed ? 'Section Maker' : undefined}
+            >
+              <div className="flex items-center gap-3">
+                <Code2 className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && <span>Section Maker</span>}
+              </div>
+            </button>
+
+<button
                 onClick={() => setActiveTab('templates')}
                 className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
                   activeTab === 'templates'
@@ -1194,6 +1213,7 @@ export default function AdminPage() {
               {activeTab === 'subscriptions' && 'Subscriptions & Quotas'}
               {activeTab === 'users' && 'Customer CRM & Access'}
               {activeTab === 'security' && 'Security & Access Control'}
+              {activeTab === 'section_maker' && 'Section Architecture'}
               {activeTab === 'templates' && 'Resume Studio Content'}
               {activeTab === 'ai_usage' && 'AI Intelligence Engine'}
               {activeTab === 'tiers' && 'Billing & Subscriptions'}
@@ -1207,6 +1227,7 @@ export default function AdminPage() {
               {activeTab === 'subscriptions' && 'User Subscriptions'}
               {activeTab === 'users' && 'Customer Accounts'}
               {activeTab === 'security' && 'Master Credentials'}
+              {activeTab === 'section_maker' && 'Raw JSON Section Schemas & Dynamic Fields'}
               {activeTab === 'templates' && 'Layout Architectures & Visual Styles'}
               {activeTab === 'ai_usage' && 'AI Token Telemetry & Feature Quotas'}
               {activeTab === 'tiers' && 'Pricing Tiers Config'}
@@ -1240,7 +1261,9 @@ export default function AdminPage() {
               </button>
             )}
 
-            {activeTab === 'templates' && (
+
+
+        {activeTab === 'templates' && (
               <button
                 onClick={() => {
                   setEditingTemplate(null);
@@ -1265,9 +1288,34 @@ export default function AdminPage() {
 
             <div className="h-4 w-px bg-zinc-800" />
 
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-              LIVE PRODUCTION DB
-            </span>
+            {(() => {
+              const envName = (
+                process.env.NEXT_PUBLIC_ENVIRONMENT ||
+                process.env.ENVIRONMENT ||
+                insights?.environment ||
+                process.env.NODE_ENV ||
+                'development'
+              ).toLowerCase();
+              const isDev = envName === 'development' || envName === 'dev' || envName === 'local';
+
+              return isDev ? (
+                <span
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold flex items-center gap-1.5"
+                  title="Connected to Development Database"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  DEV DB
+                </span>
+              ) : (
+                <span
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold flex items-center gap-1.5"
+                  title="Connected to Live Production Database"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  LIVE PRODUCTION DB
+                </span>
+              );
+            })()}
           </div>
         </header>
 
@@ -1949,6 +1997,11 @@ export default function AdminPage() {
         )}
 
         {/* ─── TAB: TEMPLATES & VISUAL STYLES ───────────────────────────────── */}
+        {/* ─── TAB: SECTION MAKER (RAW JSON) ───────────────────────────────── */}
+        {activeTab === 'section_maker' && (
+          <SectionMakerTab />
+        )}
+
         {activeTab === 'templates' && (
           <TemplatesTab />
         )}

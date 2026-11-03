@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -15,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useResumeStore } from '@/lib/resume/store';
 import SectionListItem from './SectionListItem';
+import AddSectionModal from './AddSectionModal';
 
 export default function SectionManager() {
   const sections = useResumeStore((s) => s.sections);
@@ -60,6 +62,8 @@ export default function SectionManager() {
     if (e.key === 'Enter') handleAddSection();
   }
 
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between shrink-0">
@@ -104,24 +108,20 @@ export default function SectionManager() {
       </div>
 
       <div className="px-3 py-3 border-t border-white/10 shrink-0">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newSectionTitle}
-            onChange={(e) => setNewSectionTitle(e.target.value)}
-            onKeyDown={handleInputKeyDown}
-            placeholder="New section name…"
-            className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-white/25 focus:bg-white/8 transition-colors"
-          />
-          <button
-            onClick={handleAddSection}
-            disabled={!newSectionTitle.trim()}
-            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent text-zinc-950 hover:bg-accent/90 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-          >
-            Add
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsAddModalOpen(true)}
+          className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Section</span>
+        </button>
       </div>
+
+      <AddSectionModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+      />
     </div>
   );
 }

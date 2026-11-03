@@ -207,16 +207,18 @@ export default function ImportPdfModal({
             const textContent = sec.content || sec.contentHtml || '';
             return {
               id: sec.id || `sec-${idx + 1}`,
+              type: sec.type || 'custom',
               title: sec.title || `Section ${idx + 1}`,
               order: idx,
               visible: sec.visible !== false,
               content: textContent,
               contentHtml: textContent,
+              items: sec.items || [],
               links: sec.links || [],
-              headingAlign: 'left',
-              headingBold: true,
-              headingUppercase: true,
-              showDividerAfterHeading: true,
+              headingAlign: sec.headingAlign || 'left',
+              headingBold: sec.headingBold ?? true,
+              headingUppercase: sec.headingUppercase ?? true,
+              showDividerAfterHeading: sec.showDividerAfterHeading ?? true,
             };
           });
 

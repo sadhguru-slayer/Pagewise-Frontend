@@ -6,6 +6,7 @@ import { defaultHeader, defaultSections, defaultSettings } from './defaults.js';
 import { generateId, reorder } from './utils.js';
 import { getContactLineHtml } from './renderDocument.js';
 import { renderTiptapJson } from './renderTiptap.js';
+import { renderStructuredSectionHtml, createDefaultSectionItem, isStructuredSection } from './sectionSchemas.js';
 
 export const useResumeStore = create(
   subscribeWithSelector((set, get) => ({
@@ -144,14 +145,19 @@ export const useResumeStore = create(
     // ─── Sections ────────────────────────────────────────────────────────────
     setActiveSectionId: (id) => set({ activeSectionId: id }),
 
-    addSection: (title) => {
+    addSection: (title, type = 'custom', initialItems = null) => {
       const sections = get().sections;
+      const structured = isStructuredSection({ type });
+      const items = initialItems || (structured ? [createDefaultSectionItem(type)] : []);
       const newSection = {
         id: generateId(),
-        title: title || 'New Section',
+        title: title || (structured ? (type.charAt(0).toUpperCase() + type.slice(1)) : 'New Section'),
+        type: type,
         visible: true,
         order: sections.length,
-        content: { type: 'doc', content: [{ type: 'paragraph' }] },
+        items: items,
+        content: structured ? '' : { type: 'doc', content: [{ type: 'paragraph' }] },
+        contentHtml: structured && items.length > 0 ? renderStructuredSectionHtml({ type, items }, get().settings) : '',
         spacing: 'default',
         dividerAfter: null,
         links: [],
@@ -166,6 +172,7 @@ export const useResumeStore = create(
         activeSectionId: newSection.id,
         isDirty: true,
       }));
+      return newSection.id;
     },
 
     deleteSection: (id) =>
@@ -215,6 +222,90 @@ export const useResumeStore = create(
         sections: Array.isArray(nextSections) ? nextSections : [],
         isDirty: true,
       }),
+
+    updateSectionItems: (id, items) =>
+      set((s) => ({
+        sections: s.sections.map((sec) =>
+          sec.id === id
+            ? {
+                ...sec,
+                items,
+                contentHtml: renderStructuredSectionHtml({ ...sec, items }, s.settings),
+              }
+            : sec
+        ),
+        isDirty: true,
+      })),
+
+    updateSectionItem: (sectionId, itemId, patch) =>
+      set((s) => ({
+        sections: s.sections.map((sec) => {
+          if (sec.id !== sectionId) return sec;
+          const currentItems = sec.items || [];
+          const updatedItems = currentItems.map((item) =>
+            item.id === itemId ? { ...item, ...patch } : item
+          );
+          return {
+            ...sec,
+            items: updatedItems,
+            contentHtml: renderStructuredSectionHtml({ ...sec, items: updatedItems }, s.settings),
+          };
+        }),
+        isDirty: true,
+      })),
+
+    addSectionItem: (sectionId, newItem) =>
+      set((s) => ({
+        sections: s.sections.map((sec) => {
+          if (sec.id !== sectionId) return sec;
+          const currentItems = sec.items || [];
+          const updatedItems = [...currentItems, newItem];
+          return {
+            ...sec,
+            items: updatedItems,
+            contentHtml: renderStructuredSectionHtml({ ...sec, items: updatedItems }, s.settings),
+          };
+        }),
+        isDirty: true,
+      })),
+
+    removeSectionItem: (sectionId, itemId) =>
+      set((s) => ({
+        sections: s.sections.map((sec) => {
+          if (sec.id !== sectionId) return sec;
+          const currentItems = sec.items || [];
+          const updatedItems = currentItems.filter((item) => item.id !== itemId);
+          return {
+            ...sec,
+            items: updatedItems,
+            contentHtml: renderStructuredSectionHtml({ ...sec, items: updatedItems }, s.settings),
+          };
+        }),
+        isDirty: true,
+      })),
+
+    reorderSectionItems: (sectionId, fromIndex, toIndex) =>
+      set((s) => ({
+        sections: s.sections.map((sec) => {
+          if (sec.id !== sectionId) return sec;
+          const currentItems = [...(sec.items || [])];
+          const [moved] = currentItems.splice(fromIndex, 1);
+          currentItems.splice(toIndex, 0, moved);
+          return {
+            ...sec,
+            items: currentItems,
+            contentHtml: renderStructuredSectionHtml({ ...sec, items: currentItems }, s.settings),
+          };
+        }),
+        isDirty: true,
+      })),
+
+    setSectionEditorMode: (sectionId, mode) =>
+      set((s) => ({
+        sections: s.sections.map((sec) =>
+          sec.id === sectionId ? { ...sec, editorMode: mode } : sec
+        ),
+      })),
 
     updateSectionSettings: (id, patch) =>
       set((s) => ({
@@ -378,17 +469,44 @@ export const useResumeStore = create(
       const kwTrimmed = keyword.trim();
       const state = get();
 
-      // Locate skills section or active section
-      const targetSec =
-        state.sections.find(
-          (s) =>
-            s.title?.toLowerCase().includes('skill') ||
-            s.id?.toLowerCase().includes('skill')
-        ) ||
-        state.sections.find((s) => s.id === state.activeSectionId) ||
-        state.sections[0];
+      // Guard: ONLY target sections dedicated to Skills (never Languages alone, Experience, or Education)
+      let targetSec = state.sections.find(
+        (s) =>
+          s.type === 'skills' ||
+          s.title?.toLowerCase().includes('skill') ||
+          s.id?.toLowerCase().includes('skill')
+      );
 
-      if (!targetSec) return null;
+      // If no skills section exists, find or create one specifically for Skills
+      if (!targetSec) {
+        const newSecId = generateId('sec');
+        targetSec = {
+          id: newSecId,
+          type: 'skills',
+          title: 'Technical Skills',
+          visible: true,
+          order: state.sections.length,
+          items: [
+            {
+              id: generateId('item'),
+              category: 'Technical Skills',
+              skills: [kwTrimmed],
+            },
+          ],
+        };
+        const updatedSecHtml = renderStructuredSectionHtml(targetSec, state.settings);
+        targetSec.content = updatedSecHtml;
+        targetSec.contentHtml = updatedSecHtml;
+
+        set((s) => ({
+          sections: [...s.sections, targetSec],
+          isDirty: true,
+        }));
+        return {
+          sectionId: targetSec.id,
+          sectionTitle: targetSec.title,
+        };
+      }
 
       let currentHtml = '';
       if (typeof targetSec.content === 'string' && targetSec.content.trim()) {
@@ -400,7 +518,42 @@ export const useResumeStore = create(
       }
 
       let updatedHtml = '';
-      if (!currentHtml) {
+      let updatedItems = targetSec.items;
+
+      if (Array.isArray(targetSec.items) && targetSec.items.length > 0) {
+        // Smart category placement: if category is 'Languages' and keyword is clearly not a language,
+        // prefer 'Cloud & DevOps', 'Tools', 'Frameworks' or general skills category
+        const isLikelyDevOpsOrTool = /kubernetes|docker|aws|gcp|azure|ci\/cd|terraform|ansible|git|linux|helm/i.test(kwTrimmed);
+        let targetCategoryIndex = 0;
+
+        if (isLikelyDevOpsOrTool) {
+          const devOpsIdx = targetSec.items.findIndex((it) =>
+            /cloud|devops|tools|infrastructure|platform/i.test(it.category || '')
+          );
+          if (devOpsIdx !== -1) {
+            targetCategoryIndex = devOpsIdx;
+          } else {
+            // If the first category is exclusively 'Languages', look for a non-languages category
+            const nonLangIdx = targetSec.items.findIndex(
+              (it) => !/^(languages?|programming languages?)$/i.test((it.category || '').trim())
+            );
+            if (nonLangIdx !== -1) {
+              targetCategoryIndex = nonLangIdx;
+            }
+          }
+        }
+
+        updatedItems = targetSec.items.map((it, idx) => {
+          if (idx === targetCategoryIndex) {
+            const currentSkills = Array.isArray(it.skills) ? [...it.skills] : [];
+            if (!currentSkills.some((s) => s.toLowerCase() === kwTrimmed.toLowerCase())) {
+              return { ...it, skills: [...currentSkills, kwTrimmed] };
+            }
+          }
+          return it;
+        });
+        updatedHtml = renderStructuredSectionHtml({ ...targetSec, items: updatedItems }, state.settings);
+      } else if (!currentHtml) {
         updatedHtml = `<p>${kwTrimmed}</p>`;
       } else if (currentHtml.includes('</ul>')) {
         const lastUl = currentHtml.lastIndexOf('</ul>');
@@ -420,7 +573,12 @@ export const useResumeStore = create(
       set((s) => {
         const updatedSections = s.sections.map((sec) =>
           sec.id === targetSec.id
-            ? { ...sec, content: updatedHtml, contentHtml: updatedHtml }
+            ? {
+                ...sec,
+                items: updatedItems,
+                content: updatedHtml,
+                contentHtml: updatedHtml,
+              }
             : sec
         );
 

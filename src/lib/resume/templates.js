@@ -1,3 +1,5 @@
+import { CANONICAL_SECTION_SCHEMAS } from './sectionSchemas.js';
+
 // Industry-standard resume templates with curated typography, layout, spacing and styling
 export const FONT_OPTIONS = [
   { label: 'Georgia (Classic Editorial Serif)', value: 'Georgia, serif' },

@@ -9,9 +9,10 @@ import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal, RefreshCw, Check, Plus, ArrowDownToLine, X, AlertCircle } from 'lucide-react';
+import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal, RefreshCw, Check, Plus, ArrowDownToLine, X, AlertCircle, Layers, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
+import { isStructuredSection } from '@/lib/resume/sectionSchemas';
 
 const Icon = ({ d, size = 14 }) => (
   <svg
@@ -425,9 +426,11 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   const highlightedSectionId = useResumeStore((s) => s.highlightedSectionId);
   const setHighlightedSectionId = useResumeStore((s) => s.setHighlightedSectionId);
   const addKeywordToResume = useResumeStore((s) => s.addKeywordToResume);
+  const setSectionEditorMode = useResumeStore((s) => s.setSectionEditorMode);
 
   const resolvedSectionId = propSectionId || storeActiveSectionId || (sections[0]?.id);
   const section = sections.find((s) => s.id === resolvedSectionId);
+  const isStructured = isStructuredSection(section);
   const initialContent = section?.content ?? section?.contentHtml ?? '';
   const isInternalUpdateRef = useRef(false);
 

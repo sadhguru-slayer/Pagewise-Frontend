@@ -1,4 +1,5 @@
 import { renderTiptapJson } from './renderTiptap.js';
+import { renderStructuredSectionHtml } from './sectionSchemas.js';
 
 // Exact A4 Dimensions at standard 96 DPI: 210mm x 297mm
 export const A4_WIDTH_MM = 210;
@@ -432,9 +433,11 @@ export function renderResumeInnerHtml({ header, sections, settings = {} }) {
             </div>`
           : '';
 
-      const contentHtml = section.content
-        ? `<div class="section-content">${renderTiptapJson(section.content)}</div>`
-        : '';
+      const contentHtml = (section.items && section.items.length > 0)
+        ? renderStructuredSectionHtml(section, settings)
+        : section.content
+          ? `<div class="section-content">${renderTiptapJson(section.content)}</div>`
+          : '';
 
       const headingDividerHtml = section.showDividerAfterHeading
         ? `<hr class="section-heading-divider" style="border: none; border-top-width: ${section.headingDividerThickness ?? 1}px; border-top-style: ${section.headingDividerStyle ?? 'solid'}; border-top-color: ${section.headingDividerColor || headingColor + '44'}; margin-top: ${section.headingDividerMarginTop ?? 1}px; margin-bottom: ${section.headingDividerMarginBottom ?? 2}px;" />`
