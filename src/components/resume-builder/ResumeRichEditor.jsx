@@ -419,6 +419,12 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   const activeJdAnalysis = useResumeStore((s) => s.activeJdAnalysis);
   const appliedSuggestionKeys = useResumeStore((s) => s.appliedSuggestionKeys) || [];
   const markSuggestionApplied = useResumeStore((s) => s.markSuggestionApplied);
+  const dismissedSuggestionKeys = useResumeStore((s) => s.dismissedSuggestionKeys) || [];
+  const dismissSuggestion = useResumeStore((s) => s.dismissSuggestion);
+  const undismissSuggestion = useResumeStore((s) => s.undismissSuggestion);
+  const highlightedSectionId = useResumeStore((s) => s.highlightedSectionId);
+  const setHighlightedSectionId = useResumeStore((s) => s.setHighlightedSectionId);
+  const addKeywordToResume = useResumeStore((s) => s.addKeywordToResume);
 
   const resolvedSectionId = propSectionId || storeActiveSectionId || (sections[0]?.id);
   const section = sections.find((s) => s.id === resolvedSectionId);
@@ -426,6 +432,20 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   const isInternalUpdateRef = useRef(false);
 
   const [showJdEnhancePanel, setShowJdEnhancePanel] = useState(false);
+  const [showDismissed, setShowDismissed] = useState(false);
+
+  // Auto-expand recommendations panel and clear highlight after duration
+  const isHighlighted = Boolean(highlightedSectionId && highlightedSectionId === resolvedSectionId);
+
+  useEffect(() => {
+    if (isHighlighted) {
+      setShowJdEnhancePanel(true);
+      const timer = setTimeout(() => {
+        setHighlightedSectionId?.(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [isHighlighted, setHighlightedSectionId]);
 
   // Retrieve JD recommendations for the active section
   const currentSectionEnhancements = activeJdAnalysis?.section_enhancements?.find(
@@ -435,8 +455,21 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   );
   const suggestions = currentSectionEnhancements?.suggestions || [];
 
+  // Keywords that candidate has not yet matched from active JD
+  const missingKeywords = activeJdAnalysis?.ats_check?.missing_keywords || [];
+  const recommendedKeywords = activeJdAnalysis?.ats_check?.recommended_keywords || [];
+  const unaddedKeywords = Array.from(new Set([...missingKeywords, ...recommendedKeywords]));
+
   const getSuggestionKey = (sug, idx) =>
     sug.id || `${resolvedSectionId}-${idx}-${sug.original_text || sug.enhanced_html}`;
+
+  const isSuggestionDismissed = (sug, idx) => {
+    const key = getSuggestionKey(sug, idx);
+    return dismissedSuggestionKeys.includes(key);
+  };
+
+  const activeSuggestions = suggestions.filter((sug, idx) => !isSuggestionDismissed(sug, idx));
+  const dismissedSuggestions = suggestions.filter((sug, idx) => isSuggestionDismissed(sug, idx));
 
   const isSuggestionApplied = (sug, idx) => {
     const key = getSuggestionKey(sug, idx);
@@ -488,7 +521,7 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
     toast.success('Inserted another copy at cursor position!');
   };
 
-  // Helper: Auto-apply a specific recommendation into section with pattern-matching
+  // Helper: Auto-apply a specific recommendation into section with robust serialized DOM matching
   const handleAutoApplySuggestion = (sug, idx) => {
     if (!editor) return;
     const key = getSuggestionKey(sug, idx);
@@ -498,26 +531,37 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
     }
 
     const currentHtml = editor.getHTML();
-    const orig = (sug.original_text || '').trim();
-
-    // 1. Direct exact HTML string replacement
-    if (orig && currentHtml.includes(orig)) {
-      const updatedHtml = currentHtml.replace(orig, sug.enhanced_html);
-      editor.commands.setContent(updatedHtml);
+    if (!currentHtml || !currentHtml.trim()) {
+      editor.chain().focus().insertContent(sug.enhanced_html || sug.original_text).run();
       if (markSuggestionApplied) markSuggestionApplied(key);
-      toast.success('Auto-replaced in-place!');
+      toast.success('Inserted into section!');
       return;
     }
 
-    // 2. DOM-based intelligent fuzzy matching
+    const orig = (sug.original_text || '').trim();
+    if (!orig) {
+      toast("Original text not specified. Use 'Apply at Cursor' to insert at your selected position.", { icon: 'ℹ️' });
+      return;
+    }
+
+    // 1. Direct exact HTML string replacement
+    if (currentHtml.includes(orig) && sug.enhanced_html?.trim()) {
+      const updatedHtml = currentHtml.replace(orig, sug.enhanced_html);
+      editor.commands.setContent(updatedHtml);
+      if (markSuggestionApplied) markSuggestionApplied(key);
+      toast.success('Replaced original bullet in-place!');
+      return;
+    }
+
+    // 2. Serialized DOM-based matching to locate exact block node (li, p, h1-h6)
     if (typeof window !== 'undefined' && window.DOMParser) {
       try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(currentHtml, 'text/html');
         const origClean = orig.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const origTokens = new Set(origClean.split(/\s+/).filter((w) => w.length > 2));
 
-        if (origClean.length > 8) {
-          // Find all candidates (li, p, heading tags)
+        if (origClean.length > 5) {
           const elements = Array.from(doc.body.querySelectorAll('li, p, h1, h2, h3, h4, h5, h6'));
           let bestMatch = null;
           let bestScore = 0;
@@ -526,70 +570,67 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
             const elText = el.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
             if (!elText) continue;
 
-            // Direct substring check
-            if (elText.includes(origClean) || origClean.includes(elText)) {
+            // Direct containment check
+            if (elText === origClean || elText.includes(origClean) || origClean.includes(elText)) {
               bestMatch = el;
               bestScore = 1.0;
               break;
             }
 
-            // Word overlap check
-            const origWords = origClean.split(/\s+/).filter((w) => w.length > 3);
-            if (origWords.length > 0) {
-              const matchedWords = origWords.filter((w) => elText.includes(w));
-              const score = matchedWords.length / origWords.length;
-              if (score > 0.4 && score > bestScore) {
-                bestScore = score;
+            // Word token Jaccard similarity
+            const elTokens = new Set(elText.split(/\s+/).filter((w) => w.length > 2));
+            if (origTokens.size > 0 && elTokens.size > 0) {
+              let intersection = 0;
+              for (const token of origTokens) {
+                if (elTokens.has(token)) intersection++;
+              }
+              const union = new Set([...origTokens, ...elTokens]).size;
+              const jaccard = union > 0 ? intersection / union : 0;
+              if (jaccard > bestScore) {
+                bestScore = jaccard;
                 bestMatch = el;
               }
             }
           }
 
-          if (bestMatch && bestScore >= 0.4) {
-            // Found node to replace!
-            let enhancedClean = sug.enhanced_html.trim();
+          // Strict confidence threshold (>= 0.60) to avoid replacing the wrong bullet point
+          if (bestMatch && bestScore >= 0.60) {
+            const tempDoc = parser.parseFromString(sug.enhanced_html || '', 'text/html');
             const isLi = bestMatch.tagName.toLowerCase() === 'li';
 
             if (isLi) {
-              // Strip outer <li> if present since bestMatch is already <li>
-              const tempDoc = parser.parseFromString(enhancedClean, 'text/html');
               const innerLi = tempDoc.body.querySelector('li');
-              bestMatch.innerHTML = innerLi ? innerLi.innerHTML : tempDoc.body.innerHTML;
+              bestMatch.innerHTML = innerLi ? innerLi.innerHTML : (tempDoc.body.innerHTML || sug.enhanced_html);
             } else {
-              const tempDoc = parser.parseFromString(enhancedClean, 'text/html');
-              bestMatch.innerHTML = tempDoc.body.innerHTML;
+              const firstChild = tempDoc.body.firstElementChild;
+              if (firstChild && firstChild.tagName.toLowerCase() === bestMatch.tagName.toLowerCase()) {
+                bestMatch.innerHTML = firstChild.innerHTML;
+              } else {
+                bestMatch.innerHTML = tempDoc.body.innerHTML || sug.enhanced_html;
+              }
             }
 
-            editor.commands.setContent(doc.body.innerHTML);
-            if (markSuggestionApplied) markSuggestionApplied(key);
-            toast.success('Targeted and replaced in-place!');
-            return;
+            const serializedResult = doc.body.innerHTML;
+            // Strict content integrity check to never wipe user content
+            if (serializedResult && serializedResult.length >= currentHtml.length * 0.4 && doc.body.textContent.trim().length > 10) {
+              editor.commands.setContent(serializedResult);
+              if (markSuggestionApplied) markSuggestionApplied(key);
+              toast.success('Replaced original bullet in-place!');
+              return;
+            }
           }
         }
-
-        // 3. If no matching node found, integrate into existing list structure
-        const lastUl = doc.body.querySelector('ul:last-of-type') || doc.body.querySelector('ul');
-        if (lastUl) {
-          const tempDoc = parser.parseFromString(sug.enhanced_html, 'text/html');
-          const innerLi = tempDoc.body.querySelector('li');
-          const newLi = doc.createElement('li');
-          newLi.innerHTML = innerLi ? innerLi.innerHTML : tempDoc.body.innerHTML;
-          lastUl.appendChild(newLi);
-          editor.commands.setContent(doc.body.innerHTML);
-          if (markSuggestionApplied) markSuggestionApplied(key);
-          toast.success('Integrated as a new bullet point!');
-          return;
-        }
       } catch (err) {
-        console.warn('DOMParser auto-apply fallback:', err);
+        console.warn('DOM serialize-and-replace failed:', err);
       }
     }
 
-    // 4. Default clean append at end
-    editor.commands.focus('end');
-    editor.commands.insertContent(sug.enhanced_html);
-    setAppliedSuggestionIds((prev) => new Set(prev).add(key));
-    toast.success('Enhanced accomplishment added!');
+    // Do NOT blindly append to the bottom or wipe content.
+    // Prompt the user to use 'Apply at Cursor' which puts exact control in their hands.
+    toast("Couldn't locate the exact original sentence in this section. Please click 'Apply at Cursor' to insert it at your cursor position.", {
+      icon: 'ℹ️',
+      duration: 5000,
+    });
   };
 
   const editor = useEditor({
@@ -624,7 +665,7 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
     onUpdate: ({ editor }) => {
       if (resolvedSectionId) {
         isInternalUpdateRef.current = true;
-        updateSectionContent(resolvedSectionId, editor.getJSON());
+        updateSectionContent(resolvedSectionId, editor.getJSON(), editor.getHTML());
       }
     },
   });
@@ -650,7 +691,13 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0f18] overflow-hidden min-h-0">
+    <div
+      className={`flex flex-col h-full bg-[#0d0f18] overflow-hidden min-h-0 transition-all duration-300 ${
+        isHighlighted
+          ? 'ring-2 ring-amber-500/80 shadow-[0_0_35px_rgba(245,158,11,0.25)] border-l-4 border-l-amber-500'
+          : ''
+      }`}
+    >
       <style>{`
         .tiptap-editor-wrap .tiptap ul {
           list-style-type: disc !important;
@@ -856,14 +903,41 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
       {/* Formatting Toolbar */}
       <RichTextToolbar editor={editor} />
 
-      {/* Wiser AI Recommendations Strip */}
-      {suggestions.length > 0 && (
-        <div className="bg-[#121520] border-b border-amber-500/25 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0">
+      {/* Wiser AI Recommendations & Target Keywords Strip */}
+      {(suggestions.length > 0 || unaddedKeywords.length > 0) && (
+        <div
+          className={`px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 transition-colors ${
+            isHighlighted
+              ? 'bg-amber-950/40 border-b-2 border-amber-500'
+              : 'bg-[#121520] border-b border-amber-500/25'
+          }`}
+        >
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-[#F1F3F9] font-medium text-[11px]">
-              <strong className="text-amber-400">{suggestions.length}</strong> Wiser AI suggestion{suggestions.length > 1 ? 's' : ''} available
-            </span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isHighlighted ? 'bg-amber-300 ring-2 ring-amber-400' : 'bg-amber-400'
+              } animate-pulse`}
+            />
+            <div className="flex items-center gap-1.5 text-xs text-zinc-300">
+              {activeSuggestions.length > 0 && (
+                <span className="font-medium text-[11px]">
+                  <strong className="text-amber-400">{activeSuggestions.length}</strong> suggestion{activeSuggestions.length !== 1 ? 's' : ''}
+                </span>
+              )}
+              {activeSuggestions.length > 0 && unaddedKeywords.length > 0 && (
+                <span className="text-zinc-500 text-[10px]">•</span>
+              )}
+              {unaddedKeywords.length > 0 && (
+                <span className="text-[11px] text-zinc-400 font-mono">
+                  {unaddedKeywords.length} target keyword{unaddedKeywords.length !== 1 ? 's' : ''}
+                </span>
+              )}
+              {isHighlighted && (
+                <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold tracking-wider border border-amber-500/30">
+                  Targeted
+                </span>
+              )}
+            </div>
           </div>
 
           <button
@@ -872,29 +946,85 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
             className="px-2.5 py-1 rounded text-[11px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <SlidersHorizontal className="w-3 h-3" />
-            <span>{showJdEnhancePanel ? 'Hide Suggestions' : 'View Suggestions'}</span>
+            <span>{showJdEnhancePanel ? 'Hide' : 'Review Suggestions'}</span>
           </button>
         </div>
       )}
 
-      {/* Expandable Recommendations Panel with Apply at Cursor */}
-      {showJdEnhancePanel && suggestions.length > 0 && (
+      {/* Expandable Recommendations Panel with Apply at Cursor & Target Keywords */}
+      {showJdEnhancePanel && (suggestions.length > 0 || unaddedKeywords.length > 0) && (
         <div className="bg-[#0C0E16] border-b border-amber-500/25 p-3.5 max-h-80 overflow-y-auto space-y-3 shrink-0">
           <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] text-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              Wiser AI Recommendations
+              Wiser Recommendations
             </span>
             <span className="text-[10px] text-[#7E869B]">
               {activeJdAnalysis?.job_analysis?.title
                 ? `Role: ${activeJdAnalysis.job_analysis.title}`
                 : activeJdAnalysis?.inferred_domain?.title
                 ? `Focus: ${activeJdAnalysis.inferred_domain.title}`
-                : 'General Resume Polish'}
+                : 'General Polish'}
             </span>
           </div>
 
-          {suggestions.map((sug, idx) => {
+          {/* Missing Keywords Quick-Insert & Add-to-Skills Strip */}
+          {unaddedKeywords.length > 0 && (
+            <div className="p-2.5 rounded-xl bg-amber-500/[0.06] border border-amber-500/20 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1">
+                  Target Keywords ({unaddedKeywords.length})
+                </span>
+                <span className="text-[10px] text-zinc-500 hidden sm:inline">
+                  Insert at cursor or add to Skills
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                {unaddedKeywords.map((kw, i) => (
+                  <div
+                    key={i}
+                    className="inline-flex items-center rounded-md bg-zinc-900/90 border border-amber-500/30 overflow-hidden text-xs shadow-sm hover:border-amber-400 transition-colors"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!editor) return;
+                        editor.chain().focus().insertContent(` ${kw} `).run();
+                        toast.success(`Inserted "${kw}" at cursor!`);
+                      }}
+                      title={`Insert "${kw}" at editor cursor`}
+                      className="px-2 py-0.5 text-[11px] font-medium text-amber-200 hover:text-white hover:bg-amber-500/20 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <ArrowDownToLine className="w-2.5 h-2.5 text-amber-400" />
+                      <span>{kw}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const res = addKeywordToResume?.(kw);
+                        if (res) {
+                          toast.success(`Added "${kw}" to ${res.sectionTitle}!`);
+                        }
+                      }}
+                      title={`Add "${kw}" to Skills section`}
+                      className="px-1.5 py-0.5 text-[10px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-l border-amber-500/30 transition-colors flex items-center gap-0.5 cursor-pointer font-semibold"
+                    >
+                      <Plus className="w-2.5 h-2.5" />
+                      <span className="font-mono text-[9px]">Skills</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeSuggestions.length === 0 && suggestions.length > 0 && (
+            <p className="text-xs text-zinc-400 py-2 italic text-center">
+              All suggestions for this section have been applied or dismissed.
+            </p>
+          )}
+
+          {activeSuggestions.map((sug, idx) => {
             const isApplied = isSuggestionApplied(sug, idx);
             const needsConfirmation = sug.verification_status === 'needs_confirmation' || sug.factual_risk === 'high';
             const changeTypeLabels = {
@@ -904,139 +1034,162 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
               CLARIFICATION_NEEDED: 'Clarification Needed',
             };
             const changeLabel = changeTypeLabels[sug.change_type] || sug.change_type;
+            const key = getSuggestionKey(sug, idx);
 
             return (
               <div
                 key={sug.id || idx}
-                className={`p-3.5 rounded-xl bg-[#111420] border transition-all space-y-2.5 ${
+                className={`p-3 rounded-xl bg-[#111420] border transition-all space-y-2 ${
                   isApplied
                     ? 'border-emerald-500/30 bg-emerald-950/10'
                     : 'border-white/[0.08] hover:border-amber-500/30'
                 }`}
               >
-                {/* Header: Change Type & Verification Status Badges */}
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5">
+                {/* Header: Change Type Badge, Verification Status & Dismiss Button */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {changeLabel && (
                       <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase tracking-wider font-semibold">
                         {changeLabel}
                       </span>
                     )}
-                    {sug.verification_status === 'verified' || sug.factual_risk === 'low' ? (
-                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium flex items-center gap-1">
-                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
-                        <span>Source Verified</span>
-                      </span>
-                    ) : needsConfirmation ? (
-                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium flex items-center gap-1">
+                    {needsConfirmation && (
+                      <span
+                        className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium flex items-center gap-1"
+                        title="Ensure figures match your actual achievement"
+                      >
                         <AlertCircle className="w-2.5 h-2.5" />
-                        <span>Verify Metrics</span>
+                        <span>Verify numbers</span>
                       </span>
-                    ) : null}
+                    )}
+                    {isApplied && (
+                      <span className="text-[9px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/25">
+                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                        <span>Applied</span>
+                      </span>
+                    )}
                   </div>
 
-                  {isApplied && (
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
-                      <Check className="w-3 h-3 stroke-[2.5]" />
-                      <span>Applied</span>
-                    </span>
-                  )}
+                  {/* Dismiss / Ignore Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      dismissSuggestion(key);
+                      toast('Suggestion dismissed', { icon: '🗑️' });
+                    }}
+                    className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    title="Ignore this suggestion"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 {sug.original_text && (
-                  <div className="text-[11px] text-[#7E869B]">
-                    <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500">
-                      Original Point:
+                  <div className="text-[11px] text-zinc-500">
+                    <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500 block mb-0.5">
+                      Original:
                     </span>
-                    <p className="line-through text-zinc-400 mt-0.5 italic">
+                    <p className="line-through text-zinc-400 italic leading-relaxed">
                       {sug.original_text}
                     </p>
                   </div>
                 )}
 
                 <div>
-                  <span className="text-[9px] uppercase font-mono tracking-wider text-amber-400">
-                    Recommended Bullet:
+                  <span className="text-[9px] uppercase font-mono tracking-wider text-amber-400 block mb-0.5">
+                    Suggestion:
                   </span>
                   <div
-                    className="text-xs text-[#F1F3F9] mt-1 bg-black/40 p-2.5 rounded-lg border border-white/[0.05] leading-relaxed font-sans"
+                    className="text-xs text-[#F1F3F9] bg-black/40 p-2.5 rounded-lg border border-white/[0.05] leading-relaxed font-sans"
                     dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
                   />
                 </div>
 
-                {/* Factual check alert if metrics need confirmation */}
-                {needsConfirmation && sug.missing_information && sug.missing_information.length > 0 && (
-                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
-                    <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-[11px]">
-                      <AlertCircle className="w-3 h-3 shrink-0" />
-                      <span>Verify before applying (metrics may be inferred):</span>
-                    </div>
-                    <ul className="list-disc list-inside text-[10px] text-amber-200/80 space-y-0.5 pl-1">
-                      {sug.missing_information.map((q, qIdx) => (
-                        <li key={qIdx}>{q}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {sug.reasoning && (
-                  <p className="text-[10px] text-[#7E869B] italic">
-                    💡 {sug.reasoning}
-                  </p>
-                )}
-
-                {/* Action Buttons: Apply at Cursor (Recommended & Prioritized) vs Auto Apply */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.04]">
+                {/* Action Buttons: Clean & Distraction-Free */}
+                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-white/[0.04]">
                   {isApplied ? (
                     <>
-                      <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-xs">
-                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>Bullet applied to document</span>
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-medium text-xs">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                        <span>Applied to document</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleReapplyAtCursor(sug)}
-                        className="text-[10px] text-zinc-400 hover:text-zinc-200 hover:underline transition-colors cursor-pointer"
+                        className="text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
                         title="Insert another copy at current cursor"
                       >
                         Insert again at cursor
                       </button>
                     </>
                   ) : (
-                    <>
-                      <span className="text-[10px] text-zinc-400 hidden sm:inline">
-                        Place cursor in editor, then:
-                      </span>
-                      <div className="flex items-center gap-2 ml-auto">
-                        <button
-                          type="button"
-                          onClick={() => handleAutoApplySuggestion(sug, idx)}
-                          className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer border border-white/[0.06]"
-                          title="Attempts in-place replacement of the matching line"
-                        >
-                          <Check className="w-3 h-3 text-zinc-400" />
-                          <span>Auto Replace</span>
-                        </button>
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button
+                        type="button"
+                        onClick={() => handleAutoApplySuggestion(sug, idx)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer border border-white/[0.06]"
+                        title="Attempts in-place replacement of the matching line"
+                      >
+                        <Check className="w-3 h-3 text-zinc-400" />
+                        <span>Auto Replace</span>
+                      </button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleApplyAtCursor(sug, idx)}
-                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-emerald-950/40 border border-emerald-500/30"
-                          title="Insert this bullet directly at your current cursor position"
-                        >
-                          <ArrowDownToLine className="w-3.5 h-3.5 text-emerald-100" />
-                          <span>Apply at Cursor</span>
-                          <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-emerald-700 text-emerald-100 font-mono tracking-wider">
-                            Recommended
-                          </span>
-                        </button>
-                      </div>
-                    </>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyAtCursor(sug, idx)}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border border-emerald-500/30"
+                        title="Insert this bullet directly at your current cursor position"
+                      >
+                        <ArrowDownToLine className="w-3.5 h-3.5 text-emerald-100" />
+                        <span>Apply at Cursor</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
             );
           })}
+
+          {/* Dismissed suggestions toggle & restore */}
+          {dismissedSuggestions.length > 0 && (
+            <div className="pt-2 text-center border-t border-white/[0.05]">
+              <button
+                type="button"
+                onClick={() => setShowDismissed(!showDismissed)}
+                className="text-[10px] text-zinc-500 hover:text-zinc-300 font-mono transition-colors cursor-pointer"
+              >
+                {showDismissed ? 'Hide' : 'Show'} {dismissedSuggestions.length} ignored suggestion{dismissedSuggestions.length !== 1 ? 's' : ''}
+              </button>
+
+              {showDismissed && (
+                <div className="mt-2 space-y-2 text-left">
+                  {dismissedSuggestions.map((sug, idx) => {
+                    const key = getSuggestionKey(sug, idx);
+                    return (
+                      <div
+                        key={key}
+                        className="p-2.5 rounded-lg bg-zinc-900/60 border border-white/[0.04] flex items-center justify-between gap-2 text-xs opacity-60 hover:opacity-100 transition-opacity"
+                      >
+                        <div className="line-clamp-1 flex-1 text-zinc-400 text-[11px]">
+                          {sug.original_text || sug.enhanced_html?.replace(/<[^>]+>/g, '')}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            undismissSuggestion(key);
+                            toast.success('Suggestion restored');
+                          }}
+                          className="text-[10px] text-amber-400 hover:underline font-mono shrink-0 cursor-pointer"
+                        >
+                          Restore
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { defaultHeader, defaultSections, defaultSettings } from './defaults.js';
 import { generateId, reorder } from './utils.js';
 import { getContactLineHtml } from './renderDocument.js';
+import { renderTiptapJson } from './renderTiptap.js';
 
 export const useResumeStore = create(
   subscribeWithSelector((set, get) => ({
@@ -193,9 +194,19 @@ export const useResumeStore = create(
     reorderSections: (from, to) =>
       set((s) => ({ sections: reorder(s.sections, from, to), isDirty: true })),
 
-    updateSectionContent: (id, content) =>
+    updateSectionContent: (id, content, contentHtml) =>
       set((s) => ({
-        sections: s.sections.map((sec) => (sec.id === id ? { ...sec, content } : sec)),
+        sections: s.sections.map((sec) =>
+          sec.id === id
+            ? {
+                ...sec,
+                content,
+                contentHtml:
+                  contentHtml ||
+                  (typeof content === 'string' ? content : renderTiptapJson(content)),
+              }
+            : sec
+        ),
         isDirty: true,
       })),
 
@@ -338,7 +349,11 @@ export const useResumeStore = create(
     // ─── AI / JD Suggestions ──────────────────────────────────────────────────
     activeJdAnalysis: null,
     appliedSuggestionKeys: [],
-    setActiveJdAnalysis: (analysis) => set({ activeJdAnalysis: analysis, appliedSuggestionKeys: [] }),
+    dismissedSuggestionKeys: [],
+    highlightedSectionId: null,
+    setHighlightedSectionId: (id) => set({ highlightedSectionId: id }),
+    setActiveJdAnalysis: (analysis) =>
+      set({ activeJdAnalysis: analysis, appliedSuggestionKeys: [], dismissedSuggestionKeys: [] }),
     markSuggestionApplied: (key) =>
       set((s) => ({
         appliedSuggestionKeys: s.appliedSuggestionKeys?.includes(key)
@@ -346,5 +361,98 @@ export const useResumeStore = create(
           : [...(s.appliedSuggestionKeys || []), key],
       })),
     clearAppliedSuggestions: () => set({ appliedSuggestionKeys: [] }),
+    dismissSuggestion: (key) =>
+      set((s) => ({
+        dismissedSuggestionKeys: s.dismissedSuggestionKeys?.includes(key)
+          ? s.dismissedSuggestionKeys
+          : [...(s.dismissedSuggestionKeys || []), key],
+      })),
+    undismissSuggestion: (key) =>
+      set((s) => ({
+        dismissedSuggestionKeys: (s.dismissedSuggestionKeys || []).filter((k) => k !== key),
+      })),
+    clearDismissedSuggestions: () => set({ dismissedSuggestionKeys: [] }),
+
+    addKeywordToResume: (keyword) => {
+      if (!keyword || typeof keyword !== 'string') return null;
+      const kwTrimmed = keyword.trim();
+      const state = get();
+
+      // Locate skills section or active section
+      const targetSec =
+        state.sections.find(
+          (s) =>
+            s.title?.toLowerCase().includes('skill') ||
+            s.id?.toLowerCase().includes('skill')
+        ) ||
+        state.sections.find((s) => s.id === state.activeSectionId) ||
+        state.sections[0];
+
+      if (!targetSec) return null;
+
+      let currentHtml = '';
+      if (typeof targetSec.content === 'string' && targetSec.content.trim()) {
+        currentHtml = targetSec.content.trim();
+      } else if (targetSec.content && typeof targetSec.content === 'object') {
+        currentHtml = renderTiptapJson(targetSec.content).trim();
+      } else if (targetSec.contentHtml && typeof targetSec.contentHtml === 'string') {
+        currentHtml = targetSec.contentHtml.trim();
+      }
+
+      let updatedHtml = '';
+      if (!currentHtml) {
+        updatedHtml = `<p>${kwTrimmed}</p>`;
+      } else if (currentHtml.includes('</ul>')) {
+        const lastUl = currentHtml.lastIndexOf('</ul>');
+        updatedHtml = currentHtml.slice(0, lastUl) + `<li>${kwTrimmed}</li>` + currentHtml.slice(lastUl);
+      } else if (currentHtml.includes('</ol>')) {
+        const lastOl = currentHtml.lastIndexOf('</ol>');
+        updatedHtml = currentHtml.slice(0, lastOl) + `<li>${kwTrimmed}</li>` + currentHtml.slice(lastOl);
+      } else if (currentHtml.includes('</p>')) {
+        const lastP = currentHtml.lastIndexOf('</p>');
+        const beforeP = currentHtml.slice(0, lastP).trim();
+        const sep = beforeP.endsWith(':') || beforeP.endsWith(',') ? ' ' : ', ';
+        updatedHtml = beforeP + sep + kwTrimmed + '</p>' + currentHtml.slice(lastP + 4);
+      } else {
+        updatedHtml = `<p>${currentHtml}, ${kwTrimmed}</p>`;
+      }
+
+      set((s) => {
+        const updatedSections = s.sections.map((sec) =>
+          sec.id === targetSec.id
+            ? { ...sec, content: updatedHtml, contentHtml: updatedHtml }
+            : sec
+        );
+
+        let updatedAnalysis = s.activeJdAnalysis;
+        if (updatedAnalysis?.ats_check) {
+          const ats = { ...updatedAnalysis.ats_check };
+          const missing = (ats.missing_keywords || []).filter(
+            (k) => k.toLowerCase().trim() !== kwTrimmed.toLowerCase()
+          );
+          const recommended = (ats.recommended_keywords || []).filter(
+            (k) => k.toLowerCase().trim() !== kwTrimmed.toLowerCase()
+          );
+          const matched = [
+            ...new Set([...(ats.matched_keywords || []), kwTrimmed]),
+          ];
+          ats.missing_keywords = missing;
+          ats.recommended_keywords = recommended;
+          ats.matched_keywords = matched;
+          updatedAnalysis = { ...updatedAnalysis, ats_check: ats };
+        }
+
+        return {
+          sections: updatedSections,
+          activeJdAnalysis: updatedAnalysis,
+          isDirty: true,
+        };
+      });
+
+      return {
+        sectionId: targetSec.id,
+        sectionTitle: targetSec.title || 'Skills',
+      };
+    },
   }))
 );

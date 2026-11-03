@@ -495,7 +495,7 @@ function BuilderContent() {
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Wiser AI (JD Matching & Standalone ATS) button */}
           <button
-            onClick={() => setIsJdModalOpen(true)}
+            onClick={() => { if (isDirty) saveResume(); setIsJdModalOpen(true); }}
             className="bg-[#C88A58]/10 hover:bg-[#C88A58]/20 text-[#D49A6A] border border-[#C88A58]/25 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Launch Wiser AI: General Resume Audit, Bullet Polish & Job Match"
           >

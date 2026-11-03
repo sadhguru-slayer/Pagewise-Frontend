@@ -18,12 +18,14 @@ import {
   Award,
   Check,
   ArrowDownToLine,
+  Plus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { resumesApi, paymentsApi } from '@/lib/api';
 import { useResumeStore } from '@/lib/resume/store';
 import { applyWiserEnhancementsToSections } from '@/lib/resume/applyWiserEnhancements';
+import { renderTiptapJson } from '@/lib/resume/renderTiptap';
 import PricingModal from '@/components/pricing/PricingModal';
 
 /* ─── ATS Score SVG Gauge ─────────────────────────────────────────── */
@@ -98,6 +100,9 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
     activeJdAnalysis,
     setActiveJdAnalysis,
     replaceSections,
+    addKeywordToResume,
+    dismissedSuggestionKeys = [],
+    dismissSuggestion,
   } = useResumeStore();
 
   const [activeResumeId, setActiveResumeId] = useState(targetResume?.id || (allResumes && allResumes.length > 0 ? allResumes[0].id : null));
@@ -224,12 +229,35 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
         jobDescription: jobDescription.trim(),
       };
       if (resumeId) {
+        // If there are pending changes in store, flush save to DB
+        if (useResumeStore.getState().isDirty) {
+          try {
+            await resumesApi.update(resumeId, {
+              name: resumeName,
+              headerJson: header,
+              settingsJson: settings,
+              sectionsJson: sections,
+            });
+            useResumeStore.getState().markSaved(new Date().toISOString());
+          } catch (e) {
+            console.warn('Auto-save prior to analysis failed:', e);
+          }
+        }
+
         payload.currentResumeOverride = {
           id: resumeId,
           name: resumeName,
           header_json: header,
           settings_json: settings,
-          sections_json: sections,
+          sections_json: sections.map((sec) => ({
+            id: sec.id,
+            title: sec.title,
+            content: sec.content,
+            contentHtml:
+              typeof sec.content === 'string'
+                ? sec.content
+                : renderTiptapJson(sec.content) || sec.contentHtml || '',
+          })),
         };
       }
 
@@ -270,12 +298,34 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
         resumeId: effectiveResumeId || null,
       };
       if (resumeId) {
+        if (useResumeStore.getState().isDirty) {
+          try {
+            await resumesApi.update(resumeId, {
+              name: resumeName,
+              headerJson: header,
+              settingsJson: settings,
+              sectionsJson: sections,
+            });
+            useResumeStore.getState().markSaved(new Date().toISOString());
+          } catch (e) {
+            console.warn('Auto-save prior to analysis failed:', e);
+          }
+        }
+
         payload.currentResumeOverride = {
           id: resumeId,
           name: resumeName,
           header_json: header,
           settings_json: settings,
-          sections_json: sections,
+          sections_json: sections.map((sec) => ({
+            id: sec.id,
+            title: sec.title,
+            content: sec.content,
+            contentHtml:
+              typeof sec.content === 'string'
+                ? sec.content
+                : renderTiptapJson(sec.content) || sec.contentHtml || '',
+          })),
         };
       }
 
@@ -328,6 +378,26 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
     });
   };
 
+  const handleAddKeyword = (kw) => {
+    if (!addKeywordToResume) return;
+    const res = addKeywordToResume(kw);
+    if (res) {
+      toast.success(`Added "${kw}" to ${res.sectionTitle}!`);
+      // Update local state so UI updates instantly
+      if (wiserMode === 'jobhelp' && analysisResult?.ats_check) {
+        const ats = { ...analysisResult.ats_check };
+        ats.missing_keywords = (ats.missing_keywords || []).filter((k) => k !== kw);
+        ats.matched_keywords = [...new Set([...(ats.matched_keywords || []), kw])];
+        setAnalysisResult({ ...analysisResult, ats_check: ats });
+      } else if (standaloneResult?.ats_check) {
+        const ats = { ...standaloneResult.ats_check };
+        ats.recommended_keywords = (ats.recommended_keywords || []).filter((k) => k !== kw);
+        ats.matched_keywords = [...new Set([...(ats.matched_keywords || []), kw])];
+        setStandaloneResult({ ...standaloneResult, ats_check: ats });
+      }
+    }
+  };
+
   const handleApplyToThisResume = async () => {
     if (!resumeId) {
       toast.error('No resume loaded.');
@@ -339,36 +409,54 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
       return;
     }
     setIsApplying(true);
-    const toastId = toast.loading('Applying Wiser upgrades to this resume…');
+    const toastId = toast.loading('Loading enhancements into editor…');
     try {
       if (isLocked && typeof onPromoteToMaster === 'function') {
         await onPromoteToMaster();
       }
-      const { sections: nextSections, appliedCount } = applyWiserEnhancementsToSections(
-        sections,
-        currentData
-      );
-      replaceSections(nextSections);
+
+      // Persist targeting on current resume
+      await persistTargetingOnCurrent();
+
+      // Find first section that has suggestions
+      const enhancements = currentData.section_enhancements || [];
+      const firstSecMatch = enhancements.find((s) => s.suggestions && s.suggestions.length > 0);
+
+      let targetSectionId = sections[0]?.id;
+      let targetSectionTitle = sections[0]?.title;
+
+      if (firstSecMatch) {
+        const matchingSection = sections.find(
+          (s) =>
+            s.id === firstSecMatch.section_id ||
+            s.title?.toLowerCase().trim() === firstSecMatch.section_title?.toLowerCase().trim()
+        );
+        if (matchingSection) {
+          targetSectionId = matchingSection.id;
+          targetSectionTitle = matchingSection.title;
+        }
+      }
+
       const jobAn = currentData?.job_analysis || currentData?.inferred_domain || {};
       const atsCk = currentData?.ats_check || {};
       useResumeStore.setState({
         activeJdAnalysis: currentData,
+        activeSectionId: targetSectionId,
+        highlightedSectionId: targetSectionId,
         targetJobTitle: jobAn.title || useResumeStore.getState().targetJobTitle,
         targetCompany: jobAn.company || useResumeStore.getState().targetCompany,
         targetJobDescription: currentData?.job_analysis?.summary || jobDescription.trim().slice(0, 300),
         targetAtsScore: atsCk.overall_score ?? useResumeStore.getState().targetAtsScore,
       });
-      await persistTargetingOnCurrent();
+
       toast.success(
-        appliedCount > 0
-          ? `Applied ${appliedCount} Wiser upgrade${appliedCount === 1 ? '' : 's'} to this master resume.`
-          : 'Evaluation saved on this master resume.',
-        { id: toastId }
+        `Loaded recommendations for ${targetSectionTitle || 'your resume'}. Apply them at your cursor!`,
+        { id: toastId, icon: '🎯' }
       );
       onClose();
     } catch (err) {
-      console.error('[Apply Wiser upgrades error]:', err);
-      toast.error(err.message || 'Failed to apply upgrades.', { id: toastId });
+      console.error('[Load Wiser upgrades error]:', err);
+      toast.error(err.message || 'Failed to load upgrades.', { id: toastId });
     } finally {
       setIsApplying(false);
     }
@@ -920,17 +1008,24 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                             ? currentResult.ats_check?.missing_keywords
                             : currentResult.ats_check?.recommended_keywords
                           )?.map((kw, i) => (
-                            <span
+                            <button
                               key={i}
-                              className="text-[11px] px-2 py-0.5 rounded-md font-mono"
+                              type="button"
+                              onClick={() => handleAddKeyword(kw)}
+                              className="text-[11px] px-2.5 py-1 rounded-md font-mono flex items-center gap-1.5 transition-all cursor-pointer group hover:scale-[1.02] active:scale-[0.98]"
                               style={{
-                                background: wiserMode === 'jobhelp' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                                background: wiserMode === 'jobhelp' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
                                 border: wiserMode === 'jobhelp' ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(245,158,11,0.3)',
                                 color: wiserMode === 'jobhelp' ? '#fca5a5' : '#fcd34d',
                               }}
+                              title={`Click to add "${kw}" to your Skills section`}
                             >
-                              + {kw}
-                            </span>
+                              <Plus className="w-3 h-3 group-hover:rotate-90 transition-transform shrink-0" />
+                              <span>{kw}</span>
+                              <span className="text-[9px] uppercase font-sans font-semibold px-1 py-0.2 rounded bg-white/[0.08] text-white opacity-75 group-hover:opacity-100">
+                                Add
+                              </span>
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -1058,7 +1153,9 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                           )}
 
                           <div className="space-y-3 pt-2">
-                            {sec.suggestions?.map((sug) => {
+                            {sec.suggestions
+                              ?.filter((sug) => !dismissedSuggestionKeys.includes(sug.id || sug.original_text))
+                              ?.map((sug) => {
                               const needsConfirmation = sug.verification_status === 'needs_confirmation' || sug.factual_risk === 'high';
                               const changeTypeLabels = {
                                 REPHRASING: 'Rephrasing',
@@ -1067,35 +1164,50 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                                 CLARIFICATION_NEEDED: 'Clarification Needed',
                               };
                               const changeLabel = changeTypeLabels[sug.change_type] || sug.change_type;
+                              const sugKey = sug.id || sug.original_text;
 
                               return (
                                 <div
                                   key={sug.id}
                                   className="p-3 rounded-lg bg-black/40 border border-white/[0.05] space-y-2 text-xs"
                                 >
-                                  {/* Verification status and change type */}
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    {changeLabel && (
-                                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase tracking-wider font-semibold">
-                                        {changeLabel}
-                                      </span>
-                                    )}
-                                    {sug.verification_status === 'verified' || sug.factual_risk === 'low' ? (
-                                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium flex items-center gap-1">
-                                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
-                                        <span>Source Verified</span>
-                                      </span>
-                                    ) : needsConfirmation ? (
-                                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium flex items-center gap-1">
-                                        <AlertTriangle className="w-2.5 h-2.5" />
-                                        <span>Verify Metrics</span>
-                                      </span>
-                                    ) : null}
+                                  {/* Verification status, change type, and dismiss button */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {changeLabel && (
+                                        <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase tracking-wider font-semibold">
+                                          {changeLabel}
+                                        </span>
+                                      )}
+                                      {needsConfirmation ? (
+                                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium flex items-center gap-1" title="Please ensure metrics match your actual achievement">
+                                          <AlertTriangle className="w-2.5 h-2.5" />
+                                          <span>Verify numbers</span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium flex items-center gap-1">
+                                          <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                                          <span>Verified</span>
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        dismissSuggestion?.(sugKey);
+                                        toast('Suggestion ignored', { icon: '🗑️' });
+                                      }}
+                                      className="text-zinc-500 hover:text-zinc-300 p-1 rounded hover:bg-white/[0.06] transition-colors cursor-pointer"
+                                      title="Ignore this recommendation"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
 
                                   {sug.original_text && (
                                     <div>
-                                      <span className="text-[10px] font-mono text-rose-400 block mb-0.5">
+                                      <span className="text-[10px] font-mono text-zinc-500 block mb-0.5">
                                         Original Bullet:
                                       </span>
                                       <p className="line-through text-[#7E869B] text-[11px] leading-relaxed">
@@ -1104,7 +1216,7 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                                     </div>
                                   )}
                                   <div>
-                                    <span className="text-[10px] font-mono text-emerald-400 block mb-0.5">
+                                    <span className="text-[10px] font-mono text-amber-400 block mb-0.5">
                                       Recommended Bullet:
                                     </span>
                                     <div
@@ -1113,26 +1225,7 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                                     />
                                   </div>
 
-                                  {/* Clarification questions if metrics need confirmation */}
-                                  {needsConfirmation && sug.missing_information && sug.missing_information.length > 0 && (
-                                    <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] space-y-1 text-amber-200/90">
-                                      <span className="font-semibold text-amber-400 block text-[10px] uppercase font-mono">
-                                        Confirm with your actual numbers:
-                                      </span>
-                                      <ul className="list-disc list-inside space-y-0.5 text-[10px]">
-                                        {sug.missing_information.map((q, qIdx) => (
-                                          <li key={qIdx}>{q}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-
-                                  {sug.reasoning && (
-                                    <p className="text-[10px] text-[#7E869B] italic leading-relaxed">
-                                      Why: {sug.reasoning}
-                                    </p>
-                                  )}
-                                  <div className="pt-2 flex justify-end">
+                                  <div className="pt-1.5 flex justify-end gap-2 border-t border-white/[0.04]">
                                     <button
                                       type="button"
                                       onClick={() => handleCopySuggestion(sug)}
@@ -1200,16 +1293,14 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                           {!resumeId
                             ? 'Open in Studio to Apply Upgrades →'
                             : isApplying
-                            ? 'Applying…'
-                            : isLocked
-                            ? 'Set as Master & Apply Upgrades'
-                            : 'Apply to This Resume'}
+                            ? 'Loading into Studio…'
+                            : 'Review & Apply in Editor →'}
                         </span>
                       </div>
                       <p className="text-[11px] leading-relaxed text-[#7E869B]">
                         {!resumeId
                           ? 'Transfers these tailored bullet upgrades into the interactive studio.'
-                          : 'Writes Wiser bullet upgrades into this workspace so you can export immediately.'}
+                          : 'Focuses directly on your resume section with suggestions open so you can apply each bullet manually at your cursor.'}
                       </p>
                     </button>
 
