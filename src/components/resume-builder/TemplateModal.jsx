@@ -19,6 +19,7 @@ import { useResumeStore } from '@/lib/resume/store';
 import { RESUME_TEMPLATES } from '@/lib/resume/templates';
 import { renderTiptapJson } from '@/lib/resume/renderTiptap';
 import { formatRelativeTime } from '@/lib/resume/utils';
+import { getContactLineHtml, isPortfolioSection, normalizeFontFamily } from '@/lib/resume/renderDocument';
 import { resumesApi } from '@/lib/api';
 
 export default function TemplateModal({ isOpen, onClose }) {
@@ -75,7 +76,14 @@ export default function TemplateModal({ isOpen, onClose }) {
     savedResumes.find((r) => r.id === selectedSavedResumeId) || savedResumes[0] || null;
 
   const visibleSections = [...(sections || [])]
-    .filter((s) => s.visible !== false)
+    .filter((s) => {
+      if (s.visible === false) return false;
+      if (isPortfolioSection(s)) {
+        const linkCount = s.links?.length || 0;
+        if (linkCount > 0 && linkCount <= 3) return false;
+      }
+      return true;
+    })
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   // ── Option 1: Apply format to current resume ──────────────────────────────
@@ -619,10 +627,14 @@ export default function TemplateModal({ isOpen, onClose }) {
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex justify-center items-start bg-[#0e111a]">
               <link
                 rel="stylesheet"
-                href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lato:wght@400;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Roboto:wght@400;500;700&display=swap"
+                href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Lato:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap"
               />
               <style>{`
                 .tiptap-preview p { margin-bottom: 2pt; line-height: inherit; }
+                .header-contact-line a {
+                  color: inherit;
+                  text-decoration: underline;
+                }
                 .tiptap-preview ul {
                   list-style-type: disc !important;
                   padding-left: 14pt !important;
@@ -653,7 +665,7 @@ export default function TemplateModal({ isOpen, onClose }) {
                     maxWidth: '700px',
                     minHeight: '880px',
                     padding: `${currentTemplate.settings.marginTop}mm ${currentTemplate.settings.marginRight}mm ${currentTemplate.settings.marginBottom}mm ${currentTemplate.settings.marginLeft}mm`,
-                    fontFamily: currentTemplate.settings.bodyFont,
+                    fontFamily: normalizeFontFamily(currentTemplate.settings.bodyFont),
                     fontSize: `${currentTemplate.settings.bodyFontSize}pt`,
                     lineHeight: currentTemplate.settings.lineHeight,
                     background: '#ffffff',
@@ -665,7 +677,7 @@ export default function TemplateModal({ isOpen, onClose }) {
                   <div style={{ textAlign: currentTemplate.header.alignment, paddingBottom: 6 }}>
                     <h1
                       style={{
-                        fontFamily: currentTemplate.header.nameFont,
+                        fontFamily: normalizeFontFamily(currentTemplate.header.nameFont),
                         fontSize: `${currentTemplate.header.nameFontSize}pt`,
                         fontWeight: currentTemplate.header.nameFontWeight,
                         letterSpacing: '0.04em',
@@ -676,16 +688,19 @@ export default function TemplateModal({ isOpen, onClose }) {
                     >
                       {header?.name || 'YOUR NAME'}
                     </h1>
-                    <p
+                    <div
+                      className="header-contact-line"
                       style={{
                         fontSize: `${currentTemplate.header.contactFontSize}pt`,
                         color: currentTemplate.header.contactColor,
                         marginTop: 4,
                         marginBottom: 0,
+                        lineHeight: 1.2,
                       }}
-                    >
-                      {header?.contactLine || 'City, Country · email@example.com'}
-                    </p>
+                      dangerouslySetInnerHTML={{
+                        __html: getContactLineHtml(header, visibleSections) || 'City, Country · email@example.com',
+                      }}
+                    />
                     {currentTemplate.header.showDivider && currentTemplate.header.divider && (
                       <hr
                         style={{
@@ -778,9 +793,16 @@ export default function TemplateModal({ isOpen, onClose }) {
                 (() => {
                   const sSettings = selectedSavedResume.settingsJson || {};
                   const sHeader = selectedSavedResume.headerJson || {};
-                  const sSections = (selectedSavedResume.sectionsJson || []).sort(
-                    (a, b) => (a.order ?? 0) - (b.order ?? 0)
-                  );
+                  const sSections = (selectedSavedResume.sectionsJson || [])
+                    .filter((s) => {
+                      if (s.visible === false) return false;
+                      if (isPortfolioSection(s)) {
+                        const linkCount = s.links?.length || 0;
+                        if (linkCount > 0 && linkCount <= 3) return false;
+                      }
+                      return true;
+                    })
+                    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
                   return (
                     <div
@@ -789,7 +811,7 @@ export default function TemplateModal({ isOpen, onClose }) {
                         maxWidth: '700px',
                         minHeight: '880px',
                         padding: `${sSettings.marginTop ?? 15}mm ${sSettings.marginRight ?? 15}mm ${sSettings.marginBottom ?? 15}mm ${sSettings.marginLeft ?? 15}mm`,
-                        fontFamily: sSettings.bodyFont || 'Georgia, serif',
+                        fontFamily: normalizeFontFamily(sSettings.bodyFont || 'Georgia, serif'),
                         fontSize: `${sSettings.bodyFontSize ?? 9}pt`,
                         lineHeight: sSettings.lineHeight ?? 1.3,
                         background: '#ffffff',
@@ -801,7 +823,7 @@ export default function TemplateModal({ isOpen, onClose }) {
                       <div style={{ textAlign: sHeader.alignment || 'center', paddingBottom: 6 }}>
                         <h1
                           style={{
-                            fontFamily: sHeader.nameFont || 'Georgia, serif',
+                            fontFamily: normalizeFontFamily(sHeader.nameFont || 'Georgia, serif'),
                             fontSize: `${sHeader.nameFontSize ?? 22}pt`,
                             fontWeight: sHeader.nameFontWeight || 'bold',
                             letterSpacing: '0.04em',
@@ -812,16 +834,19 @@ export default function TemplateModal({ isOpen, onClose }) {
                         >
                           {sHeader.name || selectedSavedResume.name}
                         </h1>
-                        <p
+                        <div
+                          className="header-contact-line"
                           style={{
                             fontSize: `${sHeader.contactFontSize ?? 9.5}pt`,
                             color: sHeader.contactColor || '#4b5563',
                             marginTop: 3,
                             marginBottom: 0,
+                            lineHeight: 1.2,
                           }}
-                        >
-                          {sHeader.contactLine || ''}
-                        </p>
+                          dangerouslySetInnerHTML={{
+                            __html: getContactLineHtml(sHeader, sSections) || '',
+                          }}
+                        />
                         {sHeader.showDivider && sHeader.divider && (
                           <hr
                             style={{

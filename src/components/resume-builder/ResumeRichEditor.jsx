@@ -9,7 +9,7 @@ import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal, RefreshCw, Check, Plus, ArrowDownToLine, X } from 'lucide-react';
+import { Bold, Underline as UnderlineIcon, AlignLeft, AlignCenter, AlignRight, Minus, Type, ChevronRight, SlidersHorizontal, RefreshCw, Check, Plus, ArrowDownToLine, X, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
 
@@ -417,6 +417,8 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   const renameSection = useResumeStore((s) => s.renameSection);
   const updateSectionDivider = useResumeStore((s) => s.updateSectionDivider);
   const activeJdAnalysis = useResumeStore((s) => s.activeJdAnalysis);
+  const appliedSuggestionKeys = useResumeStore((s) => s.appliedSuggestionKeys) || [];
+  const markSuggestionApplied = useResumeStore((s) => s.markSuggestionApplied);
 
   const resolvedSectionId = propSectionId || storeActiveSectionId || (sections[0]?.id);
   const section = sections.find((s) => s.id === resolvedSectionId);
@@ -433,9 +435,68 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
   );
   const suggestions = currentSectionEnhancements?.suggestions || [];
 
-  // Helper: Auto-apply a specific recommendation into section with pattern-matching
-  const handleAutoApplySuggestion = (sug) => {
+  const getSuggestionKey = (sug, idx) =>
+    sug.id || `${resolvedSectionId}-${idx}-${sug.original_text || sug.enhanced_html}`;
+
+  const isSuggestionApplied = (sug, idx) => {
+    const key = getSuggestionKey(sug, idx);
+    if (appliedSuggestionKeys.includes(key)) return true;
+
+    // Also check if enhanced content already exists in editor content
+    if (editor && sug.enhanced_html) {
+      const cleanEnhanced = sug.enhanced_html
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+      if (cleanEnhanced.length > 20) {
+        const editorText = editor.getText().replace(/\s+/g, ' ').toLowerCase();
+        const snippet = cleanEnhanced.slice(0, 35);
+        if (editorText.includes(snippet)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  // Helper: Apply recommendation at cursor (Primary & Recommended)
+  const handleApplyAtCursor = (sug, idx) => {
     if (!editor) return;
+    const key = getSuggestionKey(sug, idx);
+    if (isSuggestionApplied(sug, idx)) {
+      toast('This suggestion is already applied in your document.', { icon: 'ℹ️' });
+      return;
+    }
+    let htmlToInsert = (sug.enhanced_html || '').trim();
+    if (!htmlToInsert && sug.original_text) {
+      htmlToInsert = `<p>${sug.original_text}</p>`;
+    }
+    editor.chain().focus().insertContent(htmlToInsert).run();
+    if (markSuggestionApplied) markSuggestionApplied(key);
+    toast.success('Inserted at cursor position!');
+  };
+
+  // Helper: Re-apply another copy at cursor if user explicitly chooses to
+  const handleReapplyAtCursor = (sug) => {
+    if (!editor) return;
+    let htmlToInsert = (sug.enhanced_html || '').trim();
+    if (!htmlToInsert && sug.original_text) {
+      htmlToInsert = `<p>${sug.original_text}</p>`;
+    }
+    editor.chain().focus().insertContent(htmlToInsert).run();
+    toast.success('Inserted another copy at cursor position!');
+  };
+
+  // Helper: Auto-apply a specific recommendation into section with pattern-matching
+  const handleAutoApplySuggestion = (sug, idx) => {
+    if (!editor) return;
+    const key = getSuggestionKey(sug, idx);
+    if (isSuggestionApplied(sug, idx)) {
+      toast('This suggestion is already applied in your document.', { icon: 'ℹ️' });
+      return;
+    }
+
     const currentHtml = editor.getHTML();
     const orig = (sug.original_text || '').trim();
 
@@ -443,7 +504,8 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
     if (orig && currentHtml.includes(orig)) {
       const updatedHtml = currentHtml.replace(orig, sug.enhanced_html);
       editor.commands.setContent(updatedHtml);
-      toast.success('Auto-applied: Matched and replaced in-place!');
+      if (markSuggestionApplied) markSuggestionApplied(key);
+      toast.success('Auto-replaced in-place!');
       return;
     }
 
@@ -499,7 +561,8 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
             }
 
             editor.commands.setContent(doc.body.innerHTML);
-            toast.success('Auto-applied: Targeted weak bullet and replaced in-place!');
+            if (markSuggestionApplied) markSuggestionApplied(key);
+            toast.success('Targeted and replaced in-place!');
             return;
           }
         }
@@ -513,7 +576,8 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
           newLi.innerHTML = innerLi ? innerLi.innerHTML : tempDoc.body.innerHTML;
           lastUl.appendChild(newLi);
           editor.commands.setContent(doc.body.innerHTML);
-          toast.success('Auto-applied: Integrated as a new bullet point in your list!');
+          if (markSuggestionApplied) markSuggestionApplied(key);
+          toast.success('Integrated as a new bullet point!');
           return;
         }
       } catch (err) {
@@ -524,14 +588,8 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
     // 4. Default clean append at end
     editor.commands.focus('end');
     editor.commands.insertContent(sug.enhanced_html);
-    toast.success('Auto-applied: Enhanced accomplishment added!');
-  };
-
-  // Helper: Apply recommendation at cursor
-  const handleApplyAtCursor = (sug) => {
-    if (!editor) return;
-    editor.chain().focus().insertContent(sug.enhanced_html).run();
-    toast.success('Inserted at cursor position');
+    setAppliedSuggestionIds((prev) => new Set(prev).add(key));
+    toast.success('Enhanced accomplishment added!');
   };
 
   const editor = useEditor({
@@ -798,13 +856,13 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
       {/* Formatting Toolbar */}
       <RichTextToolbar editor={editor} />
 
-      {/* JD Enhance Active Recommendations Strip */}
+      {/* Wiser AI Recommendations Strip */}
       {suggestions.length > 0 && (
         <div className="bg-[#121520] border-b border-amber-500/25 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2 text-xs">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             <span className="text-[#F1F3F9] font-medium text-[11px]">
-              <strong className="text-amber-400">{suggestions.length}</strong> JD Enhance suggestion{suggestions.length > 1 ? 's' : ''} available
+              <strong className="text-amber-400">{suggestions.length}</strong> Wiser AI suggestion{suggestions.length > 1 ? 's' : ''} available
             </span>
           </div>
 
@@ -819,75 +877,166 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
         </div>
       )}
 
-      {/* Expandable JD Enhance Panel with Auto Apply and Apply on Cursor */}
+      {/* Expandable Recommendations Panel with Apply at Cursor */}
       {showJdEnhancePanel && suggestions.length > 0 && (
         <div className="bg-[#0C0E16] border-b border-amber-500/25 p-3.5 max-h-80 overflow-y-auto space-y-3 shrink-0">
           <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] text-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              JD Enhance Recommendations
+              Wiser AI Recommendations
             </span>
             <span className="text-[10px] text-[#7E869B]">
-              Role: {activeJdAnalysis?.job_analysis?.title || 'Target Job'}
+              {activeJdAnalysis?.job_analysis?.title
+                ? `Role: ${activeJdAnalysis.job_analysis.title}`
+                : activeJdAnalysis?.inferred_domain?.title
+                ? `Focus: ${activeJdAnalysis.inferred_domain.title}`
+                : 'General Resume Polish'}
             </span>
           </div>
 
-          {suggestions.map((sug, idx) => (
-            <div
-              key={idx}
-              className="p-3 rounded-xl bg-[#111420] border border-white/[0.07] hover:border-amber-500/30 transition-all space-y-2.5"
-            >
-              {sug.original_text && (
-                <div className="text-[11px] text-[#7E869B]">
-                  <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500">
-                    Replaces Target Point:
-                  </span>
-                  <p className="line-through text-zinc-400 mt-0.5 italic">
-                    {sug.original_text}
-                  </p>
+          {suggestions.map((sug, idx) => {
+            const isApplied = isSuggestionApplied(sug, idx);
+            const needsConfirmation = sug.verification_status === 'needs_confirmation' || sug.factual_risk === 'high';
+            const changeTypeLabels = {
+              REPHRASING: 'Rephrasing',
+              METRIC_INCORPORATION: 'Metric Integration',
+              KEYWORD_ALIGNMENT: 'Keyword Alignment',
+              CLARIFICATION_NEEDED: 'Clarification Needed',
+            };
+            const changeLabel = changeTypeLabels[sug.change_type] || sug.change_type;
+
+            return (
+              <div
+                key={sug.id || idx}
+                className={`p-3.5 rounded-xl bg-[#111420] border transition-all space-y-2.5 ${
+                  isApplied
+                    ? 'border-emerald-500/30 bg-emerald-950/10'
+                    : 'border-white/[0.08] hover:border-amber-500/30'
+                }`}
+              >
+                {/* Header: Change Type & Verification Status Badges */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    {changeLabel && (
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase tracking-wider font-semibold">
+                        {changeLabel}
+                      </span>
+                    )}
+                    {sug.verification_status === 'verified' || sug.factual_risk === 'low' ? (
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                        <span>Source Verified</span>
+                      </span>
+                    ) : needsConfirmation ? (
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-2.5 h-2.5" />
+                        <span>Verify Metrics</span>
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {isApplied && (
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
+                      <Check className="w-3 h-3 stroke-[2.5]" />
+                      <span>Applied</span>
+                    </span>
+                  )}
                 </div>
-              )}
 
-              <div>
-                <span className="text-[9px] uppercase font-mono tracking-wider text-amber-400">
-                  Enhanced Version (Wiser XYZ Formula):
-                </span>
-                <div
-                  className="text-xs text-[#F1F3F9] mt-1 bg-black/40 p-2.5 rounded-lg border border-white/[0.05] leading-relaxed font-sans"
-                  dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
-                />
+                {sug.original_text && (
+                  <div className="text-[11px] text-[#7E869B]">
+                    <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500">
+                      Original Point:
+                    </span>
+                    <p className="line-through text-zinc-400 mt-0.5 italic">
+                      {sug.original_text}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <span className="text-[9px] uppercase font-mono tracking-wider text-amber-400">
+                    Recommended Bullet:
+                  </span>
+                  <div
+                    className="text-xs text-[#F1F3F9] mt-1 bg-black/40 p-2.5 rounded-lg border border-white/[0.05] leading-relaxed font-sans"
+                    dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
+                  />
+                </div>
+
+                {/* Factual check alert if metrics need confirmation */}
+                {needsConfirmation && sug.missing_information && sug.missing_information.length > 0 && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 text-amber-400 font-semibold text-[11px]">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      <span>Verify before applying (metrics may be inferred):</span>
+                    </div>
+                    <ul className="list-disc list-inside text-[10px] text-amber-200/80 space-y-0.5 pl-1">
+                      {sug.missing_information.map((q, qIdx) => (
+                        <li key={qIdx}>{q}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {sug.reasoning && (
+                  <p className="text-[10px] text-[#7E869B] italic">
+                    💡 {sug.reasoning}
+                  </p>
+                )}
+
+                {/* Action Buttons: Apply at Cursor (Recommended & Prioritized) vs Auto Apply */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.04]">
+                  {isApplied ? (
+                    <>
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-xs">
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Bullet applied to document</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleReapplyAtCursor(sug)}
+                        className="text-[10px] text-zinc-400 hover:text-zinc-200 hover:underline transition-colors cursor-pointer"
+                        title="Insert another copy at current cursor"
+                      >
+                        Insert again at cursor
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[10px] text-zinc-400 hidden sm:inline">
+                        Place cursor in editor, then:
+                      </span>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleAutoApplySuggestion(sug, idx)}
+                          className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer border border-white/[0.06]"
+                          title="Attempts in-place replacement of the matching line"
+                        >
+                          <Check className="w-3 h-3 text-zinc-400" />
+                          <span>Auto Replace</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleApplyAtCursor(sug, idx)}
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-emerald-950/40 border border-emerald-500/30"
+                          title="Insert this bullet directly at your current cursor position"
+                        >
+                          <ArrowDownToLine className="w-3.5 h-3.5 text-emerald-100" />
+                          <span>Apply at Cursor</span>
+                          <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-emerald-700 text-emerald-100 font-mono tracking-wider">
+                            Recommended
+                          </span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-
-              {sug.reasoning && (
-                <p className="text-[10px] text-[#7E869B] italic">
-                  💡 {sug.reasoning}
-                </p>
-              )}
-
-              {/* Action Buttons: Auto-apply vs Apply on Cursor */}
-              <div className="flex items-center justify-end gap-2 pt-1 border-t border-white/[0.04]">
-                <button
-                  type="button"
-                  onClick={() => handleApplyAtCursor(sug)}
-                  className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer"
-                  title="Insert this bullet at your current cursor position"
-                >
-                  <ArrowDownToLine className="w-3 h-3 text-zinc-400" />
-                  <span>Apply on Cursor</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleAutoApplySuggestion(sug)}
-                  className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm shadow-amber-600/20"
-                  title="Target and replace the weak statement in-place without overwriting other content"
-                >
-                  <Check className="w-3 h-3" />
-                  <span>Auto Apply</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

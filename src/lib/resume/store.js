@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { defaultHeader, defaultSections, defaultSettings } from './defaults.js';
 import { generateId, reorder } from './utils.js';
+import { getContactLineHtml } from './renderDocument.js';
 
 export const useResumeStore = create(
   subscribeWithSelector((set, get) => ({
@@ -47,10 +48,13 @@ export const useResumeStore = create(
         }))
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
+      const rawHeader = { ...defaultHeader(), ...(resume.headerJson || resume.header_json || {}) };
+      rawHeader.contactLine = getContactLineHtml(rawHeader, normalizedSections);
+
       set({
         resumeId: resume.id,
         resumeName: resume.name,
-        header: { ...defaultHeader(), ...(resume.headerJson || resume.header_json || {}) },
+        header: rawHeader,
         sections: normalizedSections.length > 0 ? normalizedSections : defaultSections(),
         settings: { ...defaultSettings(), ...(resume.settingsJson || resume.settings_json || {}) },
         activeSectionId: normalizedSections[0]?.id || null,
@@ -63,6 +67,7 @@ export const useResumeStore = create(
           : (resume.jd_analysis_json && typeof resume.jd_analysis_json === 'string'
               ? JSON.parse(resume.jd_analysis_json || '{}')
               : null),
+        appliedSuggestionKeys: [],
         isDirty: false,
         lastSaved: resume.updatedAt || resume.updated_at,
       });
@@ -332,6 +337,14 @@ export const useResumeStore = create(
 
     // ─── AI / JD Suggestions ──────────────────────────────────────────────────
     activeJdAnalysis: null,
-    setActiveJdAnalysis: (analysis) => set({ activeJdAnalysis: analysis }),
+    appliedSuggestionKeys: [],
+    setActiveJdAnalysis: (analysis) => set({ activeJdAnalysis: analysis, appliedSuggestionKeys: [] }),
+    markSuggestionApplied: (key) =>
+      set((s) => ({
+        appliedSuggestionKeys: s.appliedSuggestionKeys?.includes(key)
+          ? s.appliedSuggestionKeys
+          : [...(s.appliedSuggestionKeys || []), key],
+      })),
+    clearAppliedSuggestions: () => set({ appliedSuggestionKeys: [] }),
   }))
 );

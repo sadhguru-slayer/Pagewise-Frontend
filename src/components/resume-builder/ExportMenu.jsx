@@ -50,28 +50,34 @@ export default function ExportMenu() {
     const toastId = toast.loading(`Generating ${typeLabel}...`);
 
     try {
+      const state = useResumeStore.getState();
+      const currentHeader = state.header;
+      const currentSections = state.sections;
+      const currentSettings = state.settings;
+      const currentResumeId = state.resumeId;
+
       const fullHtml = generateResumeDocumentHtml({
-        header,
-        sections,
-        settings,
+        header: currentHeader,
+        sections: currentSections,
+        settings: currentSettings,
       });
 
       let exportRecord;
       if (exportType === 'pdf') {
         exportRecord = await exportsApi.exportPdf({
-          resumeId: resumeId || null,
+          resumeId: currentResumeId || null,
           name: targetName,
           html: fullHtml,
         });
       } else if (exportType === 'png') {
         exportRecord = await exportsApi.exportImage({
-          resumeId: resumeId || null,
+          resumeId: currentResumeId || null,
           name: targetName,
           html: fullHtml,
         });
       } else {
         exportRecord = await exportsApi.exportHtml({
-          resumeId: resumeId || null,
+          resumeId: currentResumeId || null,
           name: targetName,
           html: fullHtml,
         });

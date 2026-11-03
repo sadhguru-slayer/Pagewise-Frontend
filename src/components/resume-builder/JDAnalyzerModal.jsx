@@ -17,6 +17,7 @@ import {
   Briefcase,
   Award,
   Check,
+  ArrowDownToLine,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -134,8 +135,10 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
     }
   }, [isOpen, effectiveResumeId, resumeId]);
 
-  // Wiser Mode: 'jobhelp' (JD + ATS) | 'standalone_ats' (No JD required)
-  const [wiserMode, setWiserMode] = useState('jobhelp');
+  // Wiser Mode: 'standalone_ats' (General Audit & Polish) | 'jobhelp' (Target a Specific Job)
+  const [wiserMode, setWiserMode] = useState(
+    targetJobDescription && targetJobDescription.trim().length > 30 ? 'jobhelp' : 'standalone_ats'
+  );
 
   const [jobDescription, setJobDescription] = useState(targetJobDescription || '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -187,7 +190,15 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
   useEffect(() => {
     if (isOpen) {
       if (activeJdAnalysis) {
-        setAnalysisResult(activeJdAnalysis);
+        if (activeJdAnalysis.job_analysis) {
+          setAnalysisResult(activeJdAnalysis);
+          setWiserMode('jobhelp');
+        } else if (activeJdAnalysis.inferred_domain) {
+          setStandaloneResult(activeJdAnalysis);
+          setWiserMode('standalone_ats');
+        } else {
+          setAnalysisResult(activeJdAnalysis);
+        }
       }
       if (targetJobDescription && !jobDescription) {
         setJobDescription(targetJobDescription);
@@ -274,10 +285,12 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
         const atsCk = res.data.ats_check || {};
         const inferred = res.data.inferred_domain || {};
         useResumeStore.setState({
+          activeJdAnalysis: res.data,
           targetAtsScore: atsCk.overall_score ?? null,
           targetJobTitle: inferred.title || useResumeStore.getState().targetJobTitle,
         });
-        toast.success('Wiser Standalone ATS Audit complete!', { id: toastId });
+        setActiveTab('ats');
+        toast.success('Resume Audit & AI Polish ready!', { id: toastId });
         fetchPlanStatus();
       } else {
         throw new Error('Standalone ATS analysis returned unexpected structure.');
@@ -303,19 +316,26 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
 
   const persistTargetingOnCurrent = async () => {
     if (!resumeId) return;
+    const currentData = wiserMode === 'jobhelp' ? analysisResult : (standaloneResult || analysisResult);
+    const jobAn = currentData?.job_analysis || currentData?.inferred_domain || {};
     await resumesApi.cloneResume(resumeId, {
       applyToExisting: true,
-      targetJobTitle: analysisResult?.job_analysis?.title || '',
-      targetCompany: analysisResult?.job_analysis?.company || '',
-      targetAtsScore: analysisResult?.ats_check?.overall_score ?? null,
+      targetJobTitle: jobAn.title || '',
+      targetCompany: jobAn.company || '',
+      targetAtsScore: currentData?.ats_check?.overall_score ?? null,
       targetJobDescription: jobDescription.trim(),
-      jdAnalysisJson: analysisResult,
+      jdAnalysisJson: currentData,
     });
   };
 
   const handleApplyToThisResume = async () => {
     if (!resumeId) {
       toast.error('No resume loaded.');
+      return;
+    }
+    const currentData = wiserMode === 'jobhelp' ? analysisResult : (standaloneResult || analysisResult);
+    if (!currentData) {
+      toast.error('Please run the evaluation first.');
       return;
     }
     setIsApplying(true);
@@ -326,23 +346,23 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
       }
       const { sections: nextSections, appliedCount } = applyWiserEnhancementsToSections(
         sections,
-        analysisResult || standaloneResult
+        currentData
       );
       replaceSections(nextSections);
-      const jobAn = analysisResult?.job_analysis || {};
-      const atsCk = (analysisResult || standaloneResult)?.ats_check || {};
+      const jobAn = currentData?.job_analysis || currentData?.inferred_domain || {};
+      const atsCk = currentData?.ats_check || {};
       useResumeStore.setState({
-        activeJdAnalysis: analysisResult || standaloneResult,
+        activeJdAnalysis: currentData,
         targetJobTitle: jobAn.title || useResumeStore.getState().targetJobTitle,
         targetCompany: jobAn.company || useResumeStore.getState().targetCompany,
-        targetJobDescription: jobAn.summary || jobDescription.trim().slice(0, 300),
+        targetJobDescription: currentData?.job_analysis?.summary || jobDescription.trim().slice(0, 300),
         targetAtsScore: atsCk.overall_score ?? useResumeStore.getState().targetAtsScore,
       });
       await persistTargetingOnCurrent();
       toast.success(
         appliedCount > 0
           ? `Applied ${appliedCount} Wiser upgrade${appliedCount === 1 ? '' : 's'} to this master resume.`
-          : 'Job targeting saved on this master resume.',
+          : 'Evaluation saved on this master resume.',
         { id: toastId }
       );
       onClose();
@@ -397,10 +417,12 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
   };
 
   const handleEnhanceManually = () => {
-    if (wiserMode === 'jobhelp' && setActiveJdAnalysis) {
-      setActiveJdAnalysis(analysisResult);
+    const dataToUse = currentResult || analysisResult || standaloneResult;
+    if (dataToUse) {
+      useResumeStore.setState({ activeJdAnalysis: dataToUse });
     }
     onClose();
+    toast.success('Suggestions loaded into editor. Place your cursor and click Apply at Cursor!');
   };
 
   const currentResult = wiserMode === 'jobhelp' ? analysisResult : standaloneResult;
@@ -474,7 +496,7 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
               <p className="text-[11px] text-[#6b7280]">
                 {wiserMode === 'jobhelp'
                   ? 'Match your resume to a specific job description and tailor your bullets.'
-                  : 'Instant enterprise ATS audit: power verbs, quantified metrics, and keyword positioning.'}
+                  : 'Independent quality & parseability audit: power phrasing, impact verification, and bullet polish.'}
               </p>
             </div>
           </div>
@@ -482,18 +504,6 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
           <div className="flex items-center gap-2">
             {/* Mode Switcher Pill */}
             <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/[0.08]">
-              <button
-                type="button"
-                onClick={() => setWiserMode('jobhelp')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  wiserMode === 'jobhelp'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                    : 'text-[#7E869B] hover:text-white'
-                }`}
-              >
-                <Target className="w-3.5 h-3.5" />
-                <span>Wiser Job Help (JD + ATS)</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setWiserMode('standalone_ats')}
@@ -504,7 +514,22 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Wiser Standalone ATS</span>
+                <span>General Audit &amp; Polish</span>
+                <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-amber-500/20 text-amber-200 font-mono">No JD</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWiserMode('jobhelp')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  wiserMode === 'jobhelp'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'text-[#7E869B] hover:text-white'
+                }`}
+              >
+                <Target className="w-3.5 h-3.5" />
+                <span>Target a Specific Job</span>
+                <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-white/[0.06] text-zinc-300 font-mono">With JD</span>
               </button>
             </div>
 
@@ -614,11 +639,10 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                   <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2">
                     <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
                       <ShieldCheck className="w-4 h-4" />
-                      <span>Autonomous ATS Audit</span>
+                      <span>General Resume Review &amp; AI Polish</span>
                     </div>
                     <p className="text-[11px] text-[#9DA4B7] leading-relaxed">
-                      Wiser audits your resume against algorithms used by Workday, Greenhouse, Lever, and Taleo.
-                      No job description needed — get positioning scores, action verb checks, and metric density ratings.
+                      Evaluate your resume's overall strength, parseability, power phrasing, and evidence of impact without requiring a job description.
                     </p>
                   </div>
 
@@ -637,20 +661,20 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
 
                   <div className="space-y-2 text-xs text-[#7E869B]">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-white font-semibold">
-                      Audit Checklist:
+                      Audit &amp; Polish Checklist:
                     </span>
                     <ul className="space-y-1.5 text-[11px]">
                       <li className="flex items-center gap-2">
-                        <span className="text-emerald-400">✓</span> Formatting &amp; parseability compliance
+                        <span className="text-emerald-400">✓</span> Structure &amp; parseability compliance
                       </li>
                       <li className="flex items-center gap-2">
-                        <span className="text-emerald-400">✓</span> Quantified outcome density (% &amp; $)
+                        <span className="text-emerald-400">✓</span> Content specificity &amp; action verbs
                       </li>
                       <li className="flex items-center gap-2">
-                        <span className="text-emerald-400">✓</span> Active executive power verbs
+                        <span className="text-emerald-400">✓</span> Evidence of impact (grounded verification)
                       </li>
                       <li className="flex items-center gap-2">
-                        <span className="text-emerald-400">✓</span> Industry keyword positioning
+                        <span className="text-emerald-400">✓</span> Grounded section-by-section bullet upgrades
                       </li>
                     </ul>
                   </div>
@@ -669,7 +693,7 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                   <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-2">
                     <div className="flex items-center gap-1.5 text-rose-400 font-bold">
                       <AlertTriangle className="w-3.5 h-3.5" />
-                      <span>ATS Evaluation Allowance Exhausted</span>
+                      <span>Evaluation Allowance Exhausted</span>
                     </div>
                     <p className="text-[11px] text-zinc-400 leading-relaxed">
                       You have used all {planStatus?.limits?.wiser_ats ?? 1} evaluations for {planStatus?.plan_name}. Upgrade to Wiser Day Pass or Pagewise Pro to continue.
@@ -698,12 +722,12 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                   {isAnalyzing ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Auditing Resume…</span>
+                      <span>Auditing &amp; Polishing…</span>
                     </>
                   ) : (
                     <>
                       <ShieldCheck className="w-4 h-4" />
-                      <span>Run Wiser ATS Audit</span>
+                      <span>Run Resume Audit &amp; AI Polish</span>
                     </>
                   )}
                 </button>
@@ -1034,56 +1058,102 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                           )}
 
                           <div className="space-y-3 pt-2">
-                            {sec.suggestions?.map((sug) => (
-                              <div
-                                key={sug.id}
-                                className="p-3 rounded-lg bg-black/40 border border-white/[0.05] space-y-2 text-xs"
-                              >
-                                {sug.original_text && (
-                                  <div>
-                                    <span className="text-[10px] font-mono text-rose-400 block mb-0.5">
-                                      Original Bullet:
-                                    </span>
-                                    <p className="line-through text-[#7E869B] text-[11px] leading-relaxed">
-                                      {sug.original_text}
-                                    </p>
-                                  </div>
-                                )}
-                                <div>
-                                  <span className="text-[10px] font-mono text-emerald-400 block mb-0.5">
-                                    Wiser XYZ Upgrade:
-                                  </span>
-                                  <div
-                                    className="text-white text-xs leading-relaxed font-sans"
-                                    dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
-                                  />
-                                </div>
-                                {sug.reasoning && (
-                                  <p className="text-[10px] text-[#7E869B] italic leading-relaxed">
-                                    Why: {sug.reasoning}
-                                  </p>
-                                )}
-                                <div className="pt-2 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopySuggestion(sug)}
-                                    className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white/[0.06] hover:bg-white/[0.12] text-[#F1F3F9] transition-colors flex items-center gap-1 cursor-pointer"
-                                  >
-                                    {copiedId === sug.id ? (
-                                      <>
-                                        <Check className="w-3 h-3 text-emerald-400" />
-                                        <span className="text-emerald-400">Copied</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy className="w-3 h-3" />
-                                        <span>Copy Bullet</span>
-                                      </>
+                            {sec.suggestions?.map((sug) => {
+                              const needsConfirmation = sug.verification_status === 'needs_confirmation' || sug.factual_risk === 'high';
+                              const changeTypeLabels = {
+                                REPHRASING: 'Rephrasing',
+                                METRIC_INCORPORATION: 'Metric Integration',
+                                KEYWORD_ALIGNMENT: 'Keyword Alignment',
+                                CLARIFICATION_NEEDED: 'Clarification Needed',
+                              };
+                              const changeLabel = changeTypeLabels[sug.change_type] || sug.change_type;
+
+                              return (
+                                <div
+                                  key={sug.id}
+                                  className="p-3 rounded-lg bg-black/40 border border-white/[0.05] space-y-2 text-xs"
+                                >
+                                  {/* Verification status and change type */}
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {changeLabel && (
+                                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase tracking-wider font-semibold">
+                                        {changeLabel}
+                                      </span>
                                     )}
-                                  </button>
+                                    {sug.verification_status === 'verified' || sug.factual_risk === 'low' ? (
+                                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-medium flex items-center gap-1">
+                                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                                        <span>Source Verified</span>
+                                      </span>
+                                    ) : needsConfirmation ? (
+                                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-medium flex items-center gap-1">
+                                        <AlertTriangle className="w-2.5 h-2.5" />
+                                        <span>Verify Metrics</span>
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  {sug.original_text && (
+                                    <div>
+                                      <span className="text-[10px] font-mono text-rose-400 block mb-0.5">
+                                        Original Bullet:
+                                      </span>
+                                      <p className="line-through text-[#7E869B] text-[11px] leading-relaxed">
+                                        {sug.original_text}
+                                      </p>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <span className="text-[10px] font-mono text-emerald-400 block mb-0.5">
+                                      Recommended Bullet:
+                                    </span>
+                                    <div
+                                      className="text-white text-xs leading-relaxed font-sans"
+                                      dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
+                                    />
+                                  </div>
+
+                                  {/* Clarification questions if metrics need confirmation */}
+                                  {needsConfirmation && sug.missing_information && sug.missing_information.length > 0 && (
+                                    <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] space-y-1 text-amber-200/90">
+                                      <span className="font-semibold text-amber-400 block text-[10px] uppercase font-mono">
+                                        Confirm with your actual numbers:
+                                      </span>
+                                      <ul className="list-disc list-inside space-y-0.5 text-[10px]">
+                                        {sug.missing_information.map((q, qIdx) => (
+                                          <li key={qIdx}>{q}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {sug.reasoning && (
+                                    <p className="text-[10px] text-[#7E869B] italic leading-relaxed">
+                                      Why: {sug.reasoning}
+                                    </p>
+                                  )}
+                                  <div className="pt-2 flex justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopySuggestion(sug)}
+                                      className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white/[0.06] hover:bg-white/[0.12] text-[#F1F3F9] transition-colors flex items-center gap-1 cursor-pointer"
+                                    >
+                                      {copiedId === sug.id ? (
+                                        <>
+                                          <Check className="w-3 h-3 text-emerald-400" />
+                                          <span className="text-emerald-400">Copied</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="w-3 h-3" />
+                                          <span>Copy Bullet</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       ))
@@ -1194,18 +1264,21 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                         onClick={handleEnhanceManually}
                         className="group text-left p-3.5 rounded-xl transition-all cursor-pointer"
                         style={{
-                          background: 'rgba(16,185,129,0.06)',
-                          border: '1.5px solid rgba(16,185,129,0.35)',
+                          background: 'rgba(16,185,129,0.08)',
+                          border: '1.5px solid rgba(16,185,129,0.4)',
                         }}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <Award className="w-4 h-4 text-emerald-400" />
+                          <ArrowDownToLine className="w-4 h-4 text-emerald-400" />
                           <span className="text-xs sm:text-sm font-bold text-white">
-                            Back to Studio ({atsScore} ATS)
+                            Review &amp; Apply at Cursor →
+                          </span>
+                          <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                            Recommended
                           </span>
                         </div>
-                        <p className="text-[11px] leading-relaxed text-[#6b7280]">
-                          Score is saved. Export this master resume whenever you are ready.
+                        <p className="text-[11px] leading-relaxed text-[#7E869B]">
+                          Loads upgrades into the editor so you can review and place them with full cursor control.
                         </p>
                       </button>
                     )}
@@ -1224,12 +1297,12 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                 <h3 className="text-sm font-bold text-white">
                   {wiserMode === 'jobhelp'
                     ? 'Paste a Job Description on the left'
-                    : 'Click "Run Wiser ATS Audit" on the left'}
+                    : 'Click "Run Resume Audit & AI Polish" on the left'}
                 </h3>
                 <p className="text-xs max-w-sm leading-relaxed text-[#6b7280]">
                   {wiserMode === 'jobhelp'
                     ? 'Wiser AI will evaluate role keyword density, score compatibility, and generate role-tailored bullet upgrades.'
-                    : 'Wiser AI will audit your resume for enterprise ATS parseability, action verbs, quantified metrics, and strong positioning.'}
+                    : 'Wiser AI will evaluate your resume for parseability, active power phrasing, and evidence of impact without requiring a job description.'}
                 </p>
               </div>
             )}

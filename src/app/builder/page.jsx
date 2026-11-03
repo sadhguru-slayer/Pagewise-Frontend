@@ -497,12 +497,12 @@ function BuilderContent() {
           <button
             onClick={() => setIsJdModalOpen(true)}
             className="bg-[#C88A58]/10 hover:bg-[#C88A58]/20 text-[#D49A6A] border border-[#C88A58]/25 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Launch Wiser AI: Standalone ATS Audit & Job-Targeted ATS Match"
+            title="Launch Wiser AI: General Resume Audit, Bullet Polish & Job Match"
           >
             <Target className="w-3.5 h-3.5 text-[#D49A6A]" />
             <span className="hidden sm:inline">Wiser AI</span>
             <span className="text-[10px] bg-[#C88A58]/20 text-[#D49A6A] px-1.5 py-0.5 rounded font-mono">
-              ATS
+              Audit &amp; Polish
             </span>
           </button>
 

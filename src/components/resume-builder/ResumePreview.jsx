@@ -10,6 +10,8 @@ import {
   buildResumeCss,
   getContactLineHtml,
   renderResumeInnerHtml,
+  normalizeFontFamily,
+  isPortfolioSection,
 } from '@/lib/resume/renderDocument';
 import { Minimize2, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -115,7 +117,14 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
 
   // ── Visible sections in order ──────────────────────────────────────────────
   const visibleSections = [...(sections ?? [])]
-    .filter((s) => s.visible !== false)
+    .filter((s) => {
+      if (s.visible === false) return false;
+      if (isPortfolioSection(s)) {
+        const linkCount = s.links?.length || 0;
+        if (linkCount > 0 && linkCount <= 3) return false;
+      }
+      return true;
+    })
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   // ── Interactive Resume Content Block (Canva-style click-to-edit) ───────────
@@ -123,7 +132,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
     <div
       className="resume-preview-interactive"
       style={{
-        fontFamily: settings?.bodyFont ?? 'Georgia, serif',
+        fontFamily: normalizeFontFamily(settings?.bodyFont ?? 'Georgia, serif'),
         fontSize: `${settings?.bodyFontSize ?? 8.5}pt`,
         lineHeight: settings?.lineHeight ?? 1.2,
         color: '#111111',
@@ -155,7 +164,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
         <h1
           className="header-name"
           style={{
-            fontFamily: header?.nameFont ?? 'Georgia, serif',
+            fontFamily: normalizeFontFamily(header?.nameFont ?? settings?.bodyFont ?? 'Georgia, serif'),
             fontSize: `${header?.nameFontSize ?? 22}pt`,
             fontWeight: header?.nameFontWeight ?? 700,
             letterSpacing: '0.05em',
@@ -176,7 +185,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
             marginBottom: 0,
             lineHeight: 1.2,
           }}
-          dangerouslySetInnerHTML={{ __html: getContactLineHtml(header) }}
+          dangerouslySetInnerHTML={{ __html: getContactLineHtml(header, sections) }}
         />
         {header?.showDivider && header?.divider && (
           <hr
@@ -353,7 +362,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
       {/* Web fonts for professional resume typography */}
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lato:wght@400;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Roboto:wght@400;500;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Lato:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap"
       />
 
       {/* Scoped CSS rules matching exact Playwright PDF export styles */}
