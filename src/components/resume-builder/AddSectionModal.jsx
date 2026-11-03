@@ -10,7 +10,6 @@ import {
   Award,
   FileText,
   Plus,
-  Sparkles,
   Layers,
   Edit3,
 } from 'lucide-react';

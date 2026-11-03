@@ -8,8 +8,7 @@ import {
   Loader2,
   AlertCircle,
   X,
-  Sparkles,
-  ChevronDown,
+    ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { resumesApi, paymentsApi } from '@/lib/api';
@@ -258,7 +257,7 @@ export default function ImportPdfModal({
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
             <div>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4" style={{ color: BRAND_CONFIG.colors.primary }} />
+                <Upload className="w-4 h-4" style={{ color: BRAND_CONFIG.colors.primary }} />
                 <h3 className="text-sm font-bold text-[#EDEDF2]">Import Resume with Wiser AI</h3>
               </div>
               <p className="text-[11px] text-[#8E94A5] mt-0.5">

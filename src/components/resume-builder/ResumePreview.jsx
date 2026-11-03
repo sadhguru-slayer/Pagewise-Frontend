@@ -150,6 +150,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
             if (onSelectHeader) onSelectHeader();
           }
         }}
+        id="preview-header"
         className={`resume-header group relative rounded-sm ${
           activeSectionId === 'header' ? 'active-section ring-2 ring-blue-500 bg-blue-50/15' : ''
         }`}
@@ -159,9 +160,28 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
         }}
         title="Click to edit Resume Header (click again to unselect)"
       >
-        <span className="absolute top-0 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow pointer-events-none font-sans font-medium z-10">
-          {activeSectionId === 'header' ? 'Editing Header (Click to unselect)' : 'Edit Header ✎'}
-        </span>
+        {activeSectionId === 'header' ? (
+          <span className="absolute -top-3 right-1 z-20 flex items-center gap-1.5 bg-[#181B26] border border-[#D49A6A]/60 shadow-lg px-2 py-0.5 rounded-full text-[9px] font-sans font-semibold text-[#D49A6A] select-none pointer-events-auto">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D49A6A] animate-pulse" />
+            <span>Editing Header</span>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveSectionId(null);
+              }}
+              className="ml-1 text-zinc-400 hover:text-white cursor-pointer px-0.5"
+              title="Deselect header"
+            >
+              ✕
+            </span>
+          </span>
+        ) : (
+          <span className="absolute top-0 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900/90 border border-white/10 text-zinc-300 text-[9px] px-2 py-0.5 rounded shadow pointer-events-none font-sans font-medium z-10">
+            Edit Header ✎
+          </span>
+        )}
         <h1
           className="header-name"
           style={{
@@ -229,6 +249,7 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
                 if (onSelectSection) onSelectSection(section.id);
               }
             }}
+            id={`preview-section-${section.id}`}
             className={`section-container group relative rounded-sm ${
               isCurrentActive ? 'active-section' : ''
             }`}
@@ -237,13 +258,29 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
             }}
             title={isCurrentActive ? "Selected (click again to unselect)" : "Click to edit this section"}
           >
-            <span
-              className={`absolute top-0 right-1 transition-opacity ${
-                isCurrentActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-              } bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow pointer-events-none font-sans font-medium flex items-center gap-1 z-10`}
-            >
-              <span>{isCurrentActive ? 'Click to Unselect ✕' : 'Click to Edit ✎'}</span>
-            </span>
+            {isCurrentActive ? (
+              <span className="absolute -top-3 right-1 z-20 flex items-center gap-1.5 bg-[#181B26] border border-[#D49A6A]/60 shadow-lg px-2 py-0.5 rounded-full text-[9px] font-sans font-semibold text-[#D49A6A] select-none pointer-events-auto">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D49A6A] animate-pulse" />
+                <span>Selected</span>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveSectionId(null);
+                    if (onSelectSection) onSelectSection(null);
+                  }}
+                  className="ml-1 text-zinc-400 hover:text-white cursor-pointer px-0.5"
+                  title="Deselect section"
+                >
+                  ✕
+                </span>
+              </span>
+            ) : (
+              <span className="absolute top-0 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900/90 border border-white/10 text-zinc-300 text-[9px] px-2 py-0.5 rounded shadow pointer-events-none font-sans font-medium z-10">
+                Click to Edit ✎
+              </span>
+            )}
 
             {/* Section heading */}
             <div style={{ textAlign: section.headingAlign ?? 'left' }}>
@@ -386,16 +423,33 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
         }
         .resume-preview-interactive .section-container {
           cursor: pointer;
-          transition: outline 0.12s ease;
+          transition: all 0.15s ease;
+          border-radius: 3px;
         }
         .resume-preview-interactive .section-container:hover {
-          outline: 1.5px dashed rgba(59, 130, 246, 0.5) !important;
+          outline: 1.5px solid rgba(212, 154, 106, 0.45) !important;
           outline-offset: 2px !important;
+          background-color: rgba(212, 154, 106, 0.02) !important;
         }
         .resume-preview-interactive .section-container.active-section {
-          outline: 2px solid #3b82f6 !important;
+          outline: 2px solid #D49A6A !important;
+          outline-offset: 3px !important;
+          background-color: rgba(212, 154, 106, 0.04) !important;
+        }
+        .resume-preview-interactive .resume-header {
+          cursor: pointer;
+          transition: all 0.15s ease;
+          border-radius: 3px;
+        }
+        .resume-preview-interactive .resume-header:hover {
+          outline: 1.5px solid rgba(212, 154, 106, 0.45) !important;
           outline-offset: 2px !important;
-          background-color: rgba(59, 130, 246, 0.03);
+          background-color: rgba(212, 154, 106, 0.02) !important;
+        }
+        .resume-preview-interactive .resume-header.active-section {
+          outline: 2px solid #D49A6A !important;
+          outline-offset: 3px !important;
+          background-color: rgba(212, 154, 106, 0.04) !important;
         }
       `}</style>
 

@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   Send,
   AlertCircle,
-  Sparkles,
+  Target, Award,
   Bug,
   Lightbulb,
   HelpCircle,
@@ -20,10 +20,10 @@ import { feedbackApi } from '@/lib/api';
 import { BRAND_CONFIG } from '@/lib/brand';
 
 const CATEGORIES = [
-  { id: 'pilot_feedback', label: 'Pilot Feedback', icon: Sparkles },
+  { id: 'pilot_feedback', label: 'Pilot Feedback', icon: Award },
   { id: 'bug', label: 'Bug Report', icon: Bug },
   { id: 'feature_request', label: 'Idea / Feature', icon: Lightbulb },
-  { id: 'wiser_ai', label: 'Wiser AI', icon: Sparkles },
+  { id: 'wiser_ai', label: 'Wiser AI', icon: Target },
   { id: 'general', label: 'General', icon: HelpCircle },
 ];
 

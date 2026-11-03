@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Plus,
   Trash2,
   MoveUp,
   MoveDown,
-  Sparkles,
+  Target,
   Type,
   Bold,
   Underline as UnderlineIcon,
@@ -20,6 +20,8 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
+  Eye,
+  Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useResumeStore } from '@/lib/resume/store';
@@ -96,14 +98,143 @@ function TextEditorChips({
   );
 }
 
-// ── Text-Editor Style Bullet Points List ─────────────────────────────────────
+// ── Auto-Resizing Bullet Textarea ────────────────────────────────────────────
+function AutoResizeBulletTextarea({
+  id,
+  value,
+  onChange,
+  onKeyDown,
+  placeholder,
+  isHighlighted,
+  isAppliedFlash,
+}) {
+  const textareaRef = useRef(null);
+
+  const resize = useCallback(() => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${Math.max(26, el.scrollHeight)}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    resize();
+  }, [value, resize]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      id={id}
+      value={value}
+      onChange={(e) => {
+        onChange(e);
+        resize();
+      }}
+      onInput={resize}
+      onKeyDown={onKeyDown}
+      placeholder={placeholder}
+      rows={1}
+      className={`flex-1 outline-none text-xs text-zinc-100 placeholder:text-zinc-600 resize-none leading-relaxed py-1 px-1.5 rounded-md transition-all duration-300 overflow-hidden ${
+        isAppliedFlash
+          ? 'ring-2 ring-emerald-500 bg-emerald-500/20 border border-emerald-500/60 shadow-[0_0_16px_rgba(16,185,129,0.35)]'
+          : isHighlighted
+          ? 'ring-2 ring-[#D49A6A] bg-[#D49A6A]/20 border border-[#D49A6A]/50 shadow-[0_0_16px_rgba(212,154,106,0.45)]'
+          : 'bg-transparent border-none focus:outline-none focus:ring-0'
+      }`}
+    />
+  );
+}
+
+// ── Greedy 1-to-1 Mapping of Wiser Suggestions to Exact Bullet Points ────────
+function mapSuggestionsToBullets(bullets = [], suggestions = []) {
+  if (!bullets.length || !suggestions.length) return {};
+
+  const clean = (str) =>
+    (str || '')
+      .toLowerCase()
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const getTokens = (str) => new Set(clean(str).split(' ').filter((w) => w.length >= 3));
+
+  const candidates = [];
+  suggestions.forEach((sug) => {
+    if (!sug) return;
+    const origText = sug.original_text || '';
+    const origClean = clean(origText);
+    if (!origClean || origClean.length < 8) return;
+    const origTokens = getTokens(origText);
+
+    bullets.forEach((bullet, bIdx) => {
+      const bulletClean = clean(bullet);
+      if (!bulletClean || bulletClean.length < 8) return;
+
+      let score = 0;
+      if (bulletClean === origClean) {
+        score = 1.0;
+      } else if (bulletClean.includes(origClean) || origClean.includes(bulletClean)) {
+        score = 0.85 * (Math.min(bulletClean.length, origClean.length) / Math.max(bulletClean.length, origClean.length));
+      } else if (origTokens.size > 0) {
+        const bulletTokens = getTokens(bullet);
+        let common = 0;
+        origTokens.forEach((t) => {
+          if (bulletTokens.has(t)) common++;
+        });
+        const overlap = common / Math.max(origTokens.size, bulletTokens.size);
+        if (overlap >= 0.40) {
+          score = 0.75 * overlap;
+        }
+      }
+
+      if (score >= 0.40) {
+        candidates.push({ sug, bIdx, score });
+      }
+    });
+  });
+
+  // Sort candidates by score descending
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Greedily match 1 suggestion to at most 1 bullet point (strictly 1-to-1)
+  const matchedBullets = new Set();
+  const matchedSugKeys = new Set();
+  const bulletMap = {};
+
+  candidates.forEach(({ sug, bIdx }) => {
+    const sugKey = sug.id || sug.original_text;
+    if (!matchedBullets.has(bIdx) && !matchedSugKeys.has(sugKey)) {
+      matchedBullets.add(bIdx);
+      matchedSugKeys.add(sugKey);
+      bulletMap[bIdx] = sug;
+    }
+  });
+
+  return bulletMap;
+}
+
+// ── Text-Editor Style Bullet Points List with Inline AI Upgrades ─────────────
 function TextEditorBulletList({
+  itemId,
+  highlightedBulletIdx = null,
+  appliedFlashIdx = null,
   bullets = [],
+  suggestions = [],
+  onApplySuggestion,
+  onDismissSuggestion,
   onChange,
   placeholder = 'List things you did, press Enter to add new list... *',
 }) {
   const [newBulletText, setNewBulletText] = useState('');
   const newBulletInputRef = useRef(null);
+
+  // Map suggestions to bullets strictly 1-to-1 so a suggestion is never replicated across points
+  const bulletSuggestionMap = useMemo(
+    () => mapSuggestionsToBullets(bullets, suggestions),
+    [bullets, suggestions]
+  );
 
   const handleNewBulletKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -129,7 +260,7 @@ function TextEditorBulletList({
       updated.splice(idx + 1, 0, '');
       onChange(updated);
       setTimeout(() => {
-        const nextInput = document.getElementById(`bullet-input-${idx + 1}`);
+        const nextInput = document.getElementById(`bullet-input-${itemId || 'default'}-${idx + 1}`);
         if (nextInput) nextInput.focus();
       }, 30);
     } else if (e.key === 'Backspace' && !bullets[idx] && bullets.length > 1) {
@@ -137,7 +268,7 @@ function TextEditorBulletList({
       const updated = bullets.filter((_, i) => i !== idx);
       onChange(updated);
       setTimeout(() => {
-        const prevInput = document.getElementById(`bullet-input-${Math.max(0, idx - 1)}`);
+        const prevInput = document.getElementById(`bullet-input-${itemId || 'default'}-${Math.max(0, idx - 1)}`);
         if (prevInput) prevInput.focus();
       }, 30);
     }
@@ -153,29 +284,76 @@ function TextEditorBulletList({
       {/* Existing Bullets rendered as semantic <ul> <li> */}
       {bullets.length > 0 && (
         <ul className="pl-5 space-y-1.5 list-disc text-zinc-400">
-          {bullets.map((bullet, idx) => (
-            <li key={idx} className="group pl-1 text-xs">
-              <div className="flex items-start gap-2">
-                <textarea
-                  id={`bullet-input-${idx}`}
-                  rows={Math.max(1, Math.ceil((bullet?.length || 0) / 75))}
-                  value={bullet}
-                  onChange={(e) => handleBulletChange(idx, e.target.value)}
-                  onKeyDown={(e) => handleExistingBulletKeyDown(e, idx)}
-                  placeholder="Describe accomplishment or responsibility..."
-                  className="flex-1 bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-xs text-zinc-100 placeholder:text-zinc-600 resize-none leading-relaxed py-0.5"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeBullet(idx)}
-                  className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-rose-400 transition-opacity cursor-pointer text-base px-1 leading-none select-none"
-                  title="Remove bullet"
-                >
-                  ×
-                </button>
-              </div>
-            </li>
-          ))}
+          {bullets.map((bullet, idx) => {
+            const matchingSug = bulletSuggestionMap[idx];
+
+            return (
+              <li key={idx} className="group pl-1 text-xs">
+                <div className="flex items-start gap-2">
+                  <AutoResizeBulletTextarea
+                    id={`bullet-input-${itemId || 'default'}-${idx}`}
+                    value={bullet}
+                    onChange={(e) => handleBulletChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleExistingBulletKeyDown(e, idx)}
+                    placeholder="Describe accomplishment or responsibility..."
+                    isHighlighted={highlightedBulletIdx === idx}
+                    isAppliedFlash={appliedFlashIdx === idx}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeBullet(idx)}
+                    className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-rose-400 transition-opacity cursor-pointer text-base px-1 leading-none select-none"
+                    title="Remove bullet"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Inline Wiser AI Suggestion Chip (Appears ONLY on the matched point) */}
+                {matchingSug && (
+                  <div className="mt-1.5 mb-2 ml-1 p-2.5 rounded-xl bg-[#111420] border border-amber-500/35 text-xs text-zinc-200 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200 shadow-md">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 font-semibold uppercase tracking-wider border border-amber-500/30 flex items-center gap-1">
+                          💡 Wiser AI Upgrade
+                        </span>
+                        {matchingSug.change_type && (
+                          <span className="text-[9px] font-mono text-zinc-400 uppercase">
+                            {matchingSug.change_type.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onApplySuggestion?.(itemId, idx, matchingSug)}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 hover:border-emerald-500/60 transition-all flex items-center gap-1 cursor-pointer shadow-sm active:scale-95"
+                          title="Apply this enhancement to this point & dismiss"
+                        >
+                          <Check className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
+                          <span>Apply</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDismissSuggestion?.(matchingSug)}
+                          className="p-1 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                          title="Dismiss / Reject this suggestion"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      className="text-zinc-200 text-xs leading-relaxed pl-2 border-l-2 border-amber-500/40 font-sans"
+                      dangerouslySetInnerHTML={{
+                        __html: matchingSug.enhanced_html || matchingSug.enhanced_text || matchingSug.original_text,
+                      }}
+                    />
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -333,15 +511,34 @@ export default function StructuredSectionEditor({ onCollapse }) {
     addKeywordToResume,
   } = useResumeStore();
 
-  const resolvedSectionId = activeSectionId || sections[0]?.id;
-  const section = sections.find((s) => s.id === resolvedSectionId);
-  const sectionType = getSectionType(section);
-  const isStructured = isStructuredSection(section);
+  const section = activeSectionId ? sections.find((s) => s.id === activeSectionId) : null;
+  const sectionType = section ? getSectionType(section) : null;
+  const isStructured = section ? isStructuredSection(section) : false;
 
   const [showJdPanel, setShowJdPanel] = useState(false);
+  const [highlightedTarget, setHighlightedTarget] = useState(null); // { itemId, bulletIdx, ts }
+  const [appliedFlashTarget, setAppliedFlashTarget] = useState(null); // { itemId, bulletIdx, ts }
+
+  useEffect(() => {
+    if (highlightedTarget) {
+      const timer = setTimeout(() => {
+        setHighlightedTarget(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedTarget]);
+
+  useEffect(() => {
+    if (appliedFlashTarget) {
+      const timer = setTimeout(() => {
+        setAppliedFlashTarget(null);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [appliedFlashTarget]);
 
   // Clear highlight timer
-  const isHighlighted = Boolean(highlightedSectionId && highlightedSectionId === resolvedSectionId);
+  const isHighlighted = Boolean(highlightedSectionId && highlightedSectionId === activeSectionId);
   useEffect(() => {
     if (isHighlighted) {
       setShowJdPanel(true);
@@ -352,26 +549,27 @@ export default function StructuredSectionEditor({ onCollapse }) {
     }
   }, [isHighlighted, setHighlightedSectionId]);
 
-  // Ensure structured sections have initialized items
+  // Ensure structured sections have initialized items without marking dirty
   useEffect(() => {
     if (!section || !isStructured) return;
     if (!Array.isArray(section.items) || section.items.length === 0) {
       const converted = convertLegacySectionToStructured(section);
-      if (converted.items && converted.items.length > 0) {
-        updateSectionItems(section.id, converted.items);
-      } else {
-        updateSectionItems(section.id, [createDefaultSectionItem(sectionType)]);
-      }
+      const itemsToSet = converted.items && converted.items.length > 0
+        ? converted.items
+        : [createDefaultSectionItem(sectionType)];
+      useResumeStore.setState((s) => ({
+        sections: s.sections.map((sec) => sec.id === section.id ? { ...sec, items: itemsToSet } : sec)
+      }));
     }
-  }, [section?.id, isStructured]);
+  }, [section?.id, isStructured, sectionType]);
 
-  if (!section) {
+  if (!activeSectionId || !section) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0b0c13] text-zinc-500">
         <Layers className="w-8 h-8 mb-2 text-zinc-600" />
-        <p className="text-sm">No section selected.</p>
-        <p className="text-xs mt-1 text-zinc-600">
-          Click any section in the resume preview or choose from the left menu to start editing.
+        <p className="text-sm font-semibold text-zinc-300">No Section Selected</p>
+        <p className="text-xs mt-1 text-zinc-500 max-w-xs">
+          Click any section directly on the resume canvas to edit, or select a section from the left navigation panel.
         </p>
       </div>
     );
@@ -388,30 +586,30 @@ export default function StructuredSectionEditor({ onCollapse }) {
     : [createDefaultSectionItem(sectionType)];
 
   const handleUpdateItem = (itemId, patch) => {
-    updateSectionItem(resolvedSectionId, itemId, patch);
+    updateSectionItem(activeSectionId, itemId, patch);
   };
 
   const handleAddItem = () => {
-    addSectionItem(resolvedSectionId, createDefaultSectionItem(sectionType));
+    addSectionItem(activeSectionId, createDefaultSectionItem(sectionType));
   };
 
   const handleRemoveItem = (itemId) => {
     if (items.length <= 1) {
-      updateSectionItem(resolvedSectionId, itemId, createDefaultSectionItem(sectionType));
+      updateSectionItem(activeSectionId, itemId, createDefaultSectionItem(sectionType));
       toast('Reset to blank item', { icon: 'ℹ️' });
     } else {
-      removeSectionItem(resolvedSectionId, itemId);
+      removeSectionItem(activeSectionId, itemId);
     }
   };
 
   const handleReorderItems = (fromIdx, toIdx) => {
-    reorderSectionItems(resolvedSectionId, fromIdx, toIdx);
+    reorderSectionItems(activeSectionId, fromIdx, toIdx);
   };
 
   // JD Suggestions
   const currentSectionEnhancements = activeJdAnalysis?.section_enhancements?.find(
     (s) =>
-      s.section_id === resolvedSectionId ||
+      s.section_id === activeSectionId ||
       s.section_title?.toLowerCase().trim() === section?.title?.toLowerCase().trim()
   );
   const suggestions = currentSectionEnhancements?.suggestions || [];
@@ -419,23 +617,69 @@ export default function StructuredSectionEditor({ onCollapse }) {
   const recommendedKeywords = activeJdAnalysis?.ats_check?.recommended_keywords || [];
   const unaddedKeywords = Array.from(new Set([...missingKeywords, ...recommendedKeywords]));
 
-  const getSuggestionKey = (sug, idx) =>
-    sug.id || `${resolvedSectionId}-${idx}-${sug.original_text || sug.enhanced_html}`;
+  const getSuggestionKey = (sug) => {
+    if (!sug) return '';
+    if (sug.id) return String(sug.id);
+    const textSig = (sug.original_text || sug.enhanced_html || sug.enhanced_text || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60);
+    return `${activeSectionId}-${textSig}`;
+  };
 
-  const isSuggestionDismissed = (sug, idx) => {
-    const key = getSuggestionKey(sug, idx);
+  const isSuggestionDismissed = (sug) => {
+    const key = getSuggestionKey(sug);
     return dismissedSuggestionKeys.includes(key);
   };
 
-  const activeSuggestions = suggestions.filter((sug, idx) => !isSuggestionDismissed(sug, idx));
+  const activeSuggestions = suggestions.filter((sug) => !isSuggestionDismissed(sug));
 
-  const isSuggestionApplied = (sug, idx) => {
-    const key = getSuggestionKey(sug, idx);
+  const isSuggestionApplied = (sug) => {
+    const key = getSuggestionKey(sug);
     return appliedSuggestionKeys.includes(key);
   };
 
-  const handleApplySuggestion = (sug, idx) => {
-    const key = getSuggestionKey(sug, idx);
+  const handleLocateSuggestion = (sug) => {
+    const origText = (sug?.original_text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    let foundItemId = null;
+    let foundBulletIdx = -1;
+
+    if (origText) {
+      items.forEach((it) => {
+        if (Array.isArray(it.points)) {
+          it.points.forEach((pt, bIdx) => {
+            if (foundBulletIdx === -1 && pt.toLowerCase().includes(origText.slice(0, 25))) {
+              foundItemId = it.id;
+              foundBulletIdx = bIdx;
+            }
+          });
+        }
+      });
+    }
+
+    if (foundItemId === null && items.length > 0) {
+      foundItemId = items[0].id;
+      foundBulletIdx = 0;
+    }
+
+    if (foundItemId !== null && foundBulletIdx !== -1) {
+      setHighlightedTarget({ itemId: foundItemId, bulletIdx: foundBulletIdx, ts: Date.now() });
+      setTimeout(() => {
+        const el = document.getElementById(`bullet-input-${foundItemId}-${foundBulletIdx}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+      }, 60);
+      toast('Target bullet located & highlighted', { icon: '🎯' });
+    } else {
+      toast.error('Could not locate original bullet in this section.');
+    }
+  };
+
+  const handleApplySuggestion = (sug) => {
+    const key = getSuggestionKey(sug);
     const cleanText = (sug.enhanced_html || sug.original_text || '')
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
@@ -445,12 +689,16 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
     const origText = (sug.original_text || '').replace(/\s+/g, ' ').trim().toLowerCase();
     let replaced = false;
+    let targetItemId = null;
+    let targetBulletIdx = -1;
 
     const updatedItems = items.map((it) => {
       if (Array.isArray(it.points)) {
-        const nextPoints = it.points.map((pt) => {
+        const nextPoints = it.points.map((pt, bIdx) => {
           if (!replaced && origText && pt.toLowerCase().includes(origText.slice(0, 30))) {
             replaced = true;
+            targetItemId = it.id;
+            targetBulletIdx = bIdx;
             return cleanText;
           }
           return pt;
@@ -461,19 +709,69 @@ export default function StructuredSectionEditor({ onCollapse }) {
     });
 
     if (replaced) {
-      updateSectionItems(resolvedSectionId, updatedItems);
+      updateSectionItems(activeSectionId, updatedItems);
       markSuggestionApplied?.(key);
-      toast.success('Replaced original bullet in-place!');
+      dismissSuggestion?.(key);
+      setAppliedFlashTarget({ itemId: targetItemId, bulletIdx: targetBulletIdx, ts: Date.now() });
+      setTimeout(() => {
+        const el = document.getElementById(`bullet-input-${targetItemId}-${targetBulletIdx}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+      }, 60);
+      toast.success('Applied upgrade to bullet!', { icon: '✅' });
       return;
     }
 
     const firstItem = { ...updatedItems[0] };
+    const newIdx = (firstItem.points || []).length;
     firstItem.points = [...(firstItem.points || []).filter(Boolean), cleanText];
     updatedItems[0] = firstItem;
 
-    updateSectionItems(resolvedSectionId, updatedItems);
+    updateSectionItems(activeSectionId, updatedItems);
     markSuggestionApplied?.(key);
-    toast.success('Added recommendation to bullet list!');
+    dismissSuggestion?.(key);
+    setAppliedFlashTarget({ itemId: firstItem.id, bulletIdx: newIdx, ts: Date.now() });
+    setTimeout(() => {
+      const el = document.getElementById(`bullet-input-${firstItem.id}-${newIdx}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      }
+    }, 60);
+    toast.success('Added recommendation to bullet list!', { icon: '✅' });
+  };
+
+  const handleApplyInlineSuggestion = (itemId, bulletIdx, sug) => {
+    const key = getSuggestionKey(sug);
+    const cleanText = (sug.enhanced_html || sug.enhanced_text || sug.original_text || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanText) return;
+
+    const updatedItems = items.map((it) => {
+      if (it.id === itemId && Array.isArray(it.points)) {
+        const nextPoints = [...it.points];
+        nextPoints[bulletIdx] = cleanText;
+        return { ...it, points: nextPoints };
+      }
+      return it;
+    });
+
+    updateSectionItems(activeSectionId, updatedItems);
+    markSuggestionApplied?.(key);
+    dismissSuggestion?.(key);
+    setAppliedFlashTarget({ itemId, bulletIdx, ts: Date.now() });
+    toast.success('Applied upgrade to point!', { icon: '✅' });
+  };
+
+  const handleDismissInlineSuggestion = (sug) => {
+    const key = getSuggestionKey(sug);
+    dismissSuggestion?.(key);
+    toast('Suggestion dismissed', { icon: '🗑️' });
   };
 
   return (
@@ -494,7 +792,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           <input
             type="text"
             value={section.title || ''}
-            onChange={(e) => renameSection(resolvedSectionId, e.target.value)}
+            onChange={(e) => renameSection(activeSectionId, e.target.value)}
             className="bg-zinc-800/60 hover:bg-zinc-800 focus:bg-zinc-900 border border-zinc-700/60 focus:border-blue-500 rounded px-2 py-0.5 text-xs font-bold text-white focus:outline-none transition-colors w-full max-w-[180px]"
             placeholder="Section Title"
             title="Edit Section Heading Name"
@@ -512,7 +810,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
               max={28}
               step={0.5}
               value={section.headingFontSize ?? Number(((settings?.bodyFontSize ?? 8.5) * 1.18).toFixed(1))}
-              onChange={(e) => updateSectionSettings(resolvedSectionId, { headingFontSize: Number(e.target.value) })}
+              onChange={(e) => updateSectionSettings(activeSectionId, { headingFontSize: Number(e.target.value) })}
               className="w-9 bg-transparent text-[11px] text-zinc-200 font-mono text-center focus:outline-none"
             />
             <span className="text-[9px] text-zinc-500 font-mono">pt</span>
@@ -523,7 +821,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           {/* Heading Bold */}
           <button
             type="button"
-            onClick={() => updateSectionSettings(resolvedSectionId, { headingBold: section.headingBold === false })}
+            onClick={() => updateSectionSettings(activeSectionId, { headingBold: section.headingBold === false })}
             className={`p-1 rounded transition-colors cursor-pointer ${
               section.headingBold !== false ? 'bg-blue-600/30 text-blue-300 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
@@ -535,7 +833,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           {/* Heading Underline */}
           <button
             type="button"
-            onClick={() => updateSectionSettings(resolvedSectionId, { headingUnderline: !section.headingUnderline })}
+            onClick={() => updateSectionSettings(activeSectionId, { headingUnderline: !section.headingUnderline })}
             className={`p-1 rounded transition-colors cursor-pointer ${
               section.headingUnderline ? 'bg-blue-600/30 text-blue-300' : 'text-zinc-400 hover:text-white'
             }`}
@@ -549,7 +847,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           {/* Heading Alignment */}
           <button
             type="button"
-            onClick={() => updateSectionSettings(resolvedSectionId, { headingAlign: 'left' })}
+            onClick={() => updateSectionSettings(activeSectionId, { headingAlign: 'left' })}
             className={`p-1 rounded transition-colors cursor-pointer ${
               !section.headingAlign || section.headingAlign === 'left' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
             }`}
@@ -559,7 +857,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           </button>
           <button
             type="button"
-            onClick={() => updateSectionSettings(resolvedSectionId, { headingAlign: 'center' })}
+            onClick={() => updateSectionSettings(activeSectionId, { headingAlign: 'center' })}
             className={`p-1 rounded transition-colors cursor-pointer ${
               section.headingAlign === 'center' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
             }`}
@@ -569,7 +867,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           </button>
           <button
             type="button"
-            onClick={() => updateSectionSettings(resolvedSectionId, { headingAlign: 'right' })}
+            onClick={() => updateSectionSettings(activeSectionId, { headingAlign: 'right' })}
             className={`p-1 rounded transition-colors cursor-pointer ${
               section.headingAlign === 'right' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
             }`}
@@ -583,7 +881,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           {/* Line below heading toggle */}
           <button
             type="button"
-            onClick={() => updateSectionSettings(resolvedSectionId, { showDividerAfterHeading: !section.showDividerAfterHeading })}
+            onClick={() => updateSectionSettings(activeSectionId, { showDividerAfterHeading: !section.showDividerAfterHeading })}
             className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
               section.showDividerAfterHeading
                 ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40'
@@ -600,9 +898,9 @@ export default function StructuredSectionEditor({ onCollapse }) {
             type="button"
             onClick={() => {
               if (section.dividerAfter) {
-                updateSectionDivider(resolvedSectionId, null);
+                updateSectionDivider(activeSectionId, null);
               } else {
-                updateSectionDivider(resolvedSectionId, {
+                updateSectionDivider(activeSectionId, {
                   color: '#d1d5db',
                   thickness: 1,
                   marginTop: 2,
@@ -636,44 +934,69 @@ export default function StructuredSectionEditor({ onCollapse }) {
         )}
       </div>
 
-      {/* ── Optional JD Enhancements Accordion Bar ──────────────────────────── */}
-      {suggestions.length > 0 && (
-        <div className="bg-[#121422] border-b border-indigo-500/20 px-4 py-2 shrink-0">
+      {/* ── Optional JD Enhancements Accordion Bar (Only shown if suggestions exist) ─ */}
+      {activeSuggestions.length > 0 && (
+        <div className="bg-[#12141D] border-b border-[#D49A6A]/20 px-4 py-2 shrink-0">
           <button
             type="button"
             onClick={() => setShowJdPanel((prev) => !prev)}
-            className="flex items-center gap-2 text-xs font-semibold text-indigo-300 hover:text-white transition-colors cursor-pointer w-full justify-between"
+            className="flex items-center gap-2 text-xs font-semibold text-[#D49A6A] hover:text-white transition-colors cursor-pointer w-full justify-between"
           >
             <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <Target className="w-3.5 h-3.5 text-[#D49A6A]" />
               <span>Wiser AI Suggestions for this section ({activeSuggestions.length})</span>
             </div>
-            <span className="text-[10px] text-zinc-500">
+            <span className="text-[10px] text-zinc-400">
               {showJdPanel ? 'Hide ▲' : 'Show ▼'}
             </span>
           </button>
 
           {showJdPanel && (
             <div className="mt-2 space-y-2 max-h-56 overflow-y-auto pr-1">
-              {activeSuggestions.map((sug, idx) => {
-                const applied = isSuggestionApplied(sug, idx);
-                const sugKey = getSuggestionKey(sug, idx);
+              {activeSuggestions.map((sug) => {
+                const applied = isSuggestionApplied(sug);
+                const sugKey = getSuggestionKey(sug);
+
+                // Locate matching item & bullet point
+                const origText = (sug.original_text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+                let matchedTitle = '';
+                let matchedBulletIdx = -1;
+                if (origText) {
+                  items.forEach((it, iIdx) => {
+                    if (Array.isArray(it.points)) {
+                      it.points.forEach((pt, bIdx) => {
+                        if (matchedBulletIdx === -1 && pt.toLowerCase().includes(origText.slice(0, 25))) {
+                          matchedTitle = it.company || it.project_title || it.institution || it.title || `Entry #${iIdx + 1}`;
+                          matchedBulletIdx = bIdx + 1;
+                        }
+                      });
+                    }
+                  });
+                }
 
                 return (
                   <div
                     key={sugKey}
-                    className="p-2.5 rounded-lg bg-indigo-950/30 border border-indigo-500/20 text-xs space-y-1.5"
+                    className="p-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:border-[#D49A6A]/30 text-xs space-y-1.5 transition-colors"
                   >
-                    {sug.original_text && (
-                      <p className="text-[11px] text-zinc-400 line-through">
-                        {sug.original_text}
-                      </p>
+                    {matchedTitle && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-[#D49A6A] bg-[#D49A6A]/10 border border-[#D49A6A]/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                          <span>Target:</span>
+                          <strong>{matchedTitle} • Bullet #{matchedBulletIdx}</strong>
+                        </span>
+                      </div>
                     )}
-                    <p className="text-zinc-200 font-medium">
+                    {sug.original_text && (
+                      <div className="text-[11px] text-zinc-400 line-through pl-1 border-l-2 border-rose-500/40">
+                        {sug.original_text}
+                      </div>
+                    )}
+                    <div className="text-zinc-200 font-medium pl-1 border-l-2 border-emerald-500/60">
                       {sug.enhanced_text || sug.enhanced_html?.replace(/<[^>]+>/g, ' ')}
-                    </p>
+                    </div>
                     {sug.rationale && (
-                      <p className="text-[10px] text-indigo-300/80">
+                      <p className="text-[10px] text-zinc-400">
                         💡 {sug.rationale}
                       </p>
                     )}
@@ -685,16 +1008,17 @@ export default function StructuredSectionEditor({ onCollapse }) {
                         <button
                           type="button"
                           onClick={() => dismissSuggestion(sugKey)}
-                          className="px-2 py-0.5 rounded text-[10px] text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors"
+                          className="px-2 py-0.5 rounded text-[10px] text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors cursor-pointer"
                         >
                           Dismiss
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleApplySuggestion(sug, idx)}
-                          className="px-2.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors cursor-pointer"
+                          onClick={() => handleApplySuggestion(sug)}
+                          className="px-2.5 py-0.5 rounded text-[10px] font-semibold bg-[#D49A6A] hover:bg-[#C88A58] text-black transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
                         >
-                          {applied ? 'Add Another' : 'Apply'}
+                          <Check className="w-3 h-3 text-black stroke-[2.5]" />
+                          <span>Apply</span>
                         </button>
                       </div>
                     </div>
@@ -872,7 +1196,13 @@ export default function StructuredSectionEditor({ onCollapse }) {
                 {/* Bullet Points List */}
                 <div className="field pt-1">
                   <TextEditorBulletList
+                    itemId={item.id}
+                    highlightedBulletIdx={highlightedTarget?.itemId === item.id ? highlightedTarget.bulletIdx : null}
+                    appliedFlashIdx={appliedFlashTarget?.itemId === item.id ? appliedFlashTarget.bulletIdx : null}
                     bullets={Array.isArray(item.points) ? item.points : []}
+                    suggestions={activeSuggestions}
+                    onApplySuggestion={handleApplyInlineSuggestion}
+                    onDismissSuggestion={handleDismissInlineSuggestion}
                     onChange={(points) => handleUpdateItem(item.id, { points })}
                     placeholder="List things you did, press Enter to add new list... *"
                   />
@@ -992,7 +1322,13 @@ export default function StructuredSectionEditor({ onCollapse }) {
                 {/* Coursework & Honors Bullets */}
                 <div className="field pt-1">
                   <TextEditorBulletList
+                    itemId={item.id}
+                    highlightedBulletIdx={highlightedTarget?.itemId === item.id ? highlightedTarget.bulletIdx : null}
+                    appliedFlashIdx={appliedFlashTarget?.itemId === item.id ? appliedFlashTarget.bulletIdx : null}
                     bullets={Array.isArray(item.points) ? item.points : []}
+                    suggestions={activeSuggestions}
+                    onApplySuggestion={handleApplyInlineSuggestion}
+                    onDismissSuggestion={handleDismissInlineSuggestion}
                     onChange={(points) => handleUpdateItem(item.id, { points })}
                     placeholder="List coursework, leadership, or honors, press Enter to add..."
                   />
@@ -1116,7 +1452,13 @@ export default function StructuredSectionEditor({ onCollapse }) {
                 {/* Impact Bullets */}
                 <div className="field pt-1">
                   <TextEditorBulletList
+                    itemId={item.id}
+                    highlightedBulletIdx={highlightedTarget?.itemId === item.id ? highlightedTarget.bulletIdx : null}
+                    appliedFlashIdx={appliedFlashTarget?.itemId === item.id ? appliedFlashTarget.bulletIdx : null}
                     bullets={Array.isArray(item.points) ? item.points : []}
+                    suggestions={activeSuggestions}
+                    onApplySuggestion={handleApplyInlineSuggestion}
+                    onDismissSuggestion={handleDismissInlineSuggestion}
                     onChange={(points) => handleUpdateItem(item.id, { points })}
                     placeholder="List key features and accomplishments, press Enter to add... *"
                   />
@@ -1148,7 +1490,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
             {unaddedKeywords.length > 0 && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <Target className="w-3.5 h-3.5 text-amber-400" />
                   <span>Missing Skills from Job Description</span>
                 </div>
                 <p className="text-[11px] text-zinc-400">

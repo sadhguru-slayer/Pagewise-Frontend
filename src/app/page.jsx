@@ -23,7 +23,6 @@ import {
   ArrowUpRight,
   Eye,
   FileDown,
-  Sparkles,
   Layers,
   Lock,
   AlertTriangle,
@@ -220,7 +219,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-center sm:justify-start gap-1 p-1 mb-3 rounded-2xl bg-[#0D0E14] border border-white/[0.06] max-w-fit mx-auto sm:mx-0 overflow-x-auto">
             {[
               { id: 'editor', label: '1. Visual A4 Canvas', icon: Layout },
-              { id: 'ai', label: '2. Grounded AI Writing', icon: Sparkles },
+              { id: 'ai', label: '2. Grounded AI Writing', icon: Zap },
               { id: 'export', label: '3. Dual PDF & Word Export', icon: Download },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -410,7 +409,7 @@ export default function LandingPage() {
                   <div className="p-5 rounded-xl bg-[#111420] border border-[#C88A58]/30 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono uppercase text-[#C88A58] font-semibold flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-[#C88A58]" />
+                        <Zap className="w-3 h-3 text-[#C88A58]" />
                         <span>Wiser Recommended Upgrade</span>
                       </span>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">

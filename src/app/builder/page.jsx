@@ -40,7 +40,9 @@ import {
   BookmarkPlus,
   MoreVertical,
   Download,
-  Sparkles,
+  Star,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
@@ -85,6 +87,10 @@ function BuilderContent() {
   const loadResume = useResumeStore((s) => s.loadResume);
   const activeSectionId = useResumeStore((s) => s.activeSectionId);
   const setActiveSectionId = useResumeStore((s) => s.setActiveSectionId);
+  const undo = useResumeStore((s) => s.undo);
+  const redo = useResumeStore((s) => s.redo);
+  const canUndo = useResumeStore((s) => s.canUndo);
+  const canRedo = useResumeStore((s) => s.canRedo);
 
   const saveTimeoutRef = useRef(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -145,7 +151,7 @@ function BuilderContent() {
   // ─── Panel Widths & Collapsing States ──────────────────────────────────────
   const [leftWidth, setLeftWidth] = useState(310);
   const [editorWidth, setEditorWidth] = useState(440);
-  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(true);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
   const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(false);
 
@@ -258,14 +264,49 @@ function BuilderContent() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+      if (!isCmdOrCtrl) return;
+
+      if (e.key === 's' || e.key === 'S') {
         e.preventDefault();
         handleManualSave();
+      } else if (e.key === 'z' || e.key === 'Z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          if (canRedo) {
+            redo();
+            toast('Redo', { icon: '↷', duration: 1000 });
+          } else {
+            toast('Nothing left to redo', { icon: 'ℹ️', duration: 1000 });
+          }
+        } else {
+          // If actively typing inside a rich-text Tiptap editor, let Tiptap handle local text undo
+          const isTiptap = Boolean(document.activeElement?.closest('.tiptap, .ProseMirror, [data-tiptap-editor]'));
+          if (isTiptap) {
+            return;
+          }
+
+          e.preventDefault();
+          if (canUndo) {
+            undo();
+            toast('Undo', { icon: '↶', duration: 1000 });
+          } else {
+            toast('Nothing left to undo', { icon: 'ℹ️', duration: 1000 });
+          }
+        }
+      } else if (e.key === 'y' || e.key === 'Y') {
+        e.preventDefault();
+        if (canRedo) {
+          redo();
+          toast('Redo', { icon: '↷', duration: 1000 });
+        } else {
+          toast('Nothing left to redo', { icon: 'ℹ️', duration: 1000 });
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [resumeId, isLocked, resumeName, sections, header, settings]);
+  }, [resumeId, isLocked, resumeName, sections, header, settings, undo, redo, canUndo, canRedo]);
 
   useEffect(() => {
     if (!isDirty || !resumeId || isLocked) return;
@@ -274,11 +315,7 @@ function BuilderContent() {
     return () => clearTimeout(saveTimeoutRef.current);
   }, [isDirty, resumeId, isLocked, saveResume]);
 
-  useEffect(() => {
-    if (sections && sections.length > 0 && !activeSectionId) {
-      setActiveSectionId(sections[0].id);
-    }
-  }, [sections, activeSectionId, setActiveSectionId]);
+
 
   // ─── Save as Template Handler ──────────────────────────────────────────────
   const handleOpenSaveTemplate = () => {
@@ -501,9 +538,7 @@ function BuilderContent() {
           >
             <Target className="w-3.5 h-3.5 text-[#D49A6A]" />
             <span className="hidden sm:inline">Wiser AI</span>
-            <span className="text-[10px] bg-[#C88A58]/20 text-[#D49A6A] px-1.5 py-0.5 rounded font-mono">
-              Audit &amp; Polish
-            </span>
+
           </button>
 
           {/* Pilot Feedback Mail Link */}
@@ -516,15 +551,38 @@ function BuilderContent() {
             <span>Pilot Feedback</span>
           </a>
 
-          {/* Import PDF */}
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="border border-white/10 text-zinc-300 hover:text-white hover:border-white/20 rounded-xl px-3 py-1.5 text-xs flex items-center gap-1.5 transition-colors cursor-pointer bg-white/[0.02]"
-            title="Extract & import an existing resume PDF using Wiser AI"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#D49A6A]" />
-            <span className="hidden sm:inline">Import PDF</span>
-          </button>
+
+
+          {/* Global Undo & Redo (Canva + Word Style) */}
+          <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.08]">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                canUndo
+                  ? 'text-zinc-300 hover:text-white hover:bg-white/[0.08]'
+                  : 'text-zinc-600 cursor-not-allowed opacity-40'
+              }`}
+              title="Undo layout & content changes (Ctrl+Z)"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+            <div className="w-px h-3.5 bg-white/[0.1] my-auto" />
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                canRedo
+                  ? 'text-zinc-300 hover:text-white hover:bg-white/[0.08]'
+                  : 'text-zinc-600 cursor-not-allowed opacity-40'
+              }`}
+              title="Redo layout & content changes (Ctrl+Y or Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Templates */}
           <button
@@ -606,6 +664,16 @@ function BuilderContent() {
                   <CreditCard className="w-4 h-4 text-amber-500" />
                   <span>Subscription &amp; Quotas</span>
                 </button>
+
+                {!isPrimary && (
+                  <button
+                    onClick={() => { setIsStudioMenuOpen(false); handleSetMasterFromBuilder(); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-[#F1F3F9] hover:bg-white/[0.06] transition-colors text-left cursor-pointer border-t border-white/[0.06] mt-1 pt-2"
+                  >
+                    <Star className="w-4 h-4 text-amber-400" />
+                    <span>Set as Master Resume</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -890,7 +958,7 @@ function BuilderContent() {
             </div>
 
             {/* Preview Workspace */}
-            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <div id="preview-panel" tabIndex={-1} className="flex-1 flex flex-col overflow-hidden min-h-0 outline-none">
               <ResumePreview
                 onSelectSection={handleSelectSectionFromPreview}
                 onSelectHeader={handleSelectHeaderFromPreview}

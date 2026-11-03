@@ -86,7 +86,15 @@ function getGradeBadgeCls(score) {
 }
 
 /* ─── Main Component: Wiser AI Career Intelligence Suite ─────────── */
-export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onPromoteToMaster, targetResume = null, allResumes = [] }) {
+export default function JDAnalyzerModal({
+  isOpen,
+  onClose,
+  isLocked = false,
+  onPromoteToMaster,
+  targetResume = null,
+  allResumes = [],
+  onRequestImport = null,
+}) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -145,9 +153,10 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
     targetJobDescription && targetJobDescription.trim().length > 30 ? 'jobhelp' : 'standalone_ats'
   );
 
-  const [jobDescription, setJobDescription] = useState(targetJobDescription || '');
+  const [jobDescription, setJobDescription] = useState(resumeId ? (targetJobDescription || '') : '');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState(activeJdAnalysis || null);
+  const [analysisPhase, setAnalysisPhase] = useState('idle'); // 'idle' | 'sending' | 'analyzing' | 'computing' | 'slow'
+  const [analysisResult, setAnalysisResult] = useState(resumeId ? (activeJdAnalysis || null) : null);
   const [standaloneResult, setStandaloneResult] = useState(null);
   const [activeTab, setActiveTab] = useState('ats'); // 'ats' | 'jobmatch' | 'enhancements'
   const [isCloningResume, setIsCloningResume] = useState(false);
@@ -155,6 +164,40 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
   const [copiedId, setCopiedId] = useState(null);
   const [planStatus, setPlanStatus] = useState(null);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+
+  // Progressive frontend-only status messaging timer during analysis
+  useEffect(() => {
+    if (!isAnalyzing) {
+      setAnalysisPhase('idle');
+      return;
+    }
+    setAnalysisPhase('sending');
+    const t1 = setTimeout(() => setAnalysisPhase('analyzing'), 2500);
+    const t2 = setTimeout(() => setAnalysisPhase('computing'), 7000);
+    const t3 = setTimeout(() => setAnalysisPhase('slow'), 16000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [isAnalyzing]);
+
+  const getAnalysisStatusMessage = () => {
+    switch (analysisPhase) {
+      case 'sending':
+        return 'Uploading resume data to Wiser AI service…';
+      case 'analyzing':
+        return wiserMode === 'jobhelp'
+          ? 'Extracting role requirements, tech stack & density…'
+          : 'Analyzing section structure, impact metrics & power verbs…';
+      case 'computing':
+        return 'Calculating ATS benchmark score & generating bullet upgrades…';
+      case 'slow':
+        return 'Taking a little longer than expected — finalizing grounded upgrades…';
+      default:
+        return 'Analyzing…';
+    }
+  };
 
   const fetchPlanStatus = useCallback(async () => {
     try {
@@ -191,25 +234,32 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
     };
   }, [isOpen, isAnalyzing, isCloningResume, isApplying, onClose]);
 
-  // Synchronize persisted JD text and analysis if available
+  // Synchronize persisted JD text and analysis if available (ONLY when inside builder or for a specific targeted resume)
   useEffect(() => {
     if (isOpen) {
-      if (activeJdAnalysis) {
-        if (activeJdAnalysis.job_analysis) {
-          setAnalysisResult(activeJdAnalysis);
-          setWiserMode('jobhelp');
-        } else if (activeJdAnalysis.inferred_domain) {
-          setStandaloneResult(activeJdAnalysis);
-          setWiserMode('standalone_ats');
-        } else {
-          setAnalysisResult(activeJdAnalysis);
+      if (resumeId) {
+        if (activeJdAnalysis) {
+          if (activeJdAnalysis.job_analysis) {
+            setAnalysisResult(activeJdAnalysis);
+            setWiserMode('jobhelp');
+          } else if (activeJdAnalysis.inferred_domain) {
+            setStandaloneResult(activeJdAnalysis);
+            setWiserMode('standalone_ats');
+          } else {
+            setAnalysisResult(activeJdAnalysis);
+          }
         }
-      }
-      if (targetJobDescription && !jobDescription) {
-        setJobDescription(targetJobDescription);
+        if (targetJobDescription && !jobDescription) {
+          setJobDescription(targetJobDescription);
+        }
+      } else if (!targetResume) {
+        // Opened from Dashboard standalone without target resume — fresh state!
+        setAnalysisResult(null);
+        setStandaloneResult(null);
+        setJobDescription('');
       }
     }
-  }, [isOpen, activeJdAnalysis, targetJobDescription]);
+  }, [isOpen, resumeId, targetResume, activeJdAnalysis, targetJobDescription]);
 
   if (!isOpen || !mounted) return null;
 
@@ -719,6 +769,25 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                     </>
                   )}
                 </button>
+
+                {isAnalyzing && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200 flex items-start gap-2.5 animate-in fade-in duration-300">
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="font-semibold text-amber-300 flex items-center gap-1.5">
+                        <span>Analysis in Progress</span>
+                        {analysisPhase === 'slow' && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200">
+                            Deep Audit
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-zinc-300 leading-relaxed font-sans">
+                        {getAnalysisStatusMessage()}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               /* Standalone ATS Left Panel */
@@ -819,6 +888,25 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                     </>
                   )}
                 </button>
+
+                {isAnalyzing && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200 flex items-start gap-2.5 animate-in fade-in duration-300">
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="font-semibold text-amber-300 flex items-center gap-1.5">
+                        <span>Analysis in Progress</span>
+                        {analysisPhase === 'slow' && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-200">
+                            Deep Audit
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-zinc-300 leading-relaxed font-sans">
+                        {getAnalysisStatusMessage()}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1256,19 +1344,92 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
 
                 {/* ── Action Footer ── */}
                 <div
-                  className="shrink-0 p-4 space-y-3"
+                  className="shrink-0 p-4 space-y-2.5"
                   style={{ borderTop: '1px solid rgba(255,255,255,0.08)', background: '#111420' }}
                 >
-                  <p className="text-xs font-bold text-[#e2e8f0]">Next Steps:</p>
-                  {atWorkspaceCap && wiserMode === 'jobhelp' && (
-                    <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                      Workspace limit reached. Apply Wiser upgrades to this Master resume, then Export — downloads are stored as copies and do not need another workspace.
-                    </p>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {wiserMode === 'jobhelp' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        disabled={isApplying || isCloningResume}
+                        onClick={() => {
+                          if (!resumeId) {
+                            onClose();
+                            router.push(`/builder?id=${effectiveResumeId}&wiser=true`);
+                          } else {
+                            handleApplyToThisResume();
+                          }
+                        }}
+                        className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-60 flex items-center justify-between group hover:border-[#D49A6A]/60"
+                        style={{
+                          background: 'rgba(200, 138, 88, 0.12)',
+                          border: '1.5px solid rgba(200, 138, 88, 0.45)',
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isApplying ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-[#D49A6A]" />
+                          ) : (
+                            <Zap className="w-4 h-4 text-[#D49A6A]" />
+                          )}
+                          <span className="text-xs sm:text-sm font-bold text-white">
+                            {!resumeId ? 'Open in Studio to Apply' : 'Apply Recommendations to Editor'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-[#D49A6A] bg-[#C88A58]/20 px-2 py-0.5 rounded font-semibold">
+                          Active Resume
+                        </span>
+                      </button>
+
+                      {!atWorkspaceCap ? (
+                        <button
+                          type="button"
+                          disabled={isCloningResume || isApplying}
+                          onClick={handleCreateTargetedResume}
+                          className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-60 flex items-center justify-between group hover:border-blue-400/60"
+                          style={{
+                            background: 'rgba(59,130,246,0.06)',
+                            border: '1.5px solid rgba(59,130,246,0.35)',
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isCloningResume ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-[#3b82f6]" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-[#3b82f6]" />
+                            )}
+                            <span className="text-xs sm:text-sm font-bold text-white">
+                              {isCloningResume ? 'Cloning…' : 'Clone as Targeted Resume'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-mono text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded font-semibold">
+                            New Copy
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsPricingModalOpen(true)}
+                          className="p-3 rounded-xl transition-all cursor-pointer flex items-center justify-between group hover:border-blue-400/60"
+                          style={{
+                            background: 'rgba(59,130,246,0.06)',
+                            border: '1.5px solid rgba(59,130,246,0.35)',
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Award className="w-4 h-4 text-[#3b82f6]" />
+                            <span className="text-xs sm:text-sm font-bold text-white">Upgrade for Extra Workspace</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded font-semibold">
+                            Cap Reached
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      disabled={isApplying || isCloningResume}
+                      disabled={isApplying}
                       onClick={() => {
                         if (!resumeId) {
                           onClose();
@@ -1277,103 +1438,21 @@ export default function JDAnalyzerModal({ isOpen, onClose, isLocked = false, onP
                           handleApplyToThisResume();
                         }
                       }}
-                      className="group text-left p-3.5 rounded-xl transition-all cursor-pointer disabled:opacity-60"
+                      className="w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md text-white hover:opacity-95 disabled:opacity-50"
                       style={{
-                        background: 'rgba(200, 138, 88, 0.12)',
-                        border: '1.5px solid rgba(200, 138, 88, 0.45)',
+                        background: 'linear-gradient(135deg, #C88A58, #B87A47)',
                       }}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        {isApplying ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-[#D49A6A]" />
-                        ) : (
-                          <Zap className="w-4 h-4 text-[#D49A6A]" />
-                        )}
-                        <span className="text-xs sm:text-sm font-bold text-white">
-                          {!resumeId
-                            ? 'Open in Studio to Apply Upgrades →'
-                            : isApplying
-                            ? 'Loading into Studio…'
-                            : 'Review & Apply in Editor →'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] leading-relaxed text-[#7E869B]">
-                        {!resumeId
-                          ? 'Transfers these tailored bullet upgrades into the interactive studio.'
-                          : 'Focuses directly on your resume section with suggestions open so you can apply each bullet manually at your cursor.'}
-                      </p>
+                      {isApplying ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      <span>
+                        {!resumeId ? 'Open in Studio to Apply Recommendations' : 'Load Recommendations into Resume Editor'}
+                      </span>
                     </button>
-
-                    {wiserMode === 'jobhelp' && !atWorkspaceCap ? (
-                      <button
-                        type="button"
-                        disabled={isCloningResume || isApplying}
-                        onClick={handleCreateTargetedResume}
-                        className="group text-left p-3.5 rounded-xl transition-all cursor-pointer disabled:opacity-60"
-                        style={{
-                          background: 'rgba(59,130,246,0.06)',
-                          border: '1.5px solid rgba(59,130,246,0.35)',
-                        }}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          {isCloningResume ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-[#3b82f6]" />
-                          ) : (
-                            <Copy className="w-4 h-4 text-[#3b82f6]" />
-                          )}
-                          <span className="text-xs sm:text-sm font-bold text-white">
-                            {isCloningResume ? 'Cloning…' : 'Keep Original · Clone Targeted Copy'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed text-[#6b7280]">
-                          Uses 1 workspace slot. Export later if you want a downloadable snapshot.
-                        </p>
-                      </button>
-                    ) : wiserMode === 'jobhelp' ? (
-                      <button
-                        type="button"
-                        onClick={() => setIsPricingModalOpen(true)}
-                        className="group text-left p-3.5 rounded-xl transition-all cursor-pointer"
-                        style={{
-                          background: 'rgba(59,130,246,0.06)',
-                          border: '1.5px solid rgba(59,130,246,0.35)',
-                        }}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <Award className="w-4 h-4 text-[#3b82f6]" />
-                          <span className="text-xs sm:text-sm font-bold text-white">
-                            Upgrade for Another Workspace
-                          </span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed text-[#6b7280]">
-                          Keep this master and store extra targeted versions in parallel.
-                        </p>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleEnhanceManually}
-                        className="group text-left p-3.5 rounded-xl transition-all cursor-pointer"
-                        style={{
-                          background: 'rgba(16,185,129,0.08)',
-                          border: '1.5px solid rgba(16,185,129,0.4)',
-                        }}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <ArrowDownToLine className="w-4 h-4 text-emerald-400" />
-                          <span className="text-xs sm:text-sm font-bold text-white">
-                            Review &amp; Apply at Cursor →
-                          </span>
-                          <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">
-                            Recommended
-                          </span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed text-[#7E869B]">
-                          Loads upgrades into the editor so you can review and place them with full cursor control.
-                        </p>
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </>
             ) : (

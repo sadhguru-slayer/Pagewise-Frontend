@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, X, Loader2, Shield, Sparkles, ArrowRight, BarChart2, Zap, Layers, FileDown, Clock } from 'lucide-react';
+import { Check, X, Loader2, Shield, ArrowRight, BarChart2, Zap, Layers, FileDown, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { paymentsApi } from '@/lib/api';
 import { loadRazorpayScript } from '@/lib/razorpay';
@@ -214,7 +214,7 @@ export default function PricingModal({
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-[#C88A58]/10 text-[#D49A6A] border border-[#C88A58]/20 flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3" />
+                <Zap className="w-3 h-3" />
                 <span>Subscription &amp; Allowances</span>
               </span>
               <span className="text-xs text-[#8E94A5]">· Razorpay Encrypted</span>
@@ -453,7 +453,7 @@ export default function PricingModal({
                 <div className="space-y-6">
                   {isPilot && (
                     <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-xs text-amber-200">
-                      <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                      <Zap className="w-4 h-4 text-amber-400 shrink-0" />
                       <span>
                         <strong>Early Pilot Access Active:</strong> All premium tools, workspaces, high-speed exports, and Wiser AI evaluations are unlocked for your account. No payment or credit card is required.
                       </span>

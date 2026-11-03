@@ -6,7 +6,40 @@ import { defaultHeader, defaultSections, defaultSettings } from './defaults.js';
 import { generateId, reorder } from './utils.js';
 import { getContactLineHtml } from './renderDocument.js';
 import { renderTiptapJson } from './renderTiptap.js';
-import { renderStructuredSectionHtml, createDefaultSectionItem, isStructuredSection } from './sectionSchemas.js';
+import { renderStructuredSectionHtml, createDefaultSectionItem, isStructuredSection, getSectionType, convertLegacySectionToStructured } from './sectionSchemas.js';
+
+let _lastSnapshotTime = 0;
+const SNAPSHOT_DEBOUNCE_MS = 400;
+
+function createSnapshot(state) {
+  try {
+    return {
+      header: JSON.parse(JSON.stringify(state.header || {})),
+      sections: JSON.parse(JSON.stringify(state.sections || [])),
+      settings: JSON.parse(JSON.stringify(state.settings || {})),
+      resumeName: state.resumeName || 'Untitled Resume',
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+function recordHistory(state, force = false) {
+  const now = Date.now();
+  if (!force && now - _lastSnapshotTime < SNAPSHOT_DEBOUNCE_MS) {
+    return {};
+  }
+  _lastSnapshotTime = now;
+  const snap = createSnapshot(state);
+  if (!snap) return {};
+  const past = [...(state.historyPast || []), snap].slice(-50);
+  return {
+    historyPast: past,
+    historyFuture: [],
+    canUndo: true,
+    canRedo: false,
+  };
+}
 
 export const useResumeStore = create(
   subscribeWithSelector((set, get) => ({
@@ -26,6 +59,12 @@ export const useResumeStore = create(
     lastSaved: null,
     saveError: null,
 
+    // ─── Undo / Redo History ───────────────────────────────────────────────
+    historyPast: [],
+    historyFuture: [],
+    canUndo: false,
+    canRedo: false,
+
     savedResumes: [],
     setSavedResumes: (list) => set({ savedResumes: list }),
 
@@ -37,17 +76,28 @@ export const useResumeStore = create(
     loadResume: (resume) => {
       const rawSections = resume.sectionsJson || resume.sections_json || defaultSections();
       const normalizedSections = (Array.isArray(rawSections) ? rawSections : [])
-        .map((sec, idx) => ({
-          ...sec,
-          order: sec.order ?? idx,
-          visible: sec.visible !== false,
-          content: sec.content ?? sec.contentHtml ?? '',
-          headingAlign: sec.headingAlign ?? 'left',
-          headingBold: sec.headingBold ?? true,
-          headingUppercase: sec.headingUppercase ?? true,
-          showDividerAfterHeading: sec.showDividerAfterHeading ?? true,
-          links: sec.links || [],
-        }))
+        .map((sec, idx) => {
+          const type = getSectionType(sec);
+          const structured = isStructuredSection(sec);
+          let items = sec.items;
+          if (structured && (!Array.isArray(items) || items.length === 0)) {
+            const converted = convertLegacySectionToStructured(sec);
+            items = converted.items && converted.items.length > 0 ? converted.items : [createDefaultSectionItem(type)];
+          }
+          return {
+            ...sec,
+            type,
+            items: items || [],
+            order: sec.order ?? idx,
+            visible: sec.visible !== false,
+            content: sec.content ?? sec.contentHtml ?? '',
+            headingAlign: sec.headingAlign ?? 'left',
+            headingBold: sec.headingBold ?? true,
+            headingUppercase: sec.headingUppercase ?? true,
+            showDividerAfterHeading: sec.showDividerAfterHeading ?? true,
+            links: sec.links || [],
+          };
+        })
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
       const rawHeader = { ...defaultHeader(), ...(resume.headerJson || resume.header_json || {}) };
@@ -59,7 +109,7 @@ export const useResumeStore = create(
         header: rawHeader,
         sections: normalizedSections.length > 0 ? normalizedSections : defaultSections(),
         settings: { ...defaultSettings(), ...(resume.settingsJson || resume.settings_json || {}) },
-        activeSectionId: normalizedSections[0]?.id || null,
+        activeSectionId: null,
         targetJobTitle: resume.target_job_title || resume.targetJobTitle || null,
         targetCompany: resume.target_company || resume.targetCompany || null,
         targetJobDescription: resume.target_job_description || resume.targetJobDescription || null,
@@ -128,19 +178,64 @@ export const useResumeStore = create(
     setSaving: (v) => set({ isSaving: v }),
     setSaveError: (err) => set({ saveError: err, isSaving: false }),
 
+        takeSnapshot: (force = true) => {
+      set((s) => recordHistory(s, force));
+    },
+
+    undo: () => {
+      const { historyPast, historyFuture, header, sections, settings, resumeName } = get();
+      if (!historyPast || historyPast.length === 0) return;
+      const previous = historyPast[historyPast.length - 1];
+      const newPast = historyPast.slice(0, -1);
+      const current = createSnapshot({ header, sections, settings, resumeName });
+
+      set({
+        header: previous.header,
+        sections: previous.sections,
+        settings: previous.settings,
+        resumeName: previous.resumeName,
+        historyPast: newPast,
+        historyFuture: [current, ...(historyFuture || [])].slice(0, 50),
+        canUndo: newPast.length > 0,
+        canRedo: true,
+        isDirty: true,
+      });
+    },
+
+    redo: () => {
+      const { historyPast, historyFuture, header, sections, settings, resumeName } = get();
+      if (!historyFuture || historyFuture.length === 0) return;
+      const next = historyFuture[0];
+      const newFuture = historyFuture.slice(1);
+      const current = createSnapshot({ header, sections, settings, resumeName });
+
+      set({
+        header: next.header,
+        sections: next.sections,
+        settings: next.settings,
+        resumeName: next.resumeName,
+        historyPast: [...(historyPast || []), current].slice(-50),
+        historyFuture: newFuture,
+        canUndo: true,
+        canRedo: newFuture.length > 0,
+        isDirty: true,
+      });
+    },
+
     // ─── Header ──────────────────────────────────────────────────────────────
     updateHeader: (patch) =>
-      set((s) => ({ header: { ...s.header, ...patch }, isDirty: true })),
+      set((s) => ({ ...recordHistory(s, false), header: { ...s.header, ...patch }, isDirty: true })),
 
     updateHeaderDivider: (patch) =>
       set((s) => ({
+        ...recordHistory(s, false),
         header: { ...s.header, divider: { ...s.header.divider, ...patch } },
         isDirty: true,
       })),
 
     // ─── Settings ────────────────────────────────────────────────────────────
     updateSettings: (patch) =>
-      set((s) => ({ settings: { ...s.settings, ...patch }, isDirty: true })),
+      set((s) => ({ ...recordHistory(s, false), settings: { ...s.settings, ...patch }, isDirty: true })),
 
     // ─── Sections ────────────────────────────────────────────────────────────
     setActiveSectionId: (id) => set({ activeSectionId: id }),
@@ -168,6 +263,7 @@ export const useResumeStore = create(
         headingUnderline: false,
       };
       set((s) => ({
+        ...recordHistory(s, true),
         sections: [...s.sections, newSection],
         activeSectionId: newSection.id,
         isDirty: true,
@@ -177,6 +273,7 @@ export const useResumeStore = create(
 
     deleteSection: (id) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections
           .filter((sec) => sec.id !== id)
           .map((sec, i) => ({ ...sec, order: i })),
@@ -186,12 +283,14 @@ export const useResumeStore = create(
 
     renameSection: (id, title) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) => (sec.id === id ? { ...sec, title } : sec)),
         isDirty: true,
       })),
 
     toggleSectionVisibility: (id) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) =>
           sec.id === id ? { ...sec, visible: !sec.visible } : sec
         ),
@@ -199,10 +298,11 @@ export const useResumeStore = create(
       })),
 
     reorderSections: (from, to) =>
-      set((s) => ({ sections: reorder(s.sections, from, to), isDirty: true })),
+      set((s) => ({ ...recordHistory(s, true), sections: reorder(s.sections, from, to), isDirty: true })),
 
     updateSectionContent: (id, content, contentHtml) =>
       set((s) => ({
+        ...recordHistory(s, false),
         sections: s.sections.map((sec) =>
           sec.id === id
             ? {
@@ -218,13 +318,15 @@ export const useResumeStore = create(
       })),
 
     replaceSections: (nextSections) =>
-      set({
+      set((s) => ({
+        ...recordHistory(s, true),
         sections: Array.isArray(nextSections) ? nextSections : [],
         isDirty: true,
-      }),
+      })),
 
     updateSectionItems: (id, items) =>
       set((s) => ({
+        ...recordHistory(s, false),
         sections: s.sections.map((sec) =>
           sec.id === id
             ? {
@@ -256,6 +358,7 @@ export const useResumeStore = create(
 
     addSectionItem: (sectionId, newItem) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) => {
           if (sec.id !== sectionId) return sec;
           const currentItems = sec.items || [];
@@ -271,6 +374,7 @@ export const useResumeStore = create(
 
     removeSectionItem: (sectionId, itemId) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) => {
           if (sec.id !== sectionId) return sec;
           const currentItems = sec.items || [];
@@ -286,6 +390,7 @@ export const useResumeStore = create(
 
     reorderSectionItems: (sectionId, fromIndex, toIndex) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) => {
           if (sec.id !== sectionId) return sec;
           const currentItems = [...(sec.items || [])];
@@ -309,12 +414,14 @@ export const useResumeStore = create(
 
     updateSectionSettings: (id, patch) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) => (sec.id === id ? { ...sec, ...patch } : sec)),
         isDirty: true,
       })),
 
     updateSectionDivider: (id, patch) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) =>
           sec.id === id
             ? {
@@ -357,6 +464,7 @@ export const useResumeStore = create(
           headingDividerMarginBottom: source.headingDividerMarginBottom,
         };
         return {
+          ...recordHistory(s, true),
           sections: s.sections.map((sec) => ({ ...sec, ...headingProps })),
           isDirty: true,
         };
@@ -364,6 +472,7 @@ export const useResumeStore = create(
 
     applyDividerAfterToAll: (dividerConfig) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) => ({
           ...sec,
           dividerAfter: dividerConfig ? { ...dividerConfig } : null,
@@ -373,6 +482,7 @@ export const useResumeStore = create(
 
     applyUltraCompactPreset: () =>
       set((s) => ({
+        ...recordHistory(s, true),
         settings: {
           ...s.settings,
           bodyFontSize: 8.5,
@@ -406,6 +516,7 @@ export const useResumeStore = create(
     // ─── Links ───────────────────────────────────────────────────────────────
     addLink: (sectionId, link) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) =>
           sec.id === sectionId
             ? { ...sec, links: [...(sec.links || []), { id: generateId(), ...link }] }
@@ -416,6 +527,7 @@ export const useResumeStore = create(
 
     updateLink: (sectionId, linkId, patch) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) =>
           sec.id === sectionId
             ? {
@@ -429,6 +541,7 @@ export const useResumeStore = create(
 
     removeLink: (sectionId, linkId) =>
       set((s) => ({
+        ...recordHistory(s, true),
         sections: s.sections.map((sec) =>
           sec.id === sectionId
             ? { ...sec, links: (sec.links || []).filter((l) => l.id !== linkId) }
@@ -499,6 +612,7 @@ export const useResumeStore = create(
         targetSec.contentHtml = updatedSecHtml;
 
         set((s) => ({
+          ...recordHistory(s, true),
           sections: [...s.sections, targetSec],
           isDirty: true,
         }));
@@ -601,6 +715,7 @@ export const useResumeStore = create(
         }
 
         return {
+          ...recordHistory(s, true),
           sections: updatedSections,
           activeJdAnalysis: updatedAnalysis,
           isDirty: true,

@@ -54,7 +54,6 @@ import {
   Activity,
   ShieldCheck,
   Database,
-  Sparkles,
   Zap,
   Lock,
 } from 'lucide-react';
@@ -216,8 +215,6 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
     { id: 'resumes', label: 'My Resumes', icon: FileText },
     { id: 'templates', label: 'Templates Library', icon: Palette },
     { id: 'exports', label: 'Export History', icon: FileDown },
-    { id: 'usage', label: 'Intelligence & Usage', icon: BarChart3 },
-    { id: 'billing', label: 'Purchases & Billing', icon: CreditCard },
   ];
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
@@ -272,59 +269,23 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
         })}
       </nav>
 
-      {/* Bottom Pinned Section: Upgrade Card above Settings after margin */}
+      {/* Bottom Pinned Section */}
       <div
-        className="shrink-0 mt-auto border-t"
+        className="shrink-0 mt-auto border-t p-3 space-y-1.5"
         style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
       >
-        {/* Upgrade / Plan Card */}
-        <div className="p-3 pb-2">
-          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.08] text-left">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#D49A6A]">
-                {planStatus?.plan_name || 'Pagewise Free'}
-              </span>
-              {user?.is_admin && (
-                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/10 text-[#D49A6A] font-mono font-bold">
-                  ADMIN
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-[#8E94A5] mt-1 line-clamp-2">
-              {isPilot
-                ? '20 workspaces · 100 exports/mo'
-                : planStatus?.plan_type === 'pro_monthly'
-                ? '5 workspaces · 30 exports/mo'
-                : planStatus?.plan_type === 'day_pass'
-                ? '1 workspace · 5 exports (24h)'
-                : '1 workspace · 1 export/mo'}
-            </p>
-            <button
-              onClick={onOpenUpgrade}
-              className="mt-2.5 w-full py-1.5 px-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] text-[#EDEDF2] text-[11px] font-semibold border border-white/[0.08] flex items-center justify-center transition cursor-pointer"
-            >
-              <span>{isPilot ? 'Pilot Plan Details' : planStatus?.plan_type === 'pro_monthly' ? 'Subscription Details' : 'Upgrade Plan'}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('billing')}
-              className="mt-1.5 w-full py-1 px-2 rounded-lg text-zinc-400 hover:text-white text-[10px] font-mono flex items-center justify-center gap-1 transition cursor-pointer hover:bg-white/[0.04]"
-            >
-              <Receipt className="w-3 h-3 text-amber-500" />
-              <span>View Invoices &amp; Bills</span>
-            </button>
-            {user?.is_admin && (
-              <Link
-                href="/admin-290123-7234878"
-                className="mt-2 text-[10px] text-[#D49A6A] hover:underline font-mono block text-center border-t border-white/[0.06] pt-1.5 transition"
-              >
-                → Secret Admin Panel
-              </Link>
-            )}
-          </div>
-        </div>
+        {user?.is_admin && (
+          <Link
+            href="/admin-290123-7234878"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-mono text-[#D49A6A] hover:bg-white/[0.04] transition"
+          >
+            <Shield className="w-4 h-4 text-[#D49A6A]" />
+            <span>Secret Admin Panel</span>
+          </Link>
+        )}
 
         {/* User & Settings Section */}
-        <div className="px-3 pb-3 space-y-1.5">
+        <div className="space-y-1.5">
           <button
             onClick={onOpenFeedback}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.04] transition-all cursor-pointer text-left"
@@ -747,22 +708,6 @@ export default function DashboardPage() {
 
                   <button
                     onClick={() => {
-                      setWiserTargetResumeId(null);
-                      setIsWiserModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border hover:border-white/20 text-[#EDEDF2] hover:bg-white/[0.04]"
-                    style={{
-                      background: BRAND_CONFIG.colors.surfaceCard,
-                      borderColor: BRAND_CONFIG.colors.borderSubtle,
-                    }}
-                    title="Launch Wiser AI Job Description matching and strict ATS compliance audit"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: BRAND_CONFIG.colors.primary }} />
-                    <span>Wiser AI (JD + ATS)</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
                       setNewResumeName('Senior Engineer Resume');
                       setIsCreateModalOpen(true);
                     }}
@@ -794,7 +739,7 @@ export default function DashboardPage() {
                       color: BRAND_CONFIG.colors.primary,
                     }}
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Target className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -806,13 +751,19 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <p className="text-[11px] text-[#7E869B] mt-0.5 truncate">
-                      Match keywords against target Job Descriptions, audit ATS compliance scores, and generate quantified bullet points.
+                      Score your resume against a job description or run a general ATS audit.
                     </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => {
+                    const quota = planStatus?.remaining?.wiser_ai_combined ?? planStatus?.remaining?.wiser_job_help ?? 0;
+                    if (planStatus && quota <= 0) {
+                      setPricingModalOpen(true);
+                      toast('Wiser AI quota reached. Upgrade to continue.', { icon: '⚡' });
+                      return;
+                    }
                     setWiserTargetResumeId(null);
                     setIsWiserModalOpen(true);
                   }}
@@ -823,7 +774,7 @@ export default function DashboardPage() {
                     border: `1px solid ${BRAND_CONFIG.colors.primaryBorder}`,
                   }}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Target className="w-3.5 h-3.5" />
                   <span>Audit Resume (JD + ATS)</span>
                 </button>
               </div>
@@ -831,44 +782,36 @@ export default function DashboardPage() {
               {/* Quick Workspace Stats Header */}
               <div className="flex items-center justify-between pb-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#7E869B]">
-                  Workspace Quick Metrics
+                  Your Workspace
                 </span>
                 <button
                   onClick={() => setActiveTab('usage')}
                   className="text-xs text-amber-500 hover:text-amber-400 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <span>Intelligence &amp; Usage Telemetry</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <span>View detailed usage →</span>
                 </button>
               </div>
 
-              {/* Bento Metric Matrix */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Minimal Clean Metric Matrix */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <MetricCard
                   icon={FileText}
                   value={resumeCount}
-                  label="Master Resumes"
+                  label="Resumes"
                   subtext={`${totalResumes} all-time crafted`}
                   highlightColor="#C88A58"
                 />
                 <MetricCard
                   icon={Cpu}
                   value={wiserTotal}
-                  label="Wiser AI Actions"
+                  label="AI Credits Used"
                   subtext={`${lifetimeWiserTotal} lifetime invocations`}
                   highlightColor="#F59E0B"
                 />
                 <MetricCard
-                  icon={Palette}
-                  value={templateCount}
-                  label="Available Formats"
-                  subtext={`${systemTemplates.length} Standard + ${userTemplates.length} Custom`}
-                  highlightColor="#10B981"
-                />
-                <MetricCard
                   icon={Download}
                   value={totalExports}
-                  label="Verified Exports"
+                  label="PDF Exports"
                   subtext={`${exportCount} active in workspace`}
                   highlightColor="#E2E8F0"
                 />
@@ -974,15 +917,7 @@ export default function DashboardPage() {
                               <ArrowUpRight className="w-3 h-3" />
                             </Link>
 
-                            {!resume.is_primary && (
-                              <button
-                                onClick={() => handleSetPrimary(resume.id)}
-                                className="px-2 py-1.5 rounded-lg text-[10px] font-mono text-[#D49A6A] hover:text-white bg-[#C88A58]/10 hover:bg-[#C88A58]/25 border border-[#C88A58]/20 transition cursor-pointer"
-                                title="Set this resume as your Primary Master workspace"
-                              >
-                                Set Master
-                              </button>
-                            )}
+
                           </div>
 
                           <div className="flex items-center gap-1">
@@ -994,7 +929,7 @@ export default function DashboardPage() {
                               title="Audit with Wiser AI (JD Matching & ATS)"
                               className="p-1.5 text-[#7E869B] hover:text-[#D49A6A] hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
                             >
-                              <Sparkles className="w-3.5 h-3.5" />
+                              <Target className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleQuickExportPdf(resume.id)}
@@ -1162,15 +1097,7 @@ export default function DashboardPage() {
                               <span>{resume.is_locked ? 'View (Read-Only)' : 'Launch Studio'}</span>
                             </Link>
 
-                            {!resume.is_primary && (
-                              <button
-                                onClick={() => handleSetPrimary(resume.id)}
-                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-[#D49A6A] hover:text-white bg-[#C88A58]/10 hover:bg-[#C88A58]/25 border border-[#C88A58]/20 transition cursor-pointer"
-                                title="Promote this resume to your Master active workspace"
-                              >
-                                Set as Master
-                              </button>
-                            )}
+
                           </div>
 
                           <div className="flex items-center gap-1">
@@ -1182,7 +1109,7 @@ export default function DashboardPage() {
                               title="Audit with Wiser AI (JD Matching & ATS)"
                               className="p-1.5 text-[#7E869B] hover:text-[#D49A6A] hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
                             >
-                              <Sparkles className="w-3.5 h-3.5" />
+                              <Target className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleQuickExportPdf(resume.id)}
@@ -2050,7 +1977,7 @@ export default function DashboardPage() {
                   onClick={() => setPricingModalOpen(true)}
                   className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-amber-600/20 cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Target className="w-3.5 h-3.5" />
                   <span>{planStatus?.plan_type === 'pro_monthly' ? 'Manage Subscription' : 'Upgrade Plan'}</span>
                 </button>
               </div>
@@ -2323,8 +2250,12 @@ export default function DashboardPage() {
             setWiserTargetResumeId(null);
             loadDashboardData();
           }}
-          targetResume={resumes.find((r) => r.id === wiserTargetResumeId) || resumes[0]}
+          targetResume={wiserTargetResumeId ? resumes.find((r) => r.id === wiserTargetResumeId) : null}
           allResumes={resumes}
+          onRequestImport={() => {
+            setIsWiserModalOpen(false);
+            setIsImportModalOpen(true);
+          }}
         />
       )}
 
