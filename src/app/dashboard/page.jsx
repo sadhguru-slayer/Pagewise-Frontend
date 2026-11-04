@@ -761,17 +761,6 @@ export default function DashboardPage() {
                   <span>View detailed usage →</span>
                 </button>
               </div>
-              <div className="flex items-center justify-between pb-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#7E869B]">
-                  Your Workspace
-                </span>
-                <button
-                  onClick={() => setActiveTab('usage')}
-                  className="text-xs text-amber-500 hover:text-amber-400 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <span>View detailed usage →</span>
-                </button>
-              </div>
 
               {/* Minimal Clean Metric Matrix */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
