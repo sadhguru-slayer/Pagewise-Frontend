@@ -93,33 +93,27 @@ function atsColor(score) {
 function MetricCard({ icon: Icon, value, label, subtext, highlightColor }) {
   return (
     <div
-      className="rounded-2xl p-5 relative overflow-hidden transition-all duration-300 group hover:border-white/[0.14]"
-      style={{
-        background: BRAND_CONFIG.colors.surfaceCard,
-        border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-      }}
+      className="rounded-xl p-4 transition-all duration-200 border border-white/[0.06] hover:border-white/[0.12] bg-[#0E1017]/80"
     >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-mono uppercase tracking-wider text-[#7E869B]">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-medium text-[#8E94A5]">
           {label}
         </span>
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
+          className="w-6 h-6 rounded-md flex items-center justify-center text-[#8E94A5]"
           style={{
-            background: BRAND_CONFIG.colors.surfaceSubtle,
-            border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-            color: highlightColor || BRAND_CONFIG.colors.primary,
+            background: 'rgba(255,255,255,0.03)',
+            color: highlightColor || '#8E94A5',
           }}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="w-3.5 h-3.5" />
         </div>
       </div>
-      <p className="text-3xl sm:text-4xl font-extrabold text-[#F1F3F9] tracking-tight leading-none">
+      <p className="text-2xl font-bold text-[#EDEDF2] tracking-tight">
         {value ?? '—'}
       </p>
       {subtext && (
-        <p className="text-[11px] text-[#7E869B] mt-2 font-sans flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: highlightColor || BRAND_CONFIG.colors.primary }} />
+        <p className="text-[11px] text-[#7E869B] mt-1 font-sans truncate">
           {subtext}
         </p>
       )}
@@ -670,41 +664,37 @@ export default function DashboardPage() {
           <MobileNotice className="mb-4" />
 
           {/* Pilot Notification & Feedback Banner */}
-          <PilotBanner variant="card" className="mb-6" />
+          <PilotBanner variant="compact" className="mb-5" />
 
           {/* ── 1. OVERVIEW TAB ──────────────────────────────────────────────── */}
           {activeTab === 'home' && (
             <div className="space-y-8">
-              {/* Executive Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-white/[0.06]">
+              {/* Minimal Clean Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
                 <div>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
-                    Studio Workspace
-                  </span>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F1F3F9] tracking-tight mt-1">
-                    Welcome back, {user?.name?.split(' ')[0] || 'Architect'}
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#F1F3F9] tracking-tight">
+                    Welcome back, {user?.name?.split(' ')[0] || 'there'}
                   </h1>
-                  <p className="text-xs text-[#7E869B] mt-1">
-                    {BRAND_CONFIG.tagline} — Craft, tailor, and audit your career assets.
+                  <p className="text-xs text-[#8E94A5] mt-0.5">
+                    Manage your resumes, optimize with Wiser AI, and export production-ready PDFs.
                   </p>
                 </div>
 
                 {/* Primary Action Buttons */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <button
                     onClick={() => {
                       setSelectedResumeForWiser(null);
                       setIsImportModalOpen(true);
                     }}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border hover:border-white/20 text-[#EDEDF2] hover:bg-white/[0.04]"
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer border border-white/[0.08] hover:border-white/20 text-[#EDEDF2] hover:bg-white/[0.04]"
                     style={{
                       background: BRAND_CONFIG.colors.surfaceCard,
-                      borderColor: BRAND_CONFIG.colors.borderSubtle,
                     }}
                     title="Upload and parse an existing PDF resume"
                   >
-                    <Upload className="w-3.5 h-3.5 text-[#7E869B]" />
-                    <span>Upload PDF</span>
+                    <Upload className="w-3.5 h-3.5 text-[#8E94A5]" />
+                    <span>Import PDF</span>
                   </button>
 
                   <button
@@ -712,7 +702,7 @@ export default function DashboardPage() {
                       setNewResumeName('Senior Engineer Resume');
                       setIsCreateModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all cursor-pointer hover:opacity-95 shadow-sm"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white transition-all cursor-pointer hover:opacity-90 shadow-sm"
                     style={{
                       background: BRAND_CONFIG.colors.primary,
                     }}
@@ -723,37 +713,21 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Minimal Clean Wiser AI Strip */}
+              {/* Subtle Wiser AI Quick Access Bar */}
               <div
-                className="rounded-2xl p-4 sm:px-5 sm:py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors"
-                style={{
-                  background: BRAND_CONFIG.colors.surfaceCard,
-                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-                }}
+                className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-white/[0.06] bg-[#0E1017]/60 hover:bg-[#0E1017] transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{
-                      background: BRAND_CONFIG.colors.primarySurface,
-                      border: `1px solid ${BRAND_CONFIG.colors.primaryBorder}`,
-                      color: BRAND_CONFIG.colors.primary,
-                    }}
-                  >
-                    <Target className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Target className="w-3.5 h-3.5" />
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-[#EDEDF2]">
-                        Wiser AI Career Intelligence (JD + ATS)
-                      </span>
-                      <span className="text-[10px] font-mono text-[#8E94A5]">
-                        {planStatus?.remaining?.wiser_ai_combined ?? planStatus?.remaining?.wiser_job_help ?? 0} evaluations left
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#7E869B] mt-0.5 truncate">
-                      Score your resume against a job description or run a general ATS audit.
-                    </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-[#EDEDF2]">
+                      Target Audit & ATS Matcher
+                    </span>
+                    <span className="text-[11px] text-[#8E94A5]">
+                      • {planStatus?.remaining?.wiser_ai_combined ?? planStatus?.remaining?.wiser_job_help ?? 0} evaluations available
+                    </span>
                   </div>
                 </div>
 
@@ -762,25 +736,31 @@ export default function DashboardPage() {
                     const quota = planStatus?.remaining?.wiser_ai_combined ?? planStatus?.remaining?.wiser_job_help ?? 0;
                     if (planStatus && quota <= 0) {
                       setPricingModalOpen(true);
-                      toast('Wiser AI quota reached. Upgrade to continue.', { icon: '⚡' });
+                      toast('Wiser AI quota reached. Upgrade to continue.', { icon: '🔒' });
                       return;
                     }
                     setWiserTargetResumeId(null);
                     setIsWiserModalOpen(true);
                   }}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer self-start sm:self-auto shrink-0 flex items-center gap-1.5 shadow-sm hover:opacity-95"
-                  style={{
-                    background: BRAND_CONFIG.colors.primarySurface,
-                    color: BRAND_CONFIG.colors.primary,
-                    border: `1px solid ${BRAND_CONFIG.colors.primaryBorder}`,
-                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 transition-all cursor-pointer self-start sm:self-auto shrink-0 flex items-center gap-1.5"
                 >
-                  <Target className="w-3.5 h-3.5" />
-                  <span>Audit Resume (JD + ATS)</span>
+                  <Target className="w-3 h-3" />
+                  <span>Audit Resume</span>
                 </button>
               </div>
 
-              {/* Quick Workspace Stats Header */}
+              {/* Workspace Stats Header */}
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-medium text-[#8E94A5]">
+                  Workspace Overview
+                </span>
+                <button
+                  onClick={() => setActiveTab('usage')}
+                  className="text-xs text-amber-500/90 hover:text-amber-400 font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span>View detailed usage →</span>
+                </button>
+              </div>
               <div className="flex items-center justify-between pb-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#7E869B]">
                   Your Workspace
@@ -822,7 +802,7 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                    <h2 className="text-sm font-semibold text-[#F1F3F9]">
                       Recent Resumes
                     </h2>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-[#7E869B]">
@@ -868,11 +848,7 @@ export default function DashboardPage() {
                     {recentResumes.map((resume) => (
                       <div
                         key={resume.id}
-                        className="rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
-                        style={{
-                          background: BRAND_CONFIG.colors.surfaceCard,
-                          border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-                        }}
+                        className="rounded-xl p-4 flex flex-col justify-between transition-all duration-200 group border border-white/[0.06] hover:border-amber-500/30 bg-[#0E1017]/80 hover:bg-[#0E1017]"
                       >
                         <div>
                           {/* Status and Targeting Pill */}
@@ -967,7 +943,7 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
                 <div>
                   <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
-                    All Resume Architectures
+                    My Resumes
                   </h1>
                   <p className="text-xs text-[#7E869B] mt-1">
                     Manage your core resumes and job-targeted branches.
@@ -979,7 +955,7 @@ export default function DashboardPage() {
                     setNewResumeName('Senior Engineer Resume');
                     setIsCreateModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-[#C88A58] hover:bg-[#B87A47] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-start sm:self-auto"
+                  className="px-4 py-2 bg-[#C88A58] hover:bg-[#B87A47] text-white rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Resume</span>
@@ -1025,11 +1001,7 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={resume.id}
-                        className="rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
-                        style={{
-                          background: BRAND_CONFIG.colors.surfaceCard,
-                          border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-                        }}
+                        className="rounded-xl p-4.5 flex flex-col justify-between transition-all duration-200 group border border-white/[0.06] hover:border-amber-500/30 bg-[#0E1017]/80 hover:bg-[#0E1017]"
                       >
                         <div>
                           {/* Tags header */}
@@ -1778,7 +1750,7 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                      <h2 className="text-sm font-semibold text-[#F1F3F9]">
                         Workspace Resource Quotas
                       </h2>
                       <p className="text-[11px] text-[#7E869B] mt-0.5">
@@ -1833,7 +1805,7 @@ export default function DashboardPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <Cpu className="w-4 h-4 text-amber-400" />
-                        <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                        <h2 className="text-sm font-semibold text-[#F1F3F9]">
                           Wiser AI Engine Processing
                         </h2>
                       </div>
@@ -1918,7 +1890,7 @@ export default function DashboardPage() {
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold uppercase tracking-wider text-[#F1F3F9]">
+                  <h2 className="text-sm font-semibold text-[#F1F3F9]">
                     Recent Modifications &amp; Audits
                   </h2>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-[#7E869B]">
