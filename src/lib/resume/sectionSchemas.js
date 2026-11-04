@@ -165,22 +165,23 @@ export function getSectionType(section) {
   const title = (section.title || '').toLowerCase();
   const combined = `${id} ${title}`;
 
-  if (/work|experience|employment|history|career|job/i.test(combined)) {
+  // Word boundary regex to avoid substring collisions (e.g. "Users" must NOT match "experience" or others)
+  if (/\b(work|experience|employment|career|jobs?)\b/i.test(combined)) {
     return SECTION_TYPES.EXPERIENCE;
   }
-  if (/education|academic|degree|university|college|school/i.test(combined)) {
+  if (/\b(education|academic|degree|university|college|schools?)\b/i.test(combined)) {
     return SECTION_TYPES.EDUCATION;
   }
-  if (/project|portfolio|built/i.test(combined)) {
+  if (/\b(projects?|portfolio|built)\b/i.test(combined)) {
     return SECTION_TYPES.PROJECTS;
   }
-  if (/skill|technical|technology|competenc|stack/i.test(combined)) {
+  if (/\b(skills?|technical|technolog(?:y|ies)|competenc(?:y|ies)|stacks?)\b/i.test(combined)) {
     return SECTION_TYPES.SKILLS;
   }
-  if (/certif|license|course|credential/i.test(combined)) {
+  if (/\b(certif(?:ications?|icates?)|licenses?|credentials?)\b/i.test(combined)) {
     return SECTION_TYPES.CERTIFICATIONS;
   }
-  if (/summary|objective|about|profile|statement/i.test(combined)) {
+  if (/\b(summary|objective|about(?:\s+me)?|profile|statement)\b/i.test(combined)) {
     return SECTION_TYPES.SUMMARY;
   }
 

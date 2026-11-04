@@ -376,7 +376,67 @@ export function buildResumeCss(settings = {}, header = {}) {
 }
 
 /**
+ * Helper to render an individual section block
+ */
+function renderSingleSectionHtml(section, settings, bodyFontSize, sectionSpacing) {
+  const headingColor = section.headingColor || settings?.headingColor || '#111827';
+  const headingWeight = section.headingBold !== false ? 'bold' : 'normal';
+  const headingUnderline = section.headingUnderline ? 'underline' : 'none';
+  const headingTransform = section.headingUppercase !== false ? 'uppercase' : 'none';
+  const headingFontSize =
+    section.headingFontSize != null
+      ? section.headingFontSize
+      : Number((bodyFontSize * 1.18).toFixed(1));
+
+  const linksHtml =
+    section.links && section.links.length > 0
+      ? `<div class="links-bar">
+          ${section.links
+            .filter((l) => l.url)
+            .map((l) => {
+              const url =
+                l.url.startsWith('http://') ||
+                l.url.startsWith('https://') ||
+                l.url.startsWith('mailto:')
+                  ? l.url
+                  : `https://${l.url}`;
+              return `<a href="${url}" target="_blank" rel="noopener noreferrer">${l.label || l.url}</a>`;
+            })
+            .join('')}
+        </div>`
+      : '';
+
+  const contentHtml =
+    section.items && section.items.length > 0
+      ? renderStructuredSectionHtml(section, settings)
+      : section.content
+      ? `<div class="section-content">${renderTiptapJson(section.content)}</div>`
+      : '';
+
+  const headingDividerHtml = section.showDividerAfterHeading
+    ? `<hr class="section-heading-divider" style="border: none; border-top-width: ${section.headingDividerThickness ?? 1}px; border-top-style: ${section.headingDividerStyle ?? 'solid'}; border-top-color: ${section.headingDividerColor || headingColor + '44'}; margin-top: ${section.headingDividerMarginTop ?? 1}px; margin-bottom: ${section.headingDividerMarginBottom ?? 2}px;" />`
+    : '';
+
+  const sectionDividerHtml = section.dividerAfter
+    ? `<hr class="section-divider-line" style="border: none; border-top-width: ${section.dividerAfter.thickness ?? 1}px; border-top-style: ${section.dividerAfter.style ?? 'solid'}; border-top-color: ${section.dividerAfter.color ?? '#d1d5db'}; margin-top: ${section.dividerAfter.marginTop ?? 2}px; margin-bottom: ${section.dividerAfter.marginBottom ?? 2}px;" />`
+    : '';
+
+  return `
+    <div class="section-container" data-section-id="${section.id}" style="margin-bottom: ${sectionSpacing}pt;">
+      <div style="text-align: ${section.headingAlign || 'left'};">
+        <h2 class="section-title" style="font-size: ${headingFontSize}pt; font-weight: ${headingWeight}; color: ${headingColor}; text-transform: ${headingTransform}; text-decoration: ${headingUnderline}; letter-spacing: 0.08em; line-height: 1.2; margin-top: 0; margin-bottom: 1pt;">${section.title || ''}</h2>
+        ${headingDividerHtml}
+      </div>
+      ${linksHtml}
+      ${contentHtml}
+      ${sectionDividerHtml}
+    </div>
+  `;
+}
+
+/**
  * Render the inner HTML content of the resume (header + sections).
+ * Automatically supports classic single-column, two-column-left, and two-column-right layouts.
  */
 export function renderResumeInnerHtml({ header, sections, settings = {} }) {
   // If a portfolio section has <= 3 links, it is placed into the header and excluded here
@@ -396,9 +456,9 @@ export function renderResumeInnerHtml({ header, sections, settings = {} }) {
   const sectionSpacing = settings?.sectionSpacing ?? 1;
 
   const headerHtml = `
-    <div class="resume-header" style="text-align: ${header?.alignment || 'center'}; margin-bottom: 4pt;">
+    <div class="resume-header" style="text-align: ${header?.alignment || 'center'}; margin-bottom: 6pt;">
       <h1 class="header-name" style="font-family: ${nameFont}; font-size: ${header?.nameFontSize || 22}pt; font-weight: ${header?.nameFontWeight || 'bold'}; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.1; margin: 0; color: #111;">${header?.name || 'YOUR NAME'}</h1>
-      <div class="header-contact-line" style="font-size: ${header?.contactFontSize || 9.5}pt; color: ${header?.contactColor || '#4b5563'}; margin-top: 2pt; margin-bottom: 0; line-height: 1.2;">${getContactLineHtml(header, sections)}</div>
+      <div class="header-contact-line" style="font-size: ${header?.contactFontSize || 9.5}pt; color: ${header?.contactColor || '#4b5563'}; margin-top: 2.5pt; margin-bottom: 0; line-height: 1.2;">${getContactLineHtml(header, sections)}</div>
       ${
         header?.showDivider && header?.divider
           ? `<hr class="header-divider-line" style="border: none; border-top-width: ${header.divider.thickness || 1}px; border-top-style: ${header.divider.style || 'solid'}; border-top-color: ${header.divider.color || '#d1d5db'}; margin-top: ${header.divider.marginTop ?? 5}px; margin-bottom: ${header.divider.marginBottom ?? 5}px;" />`
@@ -407,58 +467,133 @@ export function renderResumeInnerHtml({ header, sections, settings = {} }) {
     </div>
   `;
 
+  const layoutStyle = settings.layoutStyle || 'single-column';
+
+  // ── Two Column Balanced Layouts ──────────────────────────────────────────
+  if (layoutStyle === 'two-column-left' || layoutStyle === 'two-column-right' || layoutStyle === 'two-column-equal') {
+    const isSidebarLeft = layoutStyle !== 'two-column-right';
+    const isEqualSplit = layoutStyle === 'two-column-equal';
+
+    // Width ratios: 50/50 for equal split, or 40/60 for professional readable split
+    const leftWidth = isEqualSplit ? '50%' : (isSidebarLeft ? '38%' : '62%');
+    const rightWidth = isEqualSplit ? '50%' : (isSidebarLeft ? '62%' : '38%');
+
+    // Intelligent Height Balancing:
+    // Estimate vertical weight for each section so neither column is empty or bloated
+    const getSectionWeight = (sec) => {
+      let weight = 35; // base heading and margin weight
+      if (sec.items && Array.isArray(sec.items)) {
+        sec.items.forEach((it) => {
+          weight += 20; // item title line
+          if (it.summary) weight += 24;
+          if (Array.isArray(it.tech_stack) && it.tech_stack.length > 0) weight += 18;
+          if (Array.isArray(it.points)) {
+            weight += it.points.length * 28; // ~28pt per bullet line
+          }
+          if (Array.isArray(it.skills)) {
+            weight += Math.ceil(it.skills.length / 4) * 20;
+          }
+        });
+      } else if (sec.content) {
+        weight += 60;
+      }
+      return weight;
+    };
+
+    const colA = [];
+    const colB = [];
+    let weightA = 0;
+    let weightB = 0;
+
+    // Categorize sections by preference
+    const sidebarKeywords = ['skill', 'competenc', 'education', 'certif', 'summary', 'language', 'contact', 'award', 'interest', 'course'];
+
+    if (isEqualSplit) {
+      // For 50/50 equal layout: greedily balance weights across both columns
+      visibleSections.forEach((sec) => {
+        const w = getSectionWeight(sec);
+        if (weightA <= weightB) {
+          colA.push(sec);
+          weightA += w;
+        } else {
+          colB.push(sec);
+          weightB += w;
+        }
+      });
+    } else {
+      // For sidebar split: sort into side rail vs main area, then balance if lopsided
+      const sideCandidate = [];
+      const mainCandidate = [];
+
+      visibleSections.forEach((sec) => {
+        const titleLower = (sec.title || '').toLowerCase();
+        const isSidebar = sidebarKeywords.some((k) => titleLower.includes(k));
+        if (isSidebar) {
+          sideCandidate.push(sec);
+        } else {
+          mainCandidate.push(sec);
+        }
+      });
+
+      // Target ratio: sidebar takes ~38%, main takes ~62% of total weight
+      const totalWeight = visibleSections.reduce((acc, s) => acc + getSectionWeight(s), 0);
+      const targetSideWeight = totalWeight * 0.40;
+
+      let currentSideWeight = 0;
+      sideCandidate.forEach((sec) => {
+        const w = getSectionWeight(sec);
+        if (currentSideWeight + w <= targetSideWeight || colA.length === 0) {
+          colA.push(sec);
+          currentSideWeight += w;
+        } else {
+          colB.push(sec);
+        }
+      });
+
+      // Add main candidate sections
+      mainCandidate.forEach((sec) => {
+        colB.push(sec);
+      });
+
+      // Fallback: If one column is completely empty, distribute evenly
+      if (colA.length === 0 && colB.length > 1) {
+        colA.push(...colB.splice(0, Math.ceil(colB.length / 2)));
+      } else if (colB.length === 0 && colA.length > 1) {
+        colB.push(...colA.splice(Math.ceil(colA.length / 2)));
+      }
+    }
+
+    const colAHtml = colA
+      .map((s) => renderSingleSectionHtml(s, settings, bodyFontSize, sectionSpacing))
+      .join('');
+    
+    const colBHtml = colB
+      .map((s) => renderSingleSectionHtml(s, settings, bodyFontSize, sectionSpacing))
+      .join('');
+
+    const leftColHtml = isSidebarLeft ? colAHtml : colBHtml;
+    const rightColHtml = isSidebarLeft ? colBHtml : colAHtml;
+
+    return `
+      ${headerHtml}
+      <table class="two-column-table" style="width: 100%; border-collapse: collapse; margin-top: 3pt; table-layout: fixed;">
+        <tbody>
+          <tr>
+            <td class="col-left" style="width: ${leftWidth}; vertical-align: top; padding-right: 12pt; padding-left: 0; box-sizing: border-box; border-right: 1px solid #e2e8f0;">
+              ${leftColHtml}
+            </td>
+            <td class="col-right" style="width: ${rightWidth}; vertical-align: top; padding-left: 12pt; padding-right: 0; box-sizing: border-box;">
+              ${rightColHtml}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  }
+
+  // ── Standard Single Column Layout ────────────────────────────────────────
   const sectionsHtml = visibleSections
-    .map((section) => {
-      const headingColor = section.headingColor || settings?.headingColor || '#111827';
-      const headingWeight = section.headingBold !== false ? 'bold' : 'normal';
-      const headingUnderline = section.headingUnderline ? 'underline' : 'none';
-      const headingTransform = section.headingUppercase !== false ? 'uppercase' : 'none';
-      const headingFontSize =
-        section.headingFontSize != null
-          ? section.headingFontSize
-          : Number(((bodyFontSize) * 1.18).toFixed(1));
-
-      const linksHtml =
-        section.links && section.links.length > 0
-          ? `<div class="links-bar">
-              ${section.links
-                .filter((l) => l.url)
-                .map((l) => {
-                  const url = l.url.startsWith('http://') || l.url.startsWith('https://') || l.url.startsWith('mailto:')
-                    ? l.url
-                    : `https://${l.url}`;
-                  return `<a href="${url}" target="_blank" rel="noopener noreferrer">${l.label || l.url}</a>`;
-                })
-                .join('')}
-            </div>`
-          : '';
-
-      const contentHtml = (section.items && section.items.length > 0)
-        ? renderStructuredSectionHtml(section, settings)
-        : section.content
-          ? `<div class="section-content">${renderTiptapJson(section.content)}</div>`
-          : '';
-
-      const headingDividerHtml = section.showDividerAfterHeading
-        ? `<hr class="section-heading-divider" style="border: none; border-top-width: ${section.headingDividerThickness ?? 1}px; border-top-style: ${section.headingDividerStyle ?? 'solid'}; border-top-color: ${section.headingDividerColor || headingColor + '44'}; margin-top: ${section.headingDividerMarginTop ?? 1}px; margin-bottom: ${section.headingDividerMarginBottom ?? 2}px;" />`
-        : '';
-
-      const sectionDividerHtml = section.dividerAfter
-        ? `<hr class="section-divider-line" style="border: none; border-top-width: ${section.dividerAfter.thickness ?? 1}px; border-top-style: ${section.dividerAfter.style ?? 'solid'}; border-top-color: ${section.dividerAfter.color ?? '#d1d5db'}; margin-top: ${section.dividerAfter.marginTop ?? 2}px; margin-bottom: ${section.dividerAfter.marginBottom ?? 2}px;" />`
-        : '';
-
-      return `
-        <div class="section-container" data-section-id="${section.id}" style="margin-bottom: ${sectionSpacing}pt;">
-          <div style="text-align: ${section.headingAlign || 'left'};">
-            <h2 class="section-title" style="font-size: ${headingFontSize}pt; font-weight: ${headingWeight}; color: ${headingColor}; text-transform: ${headingTransform}; text-decoration: ${headingUnderline}; letter-spacing: 0.08em; line-height: 1.2; margin-top: 0; margin-bottom: 1pt;">${section.title || ''}</h2>
-            ${headingDividerHtml}
-          </div>
-          ${linksHtml}
-          ${contentHtml}
-          ${sectionDividerHtml}
-        </div>
-      `;
-    })
+    .map((section) => renderSingleSectionHtml(section, settings, bodyFontSize, sectionSpacing))
     .join('');
 
   return `${headerHtml}${sectionsHtml}`;

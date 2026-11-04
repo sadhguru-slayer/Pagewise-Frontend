@@ -38,6 +38,7 @@ import {
   Trash2,
   Edit3,
   ChevronRight,
+  Shield,
   Calendar,
   Layers,
   Search,
@@ -2119,7 +2120,7 @@ export default function DashboardPage() {
         onClose={() => !creatingResume && setIsCreateModalOpen(false)}
         title="Create New Resume Architecture"
         icon={FilePlus}
-        size="lg"
+        size="xl"
         hideCloseButton={creatingResume}
         closeOnBackdrop={!creatingResume}
         closeOnEscape={!creatingResume}
@@ -2145,49 +2146,78 @@ export default function DashboardPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-2">
-              Choose Layout Template
-            </label>
-            <div className="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-mono uppercase tracking-wider text-[#7E869B]">
+                Choose Layout Architecture ({systemTemplates.length})
+              </label>
+              <span className="text-[11px] text-zinc-500 font-mono">
+                Single & Dual Column Formats
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1 select-none">
               {systemTemplates.map((tpl) => {
                 const isLocked = tpl.is_locked;
                 const isSelected = selectedTemplateKey === tpl.id;
+                const isPro = tpl.min_plan_tier === 'pro_monthly';
 
                 return (
                   <div
                     key={tpl.id}
                     onClick={() => {
                       if (isLocked) {
-                        toast.error(`'${tpl.name}' requires ${tpl.min_plan_tier === 'pro_monthly' ? 'Pagewise Pro' : 'Day Pass'}. Please upgrade.`);
+                        toast.error(`'${tpl.name}' requires ${isPro ? 'Pagewise Pro' : 'Wiser Day Pass'}. Please upgrade.`);
                         setPricingModalOpen(true);
                         return;
                       }
                       setSelectedTemplateKey(tpl.id);
                     }}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all relative ${
+                    className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all relative ${
                       isSelected
-                        ? 'border-amber-500 bg-amber-500/10'
+                        ? 'border-amber-500 bg-amber-500/10 shadow-md shadow-amber-500/5'
                         : isLocked
                         ? 'border-white/[0.04] bg-white/[0.01] opacity-75 hover:border-amber-500/30'
-                        : 'hover:border-white/20'
+                        : 'border-white/[0.08] hover:border-white/20 bg-white/[0.02]'
                     }`}
                     style={{
-                      background: BRAND_CONFIG.colors.surfaceCard,
-                      borderColor: isSelected ? undefined : BRAND_CONFIG.colors.borderSubtle,
+                      background: isSelected ? 'rgba(245, 158, 11, 0.08)' : BRAND_CONFIG.colors.surfaceCard,
                     }}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-white line-clamp-1">{tpl.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-                      {isLocked && !isSelected && <Lock className="w-3 h-3 text-[#7E869B] shrink-0" />}
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border font-semibold ${
+                            isPro
+                              ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                              : tpl.min_plan_tier === 'day_pass'
+                              ? 'bg-[#C88A58]/15 text-[#D49A6A] border-[#C88A58]/30'
+                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {isPro ? 'Pro Only' : tpl.min_plan_tier === 'day_pass' ? 'Day Pass' : 'Free Standard'}
+                          </span>
+                          {tpl.settings?.layoutStyle?.includes('two-column') && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 font-semibold">
+                              2-Column
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-xs text-white line-clamp-1">{tpl.name}</h4>
+                      </div>
+                      {isSelected ? (
+                        <div className="w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center shrink-0">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                      ) : isLocked ? (
+                        <Lock className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
+                      ) : null}
                     </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-[10px] text-[#7E869B] line-clamp-1">{tpl.tag || tpl.category}</p>
-                      {isLocked && (
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
-                          {tpl.min_plan_tier === 'pro_monthly' ? 'Pro' : 'Day Pass'}
-                        </span>
-                      )}
+
+                    <p className="text-[11px] text-[#7E869B] line-clamp-2 leading-relaxed mt-1">
+                      {tpl.description}
+                    </p>
+
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/[0.05] text-[10px] font-mono text-[#7E869B]">
+                      <span>{tpl.category?.split(',')[0]}</span>
+                      <span className="text-zinc-400 font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
                     </div>
                   </div>
                 );

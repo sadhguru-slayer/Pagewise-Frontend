@@ -6,76 +6,98 @@ function htmlToText(value) {
     .trim();
 }
 
-function applyOneSuggestion(currentHtml, sug) {
-  const orig = (sug.original_text || '').trim();
-  const enhanced = (sug.enhanced_html || '').trim();
-  if (!enhanced) return currentHtml;
+/**
+ * Extracts discrete points if enhanced_html contains multiple <li> tags or newlines
+ */
+function extractEnhancedPoints(enhancedHtml) {
+  if (!enhancedHtml) return [];
+  const text = String(enhancedHtml);
 
-  let html = currentHtml || '';
-
-  if (orig && html.includes(orig)) {
-    return html.replace(orig, enhanced);
+  // If there are multiple <li> tags:
+  const liMatches = text.match(/<li[^>]*>(.*?)<\/li>/gi);
+  if (liMatches && liMatches.length > 0) {
+    return liMatches.map((m) =>
+      m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    ).filter(Boolean);
   }
 
-  if (typeof window === 'undefined' || !window.DOMParser) {
-    return html ? `${html}${enhanced}` : enhanced;
+  // If there are <p> tags:
+  const pMatches = text.match(/<p[^>]*>(.*?)<\/p>/gi);
+  if (pMatches && pMatches.length > 1) {
+    return pMatches.map((m) =>
+      m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    ).filter(Boolean);
   }
 
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html || '<div></div>', 'text/html');
-    const origClean = htmlToText(orig).toLowerCase();
+  // Single point
+  const clean = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return clean ? [clean] : [];
+}
 
-    if (origClean.length > 8) {
-      const elements = Array.from(doc.body.querySelectorAll('li, p, h1, h2, h3, h4, h5, h6'));
-      let bestMatch = null;
-      let bestScore = 0;
+/**
+ * Applies suggestions directly to structured section items (preserving 1 point per <li>)
+ */
+function applySuggestionsToStructuredItems(items, suggestions) {
+  if (!Array.isArray(items) || !suggestions?.length) return { items, appliedCount: 0 };
+  let appliedCount = 0;
 
-      for (const el of elements) {
-        const elText = htmlToText(el.textContent).toLowerCase();
-        if (!elText) continue;
-        if (elText.includes(origClean) || origClean.includes(elText)) {
-          bestMatch = el;
-          bestScore = 1;
-          break;
-        }
-        const origWords = origClean.split(/\s+/).filter((w) => w.length > 3);
-        if (origWords.length > 0) {
-          const matchedWords = origWords.filter((w) => elText.includes(w));
-          const score = matchedWords.length / origWords.length;
-          if (score > 0.45 && score > bestScore) {
-            bestScore = score;
-            bestMatch = el;
+  const nextItems = items.map((item) => {
+    if (!Array.isArray(item.points)) return item;
+    let nextPoints = [...item.points];
+
+    suggestions.forEach((sug) => {
+      const enhancedPoints = extractEnhancedPoints(sug.enhanced_html || sug.enhanced_text);
+      if (!enhancedPoints.length) return;
+
+      const origClean = htmlToText(sug.original_text).toLowerCase();
+
+      // Case 1: Direct match by item_id and point_index
+      if (
+        sug.item_id === item.id &&
+        typeof sug.point_index === 'number' &&
+        sug.point_index >= 0 &&
+        sug.point_index < nextPoints.length
+      ) {
+        // Replace single point with enhanced points (expanding if multiple)
+        nextPoints.splice(sug.point_index, 1, ...enhancedPoints);
+        appliedCount += 1;
+        return;
+      }
+
+      // Case 2: Match by orig text content
+      if (origClean && origClean.length > 8) {
+        let bestIdx = -1;
+        let bestScore = 0;
+
+        nextPoints.forEach((pt, idx) => {
+          const ptClean = pt.toLowerCase().trim();
+          if (ptClean === origClean || ptClean.includes(origClean) || origClean.includes(ptClean)) {
+            bestIdx = idx;
+            bestScore = 1.0;
+            return;
           }
+          const origWords = origClean.split(/\s+/).filter((w) => w.length >= 3);
+          if (origWords.length > 0) {
+            const matched = origWords.filter((w) => ptClean.includes(w)).length;
+            const score = matched / origWords.length;
+            if (score > 0.40 && score > bestScore) {
+              bestScore = score;
+              bestIdx = idx;
+            }
+          }
+        });
+
+        if (bestIdx !== -1 && bestScore >= 0.40) {
+          nextPoints.splice(bestIdx, 1, ...enhancedPoints);
+          appliedCount += 1;
         }
       }
+    });
 
-      if (bestMatch && bestScore >= 0.45) {
-        const tempDoc = parser.parseFromString(enhanced, 'text/html');
-        if (bestMatch.tagName.toLowerCase() === 'li') {
-          const innerLi = tempDoc.body.querySelector('li');
-          bestMatch.innerHTML = innerLi ? innerLi.innerHTML : tempDoc.body.innerHTML;
-        } else {
-          bestMatch.innerHTML = tempDoc.body.innerHTML;
-        }
-        return doc.body.innerHTML;
-      }
-    }
+    return { ...item, points: nextPoints };
+  });
 
-    const lastUl = doc.body.querySelector('ul:last-of-type') || doc.body.querySelector('ul');
-    if (lastUl) {
-      const tempDoc = parser.parseFromString(enhanced, 'text/html');
-      const innerLi = tempDoc.body.querySelector('li');
-      const newLi = doc.createElement('li');
-      newLi.innerHTML = innerLi ? innerLi.innerHTML : tempDoc.body.innerHTML;
-      lastUl.appendChild(newLi);
-      return doc.body.innerHTML;
-    }
-
-    return `${html}${enhanced}`;
-  } catch {
-    return html ? `${html}${enhanced}` : enhanced;
-  }
+  return { items: nextItems, appliedCount };
 }
 
 export function applyWiserEnhancementsToSections(sections, analysis) {
@@ -84,7 +106,7 @@ export function applyWiserEnhancementsToSections(sections, analysis) {
     return { sections, appliedCount: 0 };
   }
 
-  let appliedCount = 0;
+  let totalApplied = 0;
   const next = sections.map((sec) => {
     const match = enhancements.find(
       (s) =>
@@ -93,14 +115,32 @@ export function applyWiserEnhancementsToSections(sections, analysis) {
     );
     if (!match?.suggestions?.length) return sec;
 
+    // If section has structured items, apply directly to items[].points!
+    if (Array.isArray(sec.items) && sec.items.length > 0) {
+      const { items: updatedItems, appliedCount } = applySuggestionsToStructuredItems(
+        sec.items,
+        match.suggestions
+      );
+      totalApplied += appliedCount;
+      return {
+        ...sec,
+        items: updatedItems,
+      };
+    }
+
+    // Fallback for legacy rich text
     let html = sec.content ?? sec.contentHtml ?? '';
     if (typeof html !== 'string') html = '';
     for (const sug of match.suggestions) {
-      html = applyOneSuggestion(html, sug);
-      appliedCount += 1;
+      const orig = (sug.original_text || '').trim();
+      const enhanced = (sug.enhanced_html || '').trim();
+      if (orig && html.includes(orig)) {
+        html = html.replace(orig, enhanced);
+        totalApplied += 1;
+      }
     }
     return { ...sec, content: html, contentHtml: html };
   });
 
-  return { sections: next, appliedCount };
+  return { sections: next, appliedCount: totalApplied };
 }

@@ -61,6 +61,7 @@ import ExportMenu from '@/components/resume-builder/ExportMenu';
 import TemplateModal from '@/components/resume-builder/TemplateModal';
 import ImportPdfModal from '@/components/resume-builder/ImportPdfModal';
 import JDAnalyzerModal from '@/components/resume-builder/JDAnalyzerModal';
+import WiserAnalysisPanel from '@/components/resume-builder/WiserAnalysisPanel';
 import PricingModal from '@/components/pricing/PricingModal';
 import MobileNotice from '@/components/layout/MobileNotice';
 
@@ -91,6 +92,7 @@ function BuilderContent() {
   const redo = useResumeStore((s) => s.redo);
   const canUndo = useResumeStore((s) => s.canUndo);
   const canRedo = useResumeStore((s) => s.canRedo);
+  const targetAtsScore = useResumeStore((s) => s.targetAtsScore);
 
   const saveTimeoutRef = useRef(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -99,6 +101,8 @@ function BuilderContent() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isJdModalOpen, setIsJdModalOpen] = useState(false);
+  const [isWiserPanelOpen, setIsWiserPanelOpen] = useState(false);
+  const [wiserWidth, setWiserWidth] = useState(380);
   const [isStudioMenuOpen, setIsStudioMenuOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
@@ -530,15 +534,27 @@ function BuilderContent() {
 
         {/* Right Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Wiser AI (JD Matching & Standalone ATS) button */}
+          {/* Wiser AI Docked Panel Toggle & Score Chip */}
           <button
-            onClick={() => { if (isDirty) saveResume(); setIsJdModalOpen(true); }}
-            className="bg-[#C88A58]/10 hover:bg-[#C88A58]/20 text-[#D49A6A] border border-[#C88A58]/25 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Launch Wiser AI: General Resume Audit, Bullet Polish & Job Match"
+            onClick={() => {
+              if (isDirty) saveResume();
+              setIsWiserPanelOpen(!isWiserPanelOpen);
+            }}
+            className={`border rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              isWiserPanelOpen
+                ? "bg-[#C88A58]/25 border-[#C88A58] text-white shadow-sm"
+                : "bg-[#C88A58]/10 hover:bg-[#C88A58]/20 text-[#D49A6A] border-[#C88A58]/25"
+            }`}
+            title="Toggle Wiser AI: ATS Score, Bullet Polish & Role Alignment Panel"
           >
             <Target className="w-3.5 h-3.5 text-[#D49A6A]" />
-            <span className="hidden sm:inline">Wiser AI</span>
-
+            {targetAtsScore !== null && targetAtsScore !== undefined ? (
+              <span className="font-mono font-bold tracking-tight">
+                {targetAtsScore} · {targetAtsScore > 85 ? "Strong" : targetAtsScore > 65 ? "Good" : "Needs Work"}
+              </span>
+            ) : (
+              <span>Wiser AI</span>
+            )}
           </button>
 
           {/* Pilot Feedback Mail Link */}
@@ -598,20 +614,32 @@ function BuilderContent() {
             <button
               onClick={() => setMobileView('editor')}
               className={`p-1.5 rounded-md text-xs ${
-                mobileView === 'editor' ? 'bg-blue-600 text-white' : 'text-zinc-400'
+                mobileView === 'editor' ? 'bg-blue-600 text-white font-medium' : 'text-zinc-400 hover:text-white'
               }`}
-              title="Editor View"
+              title="Editor"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setMobileView('preview')}
               className={`p-1.5 rounded-md text-xs ${
-                mobileView === 'preview' ? 'bg-blue-600 text-white' : 'text-zinc-400'
+                mobileView === 'preview' ? 'bg-blue-600 text-white font-medium' : 'text-zinc-400 hover:text-white'
               }`}
-              title="Live Preview"
+              title="Preview"
             >
               <Eye className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                setMobileView('wiser');
+                setIsWiserPanelOpen(true);
+              }}
+              className={`p-1.5 rounded-md text-xs ${
+                mobileView === 'wiser' ? 'bg-[#C88A58] text-white font-medium' : 'text-zinc-400 hover:text-white'
+              }`}
+              title="Wiser AI"
+            >
+              <Target className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -964,6 +992,24 @@ function BuilderContent() {
                 onSelectHeader={handleSelectHeaderFromPreview}
               />
             </div>
+          </div>
+        )}
+
+        {/* ── 4. DOCKED WISER ANALYSIS PANEL ──────────────────────────────── */}
+        {isWiserPanelOpen && (
+          <div
+            style={{ width: `${wiserWidth}px` }}
+            className={`h-full flex flex-col overflow-hidden shrink-0 min-h-0 z-20 ${
+              mobileView === 'wiser' ? 'flex flex-1 w-full' : 'hidden lg:flex'
+            }`}
+          >
+            <WiserAnalysisPanel
+              onClose={() => {
+                setIsWiserPanelOpen(false);
+                if (mobileView === 'wiser') setMobileView('preview');
+              }}
+              isLocked={isLocked}
+            />
           </div>
         )}
       </div>

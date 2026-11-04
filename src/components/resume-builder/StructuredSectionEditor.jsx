@@ -146,8 +146,8 @@ function AutoResizeBulletTextarea({
   );
 }
 
-// ── Greedy 1-to-1 Mapping of Wiser Suggestions to Exact Bullet Points ────────
-function mapSuggestionsToBullets(bullets = [], suggestions = []) {
+// ── Deterministic & Greedy 1-to-1 Mapping of Wiser Suggestions to Exact Bullet Points ────────
+function mapSuggestionsToBullets(bullets = [], suggestions = [], currentItemId = null) {
   if (!bullets.length || !suggestions.length) return {};
 
   const clean = (str) =>
@@ -160,15 +160,46 @@ function mapSuggestionsToBullets(bullets = [], suggestions = []) {
 
   const getTokens = (str) => new Set(clean(str).split(' ').filter((w) => w.length >= 3));
 
+  const matchedBullets = new Set();
+  const matchedSugKeys = new Set();
+  const bulletMap = {};
+
+  // Step 1: Explicit matching by item_id and point_index if provided by LLM
+  suggestions.forEach((sug) => {
+    if (!sug) return;
+    const sugKey = sug.id || sug.original_text;
+    if (
+      currentItemId &&
+      sug.item_id === currentItemId &&
+      typeof sug.point_index === 'number' &&
+      sug.point_index >= 0 &&
+      sug.point_index < bullets.length
+    ) {
+      if (!matchedBullets.has(sug.point_index) && !matchedSugKeys.has(sugKey)) {
+        matchedBullets.add(sug.point_index);
+        matchedSugKeys.add(sugKey);
+        bulletMap[sug.point_index] = sug;
+      }
+    }
+  });
+
+  // Step 2: Content-based fuzzy matching for remaining suggestions
   const candidates = [];
   suggestions.forEach((sug) => {
     if (!sug) return;
+    const sugKey = sug.id || sug.original_text;
+    if (matchedSugKeys.has(sugKey)) return;
+
+    // If suggestion is explicitly tagged for a different item_id, skip it
+    if (sug.item_id && currentItemId && sug.item_id !== currentItemId) return;
+
     const origText = sug.original_text || '';
     const origClean = clean(origText);
     if (!origClean || origClean.length < 8) return;
     const origTokens = getTokens(origText);
 
     bullets.forEach((bullet, bIdx) => {
+      if (matchedBullets.has(bIdx)) return;
       const bulletClean = clean(bullet);
       if (!bulletClean || bulletClean.length < 8) return;
 
@@ -176,16 +207,16 @@ function mapSuggestionsToBullets(bullets = [], suggestions = []) {
       if (bulletClean === origClean) {
         score = 1.0;
       } else if (bulletClean.includes(origClean) || origClean.includes(bulletClean)) {
-        score = 0.85 * (Math.min(bulletClean.length, origClean.length) / Math.max(bulletClean.length, origClean.length));
+        score = 0.90;
       } else if (origTokens.size > 0) {
         const bulletTokens = getTokens(bullet);
         let common = 0;
         origTokens.forEach((t) => {
           if (bulletTokens.has(t)) common++;
         });
-        const overlap = common / Math.max(origTokens.size, bulletTokens.size);
-        if (overlap >= 0.40) {
-          score = 0.75 * overlap;
+        const overlap = common / Math.min(origTokens.size, bulletTokens.size);
+        if (overlap >= 0.35) {
+          score = 0.70 + 0.30 * overlap;
         }
       }
 
@@ -195,13 +226,7 @@ function mapSuggestionsToBullets(bullets = [], suggestions = []) {
     });
   });
 
-  // Sort candidates by score descending
   candidates.sort((a, b) => b.score - a.score);
-
-  // Greedily match 1 suggestion to at most 1 bullet point (strictly 1-to-1)
-  const matchedBullets = new Set();
-  const matchedSugKeys = new Set();
-  const bulletMap = {};
 
   candidates.forEach(({ sug, bIdx }) => {
     const sugKey = sug.id || sug.original_text;
@@ -232,8 +257,8 @@ function TextEditorBulletList({
 
   // Map suggestions to bullets strictly 1-to-1 so a suggestion is never replicated across points
   const bulletSuggestionMap = useMemo(
-    () => mapSuggestionsToBullets(bullets, suggestions),
-    [bullets, suggestions]
+    () => mapSuggestionsToBullets(bullets, suggestions, itemId),
+    [bullets, suggestions, itemId]
   );
 
   const handleNewBulletKeyDown = (e) => {
@@ -630,7 +655,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
   const isSuggestionDismissed = (sug) => {
     const key = getSuggestionKey(sug);
-    return dismissedSuggestionKeys.includes(key);
+    return dismissedSuggestionKeys.includes(key) || appliedSuggestionKeys.includes(key);
   };
 
   const activeSuggestions = suggestions.filter((sug) => !isSuggestionDismissed(sug));
@@ -680,35 +705,69 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
   const handleApplySuggestion = (sug) => {
     const key = getSuggestionKey(sug);
-    const cleanText = (sug.enhanced_html || sug.original_text || '')
+    const cleanText = (sug.enhanced_html || sug.enhanced_text || sug.original_text || '')
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
     if (!cleanText) return;
 
-    const origText = (sug.original_text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const origWords = (sug.original_text || '')
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 3);
+
     let replaced = false;
     let targetItemId = null;
     let targetBulletIdx = -1;
+    let bestScore = 0;
 
-    const updatedItems = items.map((it) => {
+    // Find best matching item and bullet index across all items
+    items.forEach((it) => {
       if (Array.isArray(it.points)) {
-        const nextPoints = it.points.map((pt, bIdx) => {
-          if (!replaced && origText && pt.toLowerCase().includes(origText.slice(0, 30))) {
-            replaced = true;
+        it.points.forEach((pt, bIdx) => {
+          const ptClean = pt.toLowerCase();
+          const origClean = (sug.original_text || '').toLowerCase().trim();
+          if (origClean && (ptClean.includes(origClean) || origClean.includes(ptClean))) {
             targetItemId = it.id;
             targetBulletIdx = bIdx;
-            return cleanText;
+            bestScore = 1.0;
+            return;
           }
-          return pt;
+          if (origWords.length > 0) {
+            const matchedCount = origWords.filter((w) => ptClean.includes(w)).length;
+            const score = matchedCount / origWords.length;
+            if (score > 0.35 && score > bestScore) {
+              bestScore = score;
+              targetItemId = it.id;
+              targetBulletIdx = bIdx;
+            }
+          }
         });
-        return { ...it, points: nextPoints };
       }
-      return it;
     });
 
-    if (replaced) {
+    if (targetItemId && targetBulletIdx !== -1) {
+      const enhancedRaw = sug.enhanced_html || sug.enhanced_text || cleanText;
+      const liMatches = enhancedRaw.match(/<li[^>]*>(.*?)<\/li>/gi);
+      let replacementPoints = [];
+      if (liMatches && liMatches.length > 0) {
+        replacementPoints = liMatches.map((m) =>
+          m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        ).filter(Boolean);
+      } else {
+        replacementPoints = [cleanText];
+      }
+
+      const updatedItems = items.map((it) => {
+        if (it.id === targetItemId && Array.isArray(it.points)) {
+          const nextPoints = [...it.points];
+          nextPoints.splice(targetBulletIdx, 1, ...replacementPoints);
+          return { ...it, points: nextPoints };
+        }
+        return it;
+      });
       updateSectionItems(activeSectionId, updatedItems);
       markSuggestionApplied?.(key);
       dismissSuggestion?.(key);
@@ -745,17 +804,27 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
   const handleApplyInlineSuggestion = (itemId, bulletIdx, sug) => {
     const key = getSuggestionKey(sug);
-    const cleanText = (sug.enhanced_html || sug.enhanced_text || sug.original_text || '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const enhancedRaw = sug.enhanced_html || sug.enhanced_text || sug.original_text || '';
+    
+    // Parse discrete points if multiple <li> or <p> tags are present
+    const liMatches = enhancedRaw.match(/<li[^>]*>(.*?)<\/li>/gi);
+    let replacementPoints = [];
+    if (liMatches && liMatches.length > 0) {
+      replacementPoints = liMatches.map((m) =>
+        m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      ).filter(Boolean);
+    } else {
+      const cleanSingle = enhancedRaw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (cleanSingle) replacementPoints = [cleanSingle];
+    }
 
-    if (!cleanText) return;
+    if (!replacementPoints.length) return;
 
     const updatedItems = items.map((it) => {
       if (it.id === itemId && Array.isArray(it.points)) {
         const nextPoints = [...it.points];
-        nextPoints[bulletIdx] = cleanText;
+        // Splice in discrete individual points so 1 bullet never becomes a merged multi-bullet paragraph!
+        nextPoints.splice(bulletIdx, 1, ...replacementPoints);
         return { ...it, points: nextPoints };
       }
       return it;
@@ -765,7 +834,12 @@ export default function StructuredSectionEditor({ onCollapse }) {
     markSuggestionApplied?.(key);
     dismissSuggestion?.(key);
     setAppliedFlashTarget({ itemId, bulletIdx, ts: Date.now() });
-    toast.success('Applied upgrade to point!', { icon: '✅' });
+    toast.success(
+      replacementPoints.length > 1
+        ? `Expanded into ${replacementPoints.length} individual bullet points!`
+        : 'Applied upgrade to point!',
+      { icon: '✅' }
+    );
   };
 
   const handleDismissInlineSuggestion = (sug) => {
@@ -934,99 +1008,28 @@ export default function StructuredSectionEditor({ onCollapse }) {
         )}
       </div>
 
-      {/* ── Optional JD Enhancements Accordion Bar (Only shown if suggestions exist) ─ */}
+      {/* ── Active Wiser AI Recommendations Banner (Discreet counter; cards sit directly on each bullet) ─ */}
       {activeSuggestions.length > 0 && (
-        <div className="bg-[#12141D] border-b border-[#D49A6A]/20 px-4 py-2 shrink-0">
+        <div className="bg-[#12141D] border-b border-[#D49A6A]/20 px-4 py-2 shrink-0 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Target className="w-3.5 h-3.5 text-[#D49A6A]" />
+            <span className="text-xs font-semibold text-[#D49A6A]">
+              {activeSuggestions.length} Wiser AI {activeSuggestions.length === 1 ? 'Upgrade' : 'Upgrades'} Available
+            </span>
+            <span className="text-[10px] text-zinc-400 font-normal">
+              — Review inline on each bullet point below
+            </span>
+          </div>
           <button
             type="button"
-            onClick={() => setShowJdPanel((prev) => !prev)}
-            className="flex items-center gap-2 text-xs font-semibold text-[#D49A6A] hover:text-white transition-colors cursor-pointer w-full justify-between"
+            onClick={() => {
+              activeSuggestions.forEach((s) => handleApplySuggestion(s));
+            }}
+            className="px-2.5 py-1 rounded bg-[#D49A6A]/15 hover:bg-[#D49A6A]/25 border border-[#D49A6A]/30 text-[#D49A6A] text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1"
           >
-            <div className="flex items-center gap-2">
-              <Target className="w-3.5 h-3.5 text-[#D49A6A]" />
-              <span>Wiser AI Suggestions for this section ({activeSuggestions.length})</span>
-            </div>
-            <span className="text-[10px] text-zinc-400">
-              {showJdPanel ? 'Hide ▲' : 'Show ▼'}
-            </span>
+            <Check className="w-3 h-3" />
+            <span>Apply All ({activeSuggestions.length})</span>
           </button>
-
-          {showJdPanel && (
-            <div className="mt-2 space-y-2 max-h-56 overflow-y-auto pr-1">
-              {activeSuggestions.map((sug) => {
-                const applied = isSuggestionApplied(sug);
-                const sugKey = getSuggestionKey(sug);
-
-                // Locate matching item & bullet point
-                const origText = (sug.original_text || '').replace(/\s+/g, ' ').trim().toLowerCase();
-                let matchedTitle = '';
-                let matchedBulletIdx = -1;
-                if (origText) {
-                  items.forEach((it, iIdx) => {
-                    if (Array.isArray(it.points)) {
-                      it.points.forEach((pt, bIdx) => {
-                        if (matchedBulletIdx === -1 && pt.toLowerCase().includes(origText.slice(0, 25))) {
-                          matchedTitle = it.company || it.project_title || it.institution || it.title || `Entry #${iIdx + 1}`;
-                          matchedBulletIdx = bIdx + 1;
-                        }
-                      });
-                    }
-                  });
-                }
-
-                return (
-                  <div
-                    key={sugKey}
-                    className="p-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:border-[#D49A6A]/30 text-xs space-y-1.5 transition-colors"
-                  >
-                    {matchedTitle && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-[#D49A6A] bg-[#D49A6A]/10 border border-[#D49A6A]/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                          <span>Target:</span>
-                          <strong>{matchedTitle} • Bullet #{matchedBulletIdx}</strong>
-                        </span>
-                      </div>
-                    )}
-                    {sug.original_text && (
-                      <div className="text-[11px] text-zinc-400 line-through pl-1 border-l-2 border-rose-500/40">
-                        {sug.original_text}
-                      </div>
-                    )}
-                    <div className="text-zinc-200 font-medium pl-1 border-l-2 border-emerald-500/60">
-                      {sug.enhanced_text || sug.enhanced_html?.replace(/<[^>]+>/g, ' ')}
-                    </div>
-                    {sug.rationale && (
-                      <p className="text-[10px] text-zinc-400">
-                        💡 {sug.rationale}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-zinc-500">
-                        {applied ? '✓ Applied' : 'Ready to apply'}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => dismissSuggestion(sugKey)}
-                          className="px-2 py-0.5 rounded text-[10px] text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors cursor-pointer"
-                        >
-                          Dismiss
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleApplySuggestion(sug)}
-                          className="px-2.5 py-0.5 rounded text-[10px] font-semibold bg-[#D49A6A] hover:bg-[#C88A58] text-black transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
-                        >
-                          <Check className="w-3 h-3 text-black stroke-[2.5]" />
-                          <span>Apply</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
 
@@ -1514,20 +1517,19 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
             {items.map((item, idx) => (
               <div key={item.id || idx} className="space-y-2 relative">
-                {items.length > 1 && (
-                  <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5 mb-2">
-                    <span className="text-[11px] font-mono text-zinc-400 font-medium">
-                      Category #{idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="text-zinc-500 hover:text-rose-400 text-xs transition-colors cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5 mb-2">
+                  <span className="text-[11px] font-mono text-zinc-400 font-medium">
+                    Category #{idx + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(item.id)}
+                    className="text-zinc-500 hover:text-rose-400 text-xs transition-colors cursor-pointer flex items-center gap-1"
+                    title="Remove this skill category"
+                  >
+                    <span>Remove</span>
+                  </button>
+                </div>
 
                 {/* Category Name */}
                 <div className="field">

@@ -224,147 +224,249 @@ export default function ResumePreview({ onSelectSection, onSelectHeader }) {
       </div>
 
       {/* ── Sections (Clickable like in Canva) ────────────────────────── */}
-      {visibleSections.map((section) => {
-        const isCurrentActive = activeSectionId === section.id;
-        const headingColor = section.headingColor || settings?.headingColor || '#111827';
-        const headingWeight = section.headingBold !== false ? 'bold' : 'normal';
-        const headingUnderline = section.headingUnderline ? 'underline' : 'none';
-        const headingTransform = section.headingUppercase !== false ? 'uppercase' : 'none';
-        const headingFontSize =
-          section.headingFontSize != null
-            ? section.headingFontSize
-            : Number(((settings?.bodyFontSize ?? 8.5) * 1.18).toFixed(1));
+      {(() => {
+        const layoutStyle = settings?.layoutStyle || 'single-column';
 
-        return (
-          <div
-            key={section.id}
-            data-section-id={section.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isCurrentActive) {
-                setActiveSectionId(null);
-                if (onSelectSection) onSelectSection(null);
-              } else {
-                setActiveSectionId(section.id);
-                if (onSelectSection) onSelectSection(section.id);
-              }
-            }}
-            id={`preview-section-${section.id}`}
-            className={`section-container group relative rounded-sm ${
-              isCurrentActive ? 'active-section' : ''
-            }`}
-            style={{
-              marginBottom: `${settings?.sectionSpacing ?? 1}pt`,
-            }}
-            title={isCurrentActive ? "Selected (click again to unselect)" : "Click to edit this section"}
-          >
-            {isCurrentActive ? (
-              <span className="absolute -top-3 right-1 z-20 flex items-center gap-1.5 bg-[#181B26] border border-[#D49A6A]/60 shadow-lg px-2 py-0.5 rounded-full text-[9px] font-sans font-semibold text-[#D49A6A] select-none pointer-events-auto">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D49A6A] animate-pulse" />
-                <span>Selected</span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveSectionId(null);
-                    if (onSelectSection) onSelectSection(null);
-                  }}
-                  className="ml-1 text-zinc-400 hover:text-white cursor-pointer px-0.5"
-                  title="Deselect section"
-                >
-                  ✕
+        const renderSectionNode = (section) => {
+          const isCurrentActive = activeSectionId === section.id;
+          const headingColor = section.headingColor || settings?.headingColor || '#111827';
+          const headingWeight = section.headingBold !== false ? 'bold' : 'normal';
+          const headingUnderline = section.headingUnderline ? 'underline' : 'none';
+          const headingTransform = section.headingUppercase !== false ? 'uppercase' : 'none';
+          const headingFontSize =
+            section.headingFontSize != null
+              ? section.headingFontSize
+              : Number(((settings?.bodyFontSize ?? 8.5) * 1.18).toFixed(1));
+
+          return (
+            <div
+              key={section.id}
+              data-section-id={section.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isCurrentActive) {
+                  setActiveSectionId(null);
+                  if (onSelectSection) onSelectSection(null);
+                } else {
+                  setActiveSectionId(section.id);
+                  if (onSelectSection) onSelectSection(section.id);
+                }
+              }}
+              id={`preview-section-${section.id}`}
+              className={`section-container group relative rounded-sm ${
+                isCurrentActive ? 'active-section ring-2 ring-blue-500 bg-blue-50/15' : ''
+              }`}
+              style={{
+                marginBottom: `${settings?.sectionSpacing ?? 1}pt`,
+              }}
+              title={isCurrentActive ? "Selected (click again to unselect)" : "Click to edit this section"}
+            >
+              {isCurrentActive ? (
+                <span className="absolute -top-3 right-1 z-20 flex items-center gap-1.5 bg-[#181B26] border border-[#D49A6A]/60 shadow-lg px-2 py-0.5 rounded-full text-[9px] font-sans font-semibold text-[#D49A6A] select-none pointer-events-auto">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#D49A6A] animate-pulse" />
+                  <span>Selected</span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveSectionId(null);
+                      if (onSelectSection) onSelectSection(null);
+                    }}
+                    className="ml-1 text-zinc-400 hover:text-white cursor-pointer px-0.5"
+                    title="Deselect section"
+                  >
+                    ✕
+                  </span>
                 </span>
-              </span>
-            ) : (
-              <span className="absolute top-0 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900/90 border border-white/10 text-zinc-300 text-[9px] px-2 py-0.5 rounded shadow pointer-events-none font-sans font-medium z-10">
-                Click to Edit ✎
-              </span>
-            )}
+              ) : (
+                <span className="absolute top-0 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900/90 border border-white/10 text-zinc-300 text-[9px] px-2 py-0.5 rounded shadow pointer-events-none font-sans font-medium z-10">
+                  Click to Edit ✎
+                </span>
+              )}
 
-            {/* Section heading */}
-            <div style={{ textAlign: section.headingAlign ?? 'left' }}>
-              <h2
-                className="section-title"
-                style={{
-                  fontSize: `${headingFontSize}pt`,
-                  fontWeight: headingWeight,
-                  color: headingColor,
-                  textTransform: headingTransform,
-                  textDecoration: headingUnderline,
-                  letterSpacing: '0.08em',
-                  lineHeight: 1.2,
-                  marginTop: 0,
-                  marginBottom: '1pt',
+              {/* Section heading */}
+              <div style={{ textAlign: section.headingAlign ?? 'left' }}>
+                <h2
+                  className="section-title"
+                  style={{
+                    fontSize: `${headingFontSize}pt`,
+                    fontWeight: headingWeight,
+                    color: headingColor,
+                    textTransform: headingTransform,
+                    textDecoration: headingUnderline,
+                    letterSpacing: '0.08em',
+                    lineHeight: 1.2,
+                    marginTop: 0,
+                    marginBottom: '1pt',
+                  }}
+                >
+                  {section.title}
+                </h2>
+                {section.showDividerAfterHeading && (
+                  <hr
+                    className="section-heading-divider"
+                    style={{
+                      border: 'none',
+                      borderTopWidth: `${section.headingDividerThickness ?? 1}px`,
+                      borderTopStyle: section.headingDividerStyle ?? 'solid',
+                      borderTopColor: section.headingDividerColor ?? `${headingColor}44`,
+                      marginTop: `${section.headingDividerMarginTop ?? 1}px`,
+                      marginBottom: `${section.headingDividerMarginBottom ?? 2}px`,
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Section links */}
+              {section.links?.length > 0 && (
+                <div className="links-bar">
+                  {section.links.map((link) => {
+                    const url = link.url?.startsWith('http://') || link.url?.startsWith('https://') || link.url?.startsWith('mailto:')
+                      ? link.url
+                      : `https://${link.url}`;
+                    return (
+                      <a
+                        key={link.id}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {link.label || link.url}
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Structured or Tiptap content */}
+              <div
+                className="section-content"
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{
+                  __html:
+                    section.items && section.items.length > 0
+                      ? renderStructuredSectionHtml(section, settings)
+                      : renderTiptapJson(section.content),
                 }}
-              >
-                {section.title}
-              </h2>
-              {section.showDividerAfterHeading && (
+              />
+
+              {/* Divider after section */}
+              {section.dividerAfter && (
                 <hr
-                  className="section-heading-divider"
+                  className="section-divider-line"
                   style={{
                     border: 'none',
-                    borderTopWidth: `${section.headingDividerThickness ?? 1}px`,
-                    borderTopStyle: section.headingDividerStyle ?? 'solid',
-                    borderTopColor: section.headingDividerColor ?? `${headingColor}44`,
-                    marginTop: `${section.headingDividerMarginTop ?? 1}px`,
-                    marginBottom: `${section.headingDividerMarginBottom ?? 2}px`,
+                    borderTopWidth: `${section.dividerAfter.thickness ?? 1}px`,
+                    borderTopStyle: section.dividerAfter.style ?? 'solid',
+                    borderTopColor: section.dividerAfter.color ?? '#e5e7eb',
+                    marginTop: `${section.dividerAfter.marginTop ?? 2}px`,
+                    marginBottom: `${section.dividerAfter.marginBottom ?? 2}px`,
                   }}
                 />
               )}
             </div>
+          );
+        };
 
-            {/* Section links */}
-            {section.links?.length > 0 && (
-              <div className="links-bar">
-                {section.links.map((link) => {
-                  const url = link.url?.startsWith('http://') || link.url?.startsWith('https://') || link.url?.startsWith('mailto:')
-                    ? link.url
-                    : `https://${link.url}`;
-                  return (
-                    <a
-                      key={link.id}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {link.label || link.url}
-                    </a>
-                  );
-                })}
+        if (layoutStyle === 'two-column-left' || layoutStyle === 'two-column-right' || layoutStyle === 'two-column-equal') {
+          const isSidebarLeft = layoutStyle !== 'two-column-right';
+          const isEqualSplit = layoutStyle === 'two-column-equal';
+
+          // Width styles for clean, non-cramped reading
+          const leftWidthClass = isEqualSplit ? 'w-1/2' : (isSidebarLeft ? 'w-[38%]' : 'w-[62%]');
+          const rightWidthClass = isEqualSplit ? 'w-1/2' : (isSidebarLeft ? 'w-[62%]' : 'w-[38%]');
+
+          const getSectionWeight = (sec) => {
+            let weight = 35;
+            if (sec.items && Array.isArray(sec.items)) {
+              sec.items.forEach((it) => {
+                weight += 20;
+                if (it.summary) weight += 24;
+                if (Array.isArray(it.tech_stack) && it.tech_stack.length > 0) weight += 18;
+                if (Array.isArray(it.points)) weight += it.points.length * 28;
+                if (Array.isArray(it.skills)) weight += Math.ceil(it.skills.length / 4) * 20;
+              });
+            } else if (sec.content) {
+              weight += 60;
+            }
+            return weight;
+          };
+
+          const colA = [];
+          const colB = [];
+          let weightA = 0;
+          let weightB = 0;
+
+          const sidebarKeywords = ['skill', 'competenc', 'education', 'certif', 'summary', 'language', 'contact', 'award', 'interest', 'course'];
+
+          if (isEqualSplit) {
+            visibleSections.forEach((sec) => {
+              const w = getSectionWeight(sec);
+              if (weightA <= weightB) {
+                colA.push(sec);
+                weightA += w;
+              } else {
+                colB.push(sec);
+                weightB += w;
+              }
+            });
+          } else {
+            const sideCandidate = [];
+            const mainCandidate = [];
+
+            visibleSections.forEach((sec) => {
+              const titleLower = (sec.title || '').toLowerCase();
+              const isSidebar = sidebarKeywords.some((k) => titleLower.includes(k));
+              if (isSidebar) {
+                sideCandidate.push(sec);
+              } else {
+                mainCandidate.push(sec);
+              }
+            });
+
+            const totalWeight = visibleSections.reduce((acc, s) => acc + getSectionWeight(s), 0);
+            const targetSideWeight = totalWeight * 0.40;
+
+            let currentSideWeight = 0;
+            sideCandidate.forEach((sec) => {
+              const w = getSectionWeight(sec);
+              if (currentSideWeight + w <= targetSideWeight || colA.length === 0) {
+                colA.push(sec);
+                currentSideWeight += w;
+              } else {
+                colB.push(sec);
+              }
+            });
+
+            mainCandidate.forEach((sec) => {
+              colB.push(sec);
+            });
+
+            if (colA.length === 0 && colB.length > 1) {
+              colA.push(...colB.splice(0, Math.ceil(colB.length / 2)));
+            } else if (colB.length === 0 && colA.length > 1) {
+              colB.push(...colA.splice(Math.ceil(colA.length / 2)));
+            }
+          }
+
+          const leftSections = isSidebarLeft ? colA : colB;
+          const rightSections = isSidebarLeft ? colB : colA;
+
+          return (
+            <div className="flex gap-4 items-start w-full mt-1">
+              <div className={`${leftWidthClass} flex flex-col shrink-0 pr-3 border-r border-zinc-200/80`}>
+                {leftSections.map(renderSectionNode)}
               </div>
-            )}
+              <div className={`${rightWidthClass} flex flex-col flex-1 pl-1`}>
+                {rightSections.map(renderSectionNode)}
+              </div>
+            </div>
+          );
+        }
 
-            {/* Structured or Tiptap content */}
-            <div
-              className="section-content"
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{
-                __html:
-                  section.items && section.items.length > 0
-                    ? renderStructuredSectionHtml(section, settings)
-                    : renderTiptapJson(section.content),
-              }}
-            />
-
-            {/* Divider after section */}
-            {section.dividerAfter && (
-              <hr
-                className="section-divider-line"
-                style={{
-                  border: 'none',
-                  borderTopWidth: `${section.dividerAfter.thickness ?? 1}px`,
-                  borderTopStyle: section.dividerAfter.style ?? 'solid',
-                  borderTopColor: section.dividerAfter.color ?? '#e5e7eb',
-                  marginTop: `${section.dividerAfter.marginTop ?? 2}px`,
-                  marginBottom: `${section.dividerAfter.marginBottom ?? 2}px`,
-                }}
-              />
-            )}
-          </div>
-        );
-      })}
+        return visibleSections.map(renderSectionNode);
+      })()}
     </div>
   );
 

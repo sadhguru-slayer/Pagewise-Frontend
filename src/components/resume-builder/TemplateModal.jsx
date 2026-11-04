@@ -20,7 +20,7 @@ import { RESUME_TEMPLATES } from '@/lib/resume/templates';
 import { renderTiptapJson } from '@/lib/resume/renderTiptap';
 import { renderStructuredSectionHtml } from '@/lib/resume/sectionSchemas';
 import { formatRelativeTime } from '@/lib/resume/utils';
-import { getContactLineHtml, isPortfolioSection, normalizeFontFamily } from '@/lib/resume/renderDocument';
+import { getContactLineHtml, isPortfolioSection, normalizeFontFamily, renderResumeInnerHtml } from '@/lib/resume/renderDocument';
 import { resumesApi } from '@/lib/api';
 
 export default function TemplateModal({ isOpen, onClose }) {
@@ -100,6 +100,7 @@ export default function TemplateModal({ isOpen, onClose }) {
       headingColor: template.settings.headingColor,
       accentColor: template.settings.accentColor,
       sectionSpacing: template.settings.sectionSpacing,
+      layoutStyle: template.settings.layoutStyle || template.layoutStyle || 'single-column',
     });
 
     updateHeader({
@@ -674,127 +675,23 @@ export default function TemplateModal({ isOpen, onClose }) {
                     boxSizing: 'border-box',
                   }}
                   className="shadow-[0_20px_60px_rgba(0,0,0,0.6)] ring-1 ring-white/10 rounded-[2px] transition-all text-left"
-                >
-                  <div style={{ textAlign: currentTemplate.header.alignment, paddingBottom: 6 }}>
-                    <h1
-                      style={{
-                        fontFamily: normalizeFontFamily(currentTemplate.header.nameFont),
-                        fontSize: `${currentTemplate.header.nameFontSize}pt`,
-                        fontWeight: currentTemplate.header.nameFontWeight,
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
-                        color: currentTemplate.previewColors.header,
-                        margin: 0,
-                      }}
-                    >
-                      {header?.name || 'YOUR NAME'}
-                    </h1>
-                    <div
-                      className="header-contact-line"
-                      style={{
-                        fontSize: `${currentTemplate.header.contactFontSize}pt`,
-                        color: currentTemplate.header.contactColor,
-                        marginTop: 4,
-                        marginBottom: 0,
-                        lineHeight: 1.2,
-                      }}
-                      dangerouslySetInnerHTML={{
-                        __html: getContactLineHtml(header, visibleSections) || 'City, Country · email@example.com',
-                      }}
-                    />
-                    {currentTemplate.header.showDivider && currentTemplate.header.divider && (
-                      <hr
-                        style={{
-                          marginTop: currentTemplate.header.divider.marginTop,
-                          marginBottom: currentTemplate.header.divider.marginBottom,
-                          border: 'none',
-                          borderTopWidth: currentTemplate.header.divider.thickness,
-                          borderTopStyle: currentTemplate.header.divider.style,
-                          borderTopColor: currentTemplate.header.divider.color,
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  {visibleSections.map((sec) => (
-                    <div
-                      key={sec.id}
-                      style={{
-                        marginBottom: `${currentTemplate.settings.sectionSpacing}pt`,
-                        fontFamily: currentTemplate.settings.bodyFont,
-                        fontSize: `${currentTemplate.settings.bodyFontSize}pt`,
-                        lineHeight: currentTemplate.settings.lineHeight,
-                      }}
-                    >
-                      <div style={{ textAlign: currentTemplate.sectionDefaults.headingAlign }}>
-                        <h2
-                          style={{
-                            fontSize: `${(currentTemplate.settings.bodyFontSize * 1.18).toFixed(1)}pt`,
-                            fontWeight: currentTemplate.sectionDefaults.headingBold
-                              ? 'bold'
-                              : 'normal',
-                            color: currentTemplate.settings.headingColor,
-                            textTransform: currentTemplate.sectionDefaults.headingUppercase
-                              ? 'uppercase'
-                              : 'none',
-                            textDecoration: currentTemplate.sectionDefaults.headingUnderline
-                              ? 'underline'
-                              : 'none',
-                            letterSpacing: '0.06em',
-                            marginBottom: 2,
-                            marginTop: 0,
-                          }}
-                        >
-                          {sec.title}
-                        </h2>
-                        {currentTemplate.sectionDefaults.showDividerAfterHeading && (
-                          <hr
-                            style={{
-                              border: 'none',
-                              borderTop: `1px solid ${currentTemplate.settings.headingColor}33`,
-                              marginBottom: 3,
-                            }}
-                          />
-                        )}
-                      </div>
-
-                      {sec.links?.length > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 8,
-                            marginBottom: 3,
-                          }}
-                        >
-                          {sec.links.map((link) => (
-                            <span
-                              key={link.id}
-                              style={{
-                                color: currentTemplate.settings.accentColor,
-                                fontSize: `${currentTemplate.settings.bodyFontSize - 1}pt`,
-                                textDecoration: 'underline',
-                              }}
-                            >
-                              {link.label || link.url}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div
-                        className="tiptap-preview"
-                        dangerouslySetInnerHTML={{
-                          __html:
-                            sec.items && sec.items.length > 0
-                              ? renderStructuredSectionHtml(sec, currentTemplate.settings || {})
-                              : renderTiptapJson(sec.content),
-                        }}
-                        style={{ color: currentTemplate.previewColors.text }}
-                      />
-                    </div>
-                  ))}
-                </div>
+                  dangerouslySetInnerHTML={{
+                    __html: renderResumeInnerHtml({
+                      header: {
+                        ...header,
+                        ...currentTemplate.header,
+                      },
+                      sections: visibleSections.map((s) => ({
+                        ...s,
+                        ...currentTemplate.sectionDefaults,
+                      })),
+                      settings: {
+                        ...currentTemplate.settings,
+                        layoutStyle: currentTemplate.settings?.layoutStyle || currentTemplate.layoutStyle || 'single-column',
+                      },
+                    }),
+                  }}
+                />
               ) : selectedSavedResume ? (
                 (() => {
                   const sSettings = selectedSavedResume.settingsJson || {};
