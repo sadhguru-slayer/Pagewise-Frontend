@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
 import { authApi } from '@/lib/api';
+import AuthShowcasePanel from '@/components/layout/AuthShowcasePanel';
 import {
   Lock,
   Mail,
@@ -14,6 +15,7 @@ import {
   AlertCircle,
   KeyRound,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -135,42 +137,56 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-[#090B10] text-[#F1F3F9]">
-      {/* Background glow effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-white/[0.04] blur-[100px] rounded-full" />
-      </div>
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#08090d] text-zinc-100 font-sans">
+      {/* ─── Left Side: Direction 1 - Split Studio Showcase ─── */}
+      <AuthShowcasePanel
+        badge="PageWise Studio Access"
+        headline="Welcome back to your precision career studio."
+        subline="Access your master resume lineages, job-targeted branches, and vector print-calibrated documents."
+      />
 
-      <div className="w-full max-w-md z-10">
-        {/* Header Logo */}
-        <div className="text-center mb-6">
-          <Link href="/" className="inline-flex items-center justify-center group">
-            <BrandLockup size={32} showTagline={true} />
+      {/* ─── Right Side: Human-Crafted Auth Form ─── */}
+      <div className="flex flex-col justify-between p-6 sm:p-10 lg:p-16 xl:p-20 relative">
+        {/* Mobile Header (Shown on small screens where showcase is hidden) */}
+        <div className="lg:hidden flex items-center justify-between pb-6 border-b border-white/[0.08] mb-8">
+          <Link href="/" className="inline-block">
+            <BrandLockup size={26} showTagline={false} />
           </Link>
-          <h1 className="mt-6 text-2xl font-extrabold text-[#F1F3F9] tracking-tight">Studio Sign In</h1>
-          <p className="mt-1.5 text-xs text-[#7E869B]">Access your master resume architectures and ATS audits</p>
+          <Link
+            href="/register"
+            className="text-xs font-semibold text-zinc-300 hover:text-white"
+          >
+            Create account →
+          </Link>
         </div>
 
-        {/* Card */}
-        <div
-          className="border rounded-2xl p-7 shadow-2xl backdrop-blur-xl"
-          style={{
-            background: BRAND_CONFIG.colors.surfaceCard,
-            borderColor: BRAND_CONFIG.colors.borderSubtle,
-          }}
-        >
-          {/* Mode Switcher Tabs */}
-          <div className="flex rounded-xl bg-black/40 p-1 mb-5 border border-white/[0.06]">
+        {/* Center Auth Container */}
+        <div className="max-w-md w-full mx-auto my-auto space-y-6">
+          {/* Header Title */}
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 font-semibold block mb-1">
+              Authentication Terminal
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Sign in to Studio
+            </h1>
+            <p className="text-xs text-zinc-400 mt-1">
+              Select your sign-in method to resume editing your documents
+            </p>
+          </div>
+
+          {/* Mode Switcher Tabs (Clean SaaS style) */}
+          <div className="flex rounded-xl bg-white/[0.03] p-1 border border-white/[0.08]">
             <button
               type="button"
               onClick={() => {
                 setAuthMode('PASSWORD');
                 setError('');
               }}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 authMode === 'PASSWORD'
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25 shadow-sm'
-                  : 'text-[#7E869B] hover:text-white'
+                  ? 'bg-white text-zinc-950 shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
               Password
@@ -181,20 +197,20 @@ export default function LoginPage() {
                 setAuthMode('OTP');
                 setError('');
               }}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 authMode === 'OTP'
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25 shadow-sm'
-                  : 'text-[#7E869B] hover:text-white'
+                  ? 'bg-white text-zinc-950 shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <KeyRound className="w-3 h-3 text-amber-400" />
-              <span>Email OTP</span>
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Email Code</span>
             </button>
           </div>
 
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3 text-rose-300 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
               <span>{error}</span>
             </div>
           )}
@@ -203,43 +219,43 @@ export default function LoginPage() {
           {authMode === 'PASSWORD' && (
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    placeholder="name@company.com"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#7E869B] font-mono">
+                  <label className="text-xs font-medium text-zinc-300">
                     Password
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-[11px] text-amber-400/90 hover:text-amber-300 transition-colors"
+                    className="text-[11px] text-zinc-400 hover:text-white transition-colors"
                   >
                     Forgot Password?
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
@@ -247,72 +263,62 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                style={{
-                  background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                  boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                }}
+                className="w-full mt-2 py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Signing in...</span>
+                    <span>Verifying Credentials...</span>
                   </>
                 ) : (
                   <>
-                    <span>Sign In</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Sign In to Studio</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
           )}
 
-          {/* TAB 2: OTP Login */}
+          {/* TAB 2: Email OTP Login */}
           {authMode === 'OTP' && (
-            <>
+            <div className="space-y-4">
               {otpStep === 'REQUEST' && (
                 <form onSubmit={handleRequestOtp} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
-                      Registered Email Address
+                    <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                      Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="name@example.com"
+                        placeholder="name@company.com"
                         required
-                        autoFocus
-                        className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                       />
                     </div>
+                    <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                      We will transmit a 6-digit one-time sign-in code to this email.
+                    </p>
                   </div>
-
-                  <p className="text-[11px] text-[#7E869B] leading-relaxed">
-                    We will send a 6-digit one-time passcode to your email. No password needed.
-                  </p>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                    style={{
-                      background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                      boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                    }}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Sending Code...</span>
+                        <span>Sending Security Code...</span>
                       </>
                     ) : (
                       <>
-                        <span>Send Login Code</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span>Send One-Time Code</span>
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
@@ -321,91 +327,92 @@ export default function LoginPage() {
 
               {otpStep === 'VERIFY' && (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-[#7E869B] font-mono">
-                        6-Digit Security Code
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpStep('REQUEST');
-                          setError('');
-                        }}
-                        className="text-[11px] text-[#7E869B] hover:text-white transition-colors"
-                      >
-                        Edit Email
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <KeyRound className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        maxLength={8}
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\s+/g, ''))}
-                        placeholder="123456"
-                        required
-                        autoFocus
-                        className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-base tracking-[0.3em] font-mono font-bold text-amber-400 placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all text-center"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1 text-xs">
-                    <span className="text-[#7E869B]">Didn&apos;t receive code?</span>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+                    <span className="text-zinc-400 truncate max-w-[200px]">{email}</span>
                     <button
                       type="button"
-                      onClick={handleResendOtp}
-                      disabled={loading || countdown > 0}
-                      className="inline-flex items-center gap-1 font-semibold text-amber-400 hover:text-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      onClick={() => setOtpStep('REQUEST')}
+                      className="text-xs text-zinc-300 hover:text-white underline cursor-pointer"
                     >
-                      <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                      <span>{countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}</span>
+                      Change
                     </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                      6-Digit Security Code
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        placeholder="123456"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-sm font-mono tracking-widest text-white placeholder-zinc-600 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all text-center"
+                      />
+                    </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                    style={{
-                      background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                      boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                    }}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Verifying Code...</span>
+                        <span>Validating Code...</span>
                       </>
                     ) : (
                       <>
                         <span>Verify &amp; Sign In</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
+
+                  <div className="flex items-center justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={countdown > 0 || loading}
+                      className="text-xs text-zinc-400 hover:text-white transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>{countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}</span>
+                    </button>
+                  </div>
                 </form>
               )}
-            </>
+            </div>
           )}
 
-          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
-            <p className="text-xs text-[#7E869B]">
-              Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-amber-400 hover:text-amber-300 font-semibold hover:underline">
-                Sign up free
-              </Link>
-            </p>
+          {/* Bottom link to Register */}
+          <div className="pt-4 border-t border-white/[0.06] text-center text-xs text-zinc-400">
+            <span>Don&apos;t have a PageWise Studio account? </span>
+            <Link
+              href="/register"
+              className="text-white font-semibold hover:underline cursor-pointer"
+            >
+              Create Account Free
+            </Link>
           </div>
         </div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-6">
-          <Link href="/" className="text-xs text-[#7E869B] hover:text-[#F1F3F9] transition-colors">
-            ← Back to PageWise Studio
-          </Link>
+        {/* Desktop Bottom Helper Strip */}
+        <div className="hidden lg:flex items-center justify-between text-xs text-zinc-500 pt-8 border-t border-white/[0.06]">
+          <span>© {new Date().getFullYear()} PageWise Studio</span>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="hover:text-zinc-300 transition-colors">
+              Home
+            </Link>
+            <a href="mailto:pagewises@gmail.com" className="hover:text-zinc-300 transition-colors">
+              Support
+            </a>
+          </div>
         </div>
       </div>
     </div>

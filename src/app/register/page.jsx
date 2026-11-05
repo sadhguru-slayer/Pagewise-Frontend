@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
 import { authApi } from '@/lib/api';
+import AuthShowcasePanel from '@/components/layout/AuthShowcasePanel';
 import {
   Lock,
   Mail,
@@ -17,6 +18,7 @@ import {
   RefreshCw,
   CheckCircle2,
   ShieldCheck,
+  Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -61,10 +63,12 @@ export default function RegisterPage() {
       setError('Please provide a valid email address.');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -77,13 +81,13 @@ export default function RegisterPage() {
       setStep('OTP');
       setCountdown(60);
     } catch (err) {
-      setError(err.message || 'Failed to send verification code. Please check your email.');
+      setError(err.message || 'Could not send verification email. Try another address.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2: Verify OTP and create account
+  // Step 2: Verify OTP and finalize user creation
   const handleVerifyAndRegister = async (e) => {
     e.preventDefault();
     setError('');
@@ -131,39 +135,49 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-[#090B10] text-[#F1F3F9]">
-      {/* Background glow effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-white/[0.04] blur-[100px] rounded-full" />
-      </div>
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#08090d] text-zinc-100 font-sans">
+      {/* ─── Left Side: Direction 1 - Split Studio Showcase ─── */}
+      <AuthShowcasePanel
+        badge="Zero Paywall Studio"
+        headline="Craft production-ready resumes that pass ATS checks."
+        subline="Never lose your career milestones again. Branch tailored copies from a single master profile with pixel-accurate exports."
+      />
 
-      <div className="w-full max-w-md z-10">
-        {/* Header Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center justify-center group">
-            <BrandLockup size={32} showTagline={true} />
+      {/* ─── Right Side: Human-Crafted Auth Form ─── */}
+      <div className="flex flex-col justify-between p-6 sm:p-10 lg:p-16 xl:p-20 relative">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between pb-6 border-b border-white/[0.08] mb-8">
+          <Link href="/" className="inline-block">
+            <BrandLockup size={26} showTagline={false} />
           </Link>
-          <h1 className="mt-6 text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
-            {step === 'INFO' ? 'Create Studio Account' : 'Verify Your Email'}
-          </h1>
-          <p className="mt-1.5 text-xs text-[#7E869B]">
-            {step === 'INFO'
-              ? 'Launch your precision resume craft & ATS audit workspace'
-              : `Enter the 6-digit verification code sent to ${email}`}
-          </p>
+          <Link
+            href="/login"
+            className="text-xs font-semibold text-zinc-300 hover:text-white"
+          >
+            Sign in instead →
+          </Link>
         </div>
 
-        {/* Card */}
-        <div
-          className="border rounded-2xl p-7 shadow-2xl backdrop-blur-xl"
-          style={{
-            background: BRAND_CONFIG.colors.surfaceCard,
-            borderColor: BRAND_CONFIG.colors.borderSubtle,
-          }}
-        >
+        {/* Center Container */}
+        <div className="max-w-md w-full mx-auto my-auto space-y-6">
+          {/* Header */}
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 font-semibold block mb-1">
+              New Studio Workspace
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              {step === 'INFO' ? 'Create Your Account' : 'Verify Your Email'}
+            </h1>
+            <p className="text-xs text-zinc-400 mt-1">
+              {step === 'INFO'
+                ? 'Join professionals crafting resumes with millimeter A4 geometry'
+                : `We transmitted a 6-digit confirmation code to ${email}`}
+            </p>
+          </div>
+
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3 text-rose-300 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
               <span>{error}</span>
             </div>
           )}
@@ -172,78 +186,86 @@ export default function RegisterPage() {
           {step === 'INFO' && (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="alex@example.com"
+                    placeholder="name@company.com"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder="At least 8 characters"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    minLength={8}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Confirm Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat your password"
+                    placeholder="Re-enter password"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[11px] text-[#7E869B] pt-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span>A verification code will be sent to confirm your email.</span>
+              {/* Guarantees checklist */}
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-1.5 text-[11px] text-zinc-400">
+                <div className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Free vector print-calibrated A4 PDF download</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Native editable Microsoft Word (.docx) export</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>No credit card required to start</span>
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                style={{
-                  background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                  boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                }}
+                className="w-full mt-2 py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Sending code...</span>
+                    <span>Verifying Email Security...</span>
                   </>
                 ) : (
                   <>
-                    <span>Verify Email &amp; Sign Up</span>
+                    <span>Continue with Email Verification</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -251,92 +273,100 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {/* STEP 2: Email OTP Verification Form */}
+          {/* STEP 2: Email OTP Verification */}
           {step === 'OTP' && (
             <form onSubmit={handleVerifyAndRegister} className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#7E869B] font-mono">
-                    6-Digit Verification Code
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep('INFO');
-                      setError('');
-                    }}
-                    className="text-[11px] text-[#7E869B] hover:text-white transition-colors"
-                  >
-                    Edit Email
-                  </button>
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-zinc-300 truncate font-mono text-[11px]">{email}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setStep('INFO')}
+                  className="text-xs text-zinc-400 hover:text-white underline cursor-pointer shrink-0 ml-2"
+                >
+                  Edit
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Enter 6-Digit Verification Code
+                </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    maxLength={8}
+                    maxLength={6}
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\s+/g, ''))}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
                     required
                     autoFocus
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-base tracking-[0.3em] font-mono font-bold text-amber-400 placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all text-center"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-sm font-mono tracking-widest text-white placeholder-zinc-600 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all text-center"
                   />
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-1 text-xs">
-                <span className="text-[#7E869B]">Didn&apos;t receive code?</span>
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={loading || countdown > 0}
-                  className="inline-flex items-center gap-1 font-semibold text-amber-400 hover:text-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                  <span>{countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}</span>
-                </button>
+                <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                  Please check your inbox (and spam folder) for the 6-digit confirmation code.
+                </p>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                style={{
-                  background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                  boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                }}
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Verifying &amp; creating account...</span>
+                    <span>Creating Studio Account...</span>
                   </>
                 ) : (
                   <>
-                    <span>Verify &amp; Create Account</span>
-                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Confirm &amp; Launch Studio</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
+
+              <div className="flex items-center justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={countdown > 0 || loading}
+                  className="text-xs text-zinc-400 hover:text-white transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}</span>
+                </button>
+              </div>
             </form>
           )}
 
-          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
-            <p className="text-xs text-[#7E869B]">
-              Already have an account?{' '}
-              <Link href="/login" className="text-amber-400 hover:text-amber-300 font-semibold hover:underline">
-                Sign in
-              </Link>
-            </p>
+          {/* Bottom link to Login */}
+          <div className="pt-4 border-t border-white/[0.06] text-center text-xs text-zinc-400">
+            <span>Already have a PageWise Studio account? </span>
+            <Link
+              href="/login"
+              className="text-white font-semibold hover:underline cursor-pointer"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-6">
-          <Link href="/" className="text-xs text-[#7E869B] hover:text-[#F1F3F9] transition-colors">
-            ← Back to PageWise Studio
-          </Link>
+        {/* Desktop Bottom Helper Strip */}
+        <div className="hidden lg:flex items-center justify-between text-xs text-zinc-500 pt-8 border-t border-white/[0.06]">
+          <span>© {new Date().getFullYear()} PageWise Studio</span>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="hover:text-zinc-300 transition-colors">
+              Home
+            </Link>
+            <a href="mailto:pagewises@gmail.com" className="hover:text-zinc-300 transition-colors">
+              Support
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
 import { authApi } from '@/lib/api';
+import AuthShowcasePanel from '@/components/layout/AuthShowcasePanel';
 import {
   Mail,
   KeyRound,
@@ -15,6 +16,7 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
+  ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -61,12 +63,12 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
     try {
-      const res = await authApi.requestPasswordReset(email.trim());
+      const res = await authApi.forgotPassword(email.trim());
       toast.success(res?.message || 'Verification code sent to your email.');
       setStep(STEPS.OTP);
       setCountdown(60);
     } catch (err) {
-      setError(err.message || 'Could not send verification code. Please verify your email.');
+      setError(err.message || 'Could not send verification code.');
     } finally {
       setLoading(false);
     }
@@ -74,99 +76,118 @@ export default function ForgotPasswordPage() {
 
   // Step 2: Verify OTP
   const handleVerifyOtp = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setError('');
 
     const cleanOtp = otp.trim();
     if (!cleanOtp || cleanOtp.length < 4) {
-      setError('Please enter the 6-digit verification code sent to your inbox.');
+      setError('Please enter the 6-digit verification code.');
       return;
     }
 
     setLoading(true);
     try {
       const res = await authApi.verifyResetOTP(email.trim(), cleanOtp);
-      if (!res?.reset_token) {
-        throw new Error('Verification failed. Please try again.');
-      }
+      toast.success('Code verified successfully.');
       setResetToken(res.reset_token);
-      toast.success('Security code verified.');
       setStep(STEPS.NEW_PASSWORD);
     } catch (err) {
-      setError(err.message || 'Invalid or expired code. Please check and try again.');
+      setError(err.message || 'Invalid or expired code.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 3: Reset Password
+  // Step 3: Set New Password
   const handleResetPassword = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setError('');
 
-    if (!newPassword || newPassword.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (!newPassword || newPassword.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match. Please re-enter.');
+      setError('Passwords do not match.');
       return;
     }
 
     setLoading(true);
     try {
       const res = await authApi.resetPassword(resetToken, newPassword);
-      toast.success(res?.message || 'Password reset successfully!');
+      toast.success(res?.message || 'Password updated successfully!');
       setStep(STEPS.SUCCESS);
-      setTimeout(() => {
-        router.push('/login');
-      }, 2500);
     } catch (err) {
-      setError(err.message || 'Failed to update password. Your reset session may have expired.');
+      setError(err.message || 'Could not reset password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (countdown > 0 || loading) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await authApi.forgotPassword(email.trim());
+      toast.success(res?.message || 'New code sent.');
+      setCountdown(60);
+    } catch (err) {
+      setError(err.message || 'Failed to resend code.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-[#090B10] text-[#F1F3F9]">
-      {/* Background glow effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-amber-600/10 blur-[130px] rounded-full" />
-      </div>
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#08090d] text-zinc-100 font-sans">
+      {/* ─── Left Side: Direction 1 - Split Studio Showcase ─── */}
+      <AuthShowcasePanel
+        badge="Account Recovery Terminal"
+        headline="Secure access recovery for your PageWise documents."
+        subline="Safeguarding your master career archives, custom typography presets, and export history."
+      />
 
-      <div className="w-full max-w-md z-10">
-        {/* Header Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center justify-center group">
-            <BrandLockup size={32} showTagline={true} />
+      {/* ─── Right Side: Human-Crafted Auth Form ─── */}
+      <div className="flex flex-col justify-between p-6 sm:p-10 lg:p-16 xl:p-20 relative">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between pb-6 border-b border-white/[0.08] mb-8">
+          <Link href="/" className="inline-block">
+            <BrandLockup size={26} showTagline={false} />
           </Link>
-          <h1 className="mt-6 text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
-            {step === STEPS.EMAIL && 'Reset Account Password'}
-            {step === STEPS.OTP && 'Verify Security Code'}
-            {step === STEPS.NEW_PASSWORD && 'Create New Password'}
-            {step === STEPS.SUCCESS && 'Password Reset Complete'}
-          </h1>
-          <p className="mt-1.5 text-xs text-[#7E869B]">
-            {step === STEPS.EMAIL && 'Enter your email to receive a 6-digit one-time verification code.'}
-            {step === STEPS.OTP && `We dispatched a one-time code to ${email}`}
-            {step === STEPS.NEW_PASSWORD && 'Choose a secure password for your studio account.'}
-            {step === STEPS.SUCCESS && 'You can now sign in with your updated credentials.'}
-          </p>
+          <Link
+            href="/login"
+            className="text-xs font-semibold text-zinc-300 hover:text-white"
+          >
+            Back to Sign In →
+          </Link>
         </div>
 
-        {/* Card */}
-        <div
-          className="border rounded-2xl p-7 shadow-2xl backdrop-blur-xl"
-          style={{
-            background: BRAND_CONFIG.colors.surfaceCard,
-            borderColor: BRAND_CONFIG.colors.borderSubtle,
-          }}
-        >
+        {/* Center Container */}
+        <div className="max-w-md w-full mx-auto my-auto space-y-6">
+          {/* Header */}
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 font-semibold block mb-1">
+              Security Protocol
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              {step === STEPS.EMAIL && 'Reset Your Password'}
+              {step === STEPS.OTP && 'Verify Security Code'}
+              {step === STEPS.NEW_PASSWORD && 'Choose New Password'}
+              {step === STEPS.SUCCESS && 'Password Reset Complete'}
+            </h1>
+            <p className="text-xs text-zinc-400 mt-1">
+              {step === STEPS.EMAIL && 'Enter your email to receive a 6-digit authentication code'}
+              {step === STEPS.OTP && `Enter the 6-digit verification code transmitted to ${email}`}
+              {step === STEPS.NEW_PASSWORD && 'Create a strong password with at least 8 characters'}
+              {step === STEPS.SUCCESS && 'Your credentials have been securely updated'}
+            </p>
+          </div>
+
           {error && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3 text-rose-300 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
               <span>{error}</span>
             </div>
           )}
@@ -175,19 +196,18 @@ export default function ForgotPasswordPage() {
           {step === STEPS.EMAIL && (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
-                  Registered Email Address
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Account Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    placeholder="name@company.com"
                     required
-                    autoFocus
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
@@ -195,21 +215,17 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                style={{
-                  background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                  boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                }}
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Sending Code...</span>
+                    <span>Transmitting Code...</span>
                   </>
                 ) : (
                   <>
                     <span>Send Verification Code</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
@@ -219,58 +235,40 @@ export default function ForgotPasswordPage() {
           {/* STEP 2: Enter OTP */}
           {step === STEPS.OTP && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+                <span className="text-zinc-300 font-mono text-[11px] truncate">{email}</span>
+                <button
+                  type="button"
+                  onClick={() => setStep(STEPS.EMAIL)}
+                  className="text-xs text-zinc-400 hover:text-white underline cursor-pointer"
+                >
+                  Change
+                </button>
+              </div>
+
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[#7E869B] font-mono">
-                    6-Digit Security Code
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep(STEPS.EMAIL);
-                      setError('');
-                    }}
-                    className="text-[11px] text-[#7E869B] hover:text-white transition-colors"
-                  >
-                    Edit Email
-                  </button>
-                </div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Enter 6-Digit Code
+                </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    maxLength={8}
+                    maxLength={6}
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\s+/g, ''))}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
                     required
                     autoFocus
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-base tracking-[0.3em] font-mono font-bold text-amber-400 placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all text-center"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-sm font-mono tracking-widest text-white placeholder-zinc-600 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all text-center"
                   />
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-1 text-xs">
-                <span className="text-[#7E869B]">Didn&apos;t receive code?</span>
-                <button
-                  type="button"
-                  onClick={handleRequestOtp}
-                  disabled={loading || countdown > 0}
-                  className="inline-flex items-center gap-1 font-semibold text-amber-400 hover:text-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                  <span>{countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}</span>
-                </button>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                style={{
-                  background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                  boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                }}
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -279,11 +277,23 @@ export default function ForgotPasswordPage() {
                   </>
                 ) : (
                   <>
-                    <span>Verify Code</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Verify Code &amp; Continue</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
+
+              <div className="flex items-center justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={countdown > 0 || loading}
+                  className="text-xs text-zinc-400 hover:text-white transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}</span>
+                </button>
+              </div>
             </form>
           )}
 
@@ -291,36 +301,36 @@ export default function ForgotPasswordPage() {
           {step === STEPS.NEW_PASSWORD && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   New Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder="At least 8 characters"
                     required
-                    autoFocus
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    minLength={8}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7E869B] mb-1.5 font-mono">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Confirm New Password
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat your new password"
+                    placeholder="Re-enter new password"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-white/[0.08] rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
@@ -328,57 +338,66 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:opacity-95"
-                style={{
-                  background: `linear-gradient(135deg, ${BRAND_CONFIG.colors.primary}, ${BRAND_CONFIG.colors.primaryHover})`,
-                  boxShadow: `0 4px 18px ${BRAND_CONFIG.colors.primaryGlow}`,
-                }}
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Updating Password...</span>
+                    <span>Updating Credentials...</span>
                   </>
                 ) : (
                   <>
-                    <span>Set New Password</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Save Password &amp; Finish</span>
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
           )}
 
-          {/* STEP 4: Success confirmation */}
+          {/* STEP 4: Success */}
           {step === STEPS.SUCCESS && (
-            <div className="py-6 text-center space-y-4">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="w-7 h-7" />
+            <div className="space-y-4 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6" />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Password Updated</h3>
-                <p className="text-xs text-[#7E869B] mt-1">
-                  Your credentials have been securely updated. Redirecting to studio login...
-                </p>
-              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Your password has been reset successfully. You can now sign in with your new credentials.
+              </p>
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-white/[0.08] hover:bg-white/[0.12] text-white transition-colors"
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <span>Go to Sign In</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>Return to Sign In</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}
 
-          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-1.5 text-xs text-[#7E869B] hover:text-[#F1F3F9] transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Sign In</span>
+          {/* Bottom link */}
+          {step !== STEPS.SUCCESS && (
+            <div className="pt-4 border-t border-white/[0.06] text-center text-xs text-zinc-400">
+              <Link
+                href="/login"
+                className="text-zinc-300 hover:text-white inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Return to Sign In</span>
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Bottom Helper Strip */}
+        <div className="hidden lg:flex items-center justify-between text-xs text-zinc-500 pt-8 border-t border-white/[0.06]">
+          <span>© {new Date().getFullYear()} PageWise Studio</span>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="hover:text-zinc-300 transition-colors">
+              Home
             </Link>
+            <a href="mailto:pagewises@gmail.com" className="hover:text-zinc-300 transition-colors">
+              Support
+            </a>
           </div>
         </div>
       </div>
