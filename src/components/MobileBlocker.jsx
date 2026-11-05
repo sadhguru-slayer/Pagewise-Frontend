@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Monitor, Smartphone } from 'lucide-react';
+import Link from 'next/link';
+import { Monitor, Smartphone, ArrowLeft, Sparkles, Layout } from 'lucide-react';
 
 export default function MobileBlocker() {
   const [mounted, setMounted] = useState(false);
@@ -18,12 +19,14 @@ export default function MobileBlocker() {
   return (
     <div
       id="pagewise-mobile-blocker"
-      className="fixed inset-0 z-[999999] flex flex-col items-center justify-center p-6 bg-[#090A0F] text-[#EDEDF2] md:hidden select-none"
-      style={{
-        backgroundImage: 'radial-gradient(ellipse at top, rgba(200, 138, 88, 0.12) 0%, rgba(9, 10, 15, 1) 70%)',
-      }}
+      className="fixed inset-0 z-[999999] flex flex-col items-center justify-center p-6 bg-[#0a0c10] text-[#EDEDF2] md:hidden select-none"
     >
-      <div className="w-full max-w-sm flex flex-col items-center text-center space-y-6">
+      {/* Background glow effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-80 h-80 bg-white/[0.03] blur-[100px] rounded-full" />
+      </div>
+
+      <div className="w-full max-w-sm flex flex-col items-center text-center space-y-6 relative z-10">
         {/* Brand Logo & Name */}
         <div className="flex items-center gap-2.5">
           <Image
@@ -45,46 +48,49 @@ export default function MobileBlocker() {
         </div>
 
         {/* Visual Graphic: Desktop Recommended */}
-        <div className="relative my-2">
-          <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center shadow-xl relative">
-            <Monitor className="w-10 h-10 text-[#D49A6A]" />
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-[#14161F] border border-white/[0.1] flex items-center justify-center text-rose-400 shadow-md">
-              <Smartphone className="w-4 h-4 opacity-70" />
+        <div className="relative my-1">
+          <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/[0.1] flex items-center justify-center shadow-xl relative">
+            <Monitor className="w-10 h-10 text-zinc-300" />
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-[#141721] border border-white/[0.12] flex items-center justify-center text-amber-400 shadow-md">
+              <Smartphone className="w-4 h-4" />
             </div>
           </div>
         </div>
 
         {/* Messaging */}
-        <div className="space-y-2">
-          <span className="inline-block px-3 py-1 rounded-full text-[11px] font-semibold bg-[#C88A58]/10 text-[#D49A6A] border border-[#C88A58]/20 tracking-wide uppercase font-mono">
-            Desktop Experience Only
+        <div className="space-y-2.5">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-white/[0.06] text-zinc-300 border border-white/[0.12] tracking-wide font-mono">
+            <Sparkles className="w-3 h-3 text-[#C88A58]" />
+            Mobile Builder In Progress
           </span>
-          <h1 className="text-2xl font-bold text-white tracking-tight pt-1">
-            Please Switch to a Laptop or Desktop
+          <h1 className="text-xl font-bold text-white tracking-tight pt-1">
+            Builder is being crafted for mobile screens
           </h1>
-          <p className="text-xs text-[#A6ABB9] leading-relaxed px-2">
-            PageWise Resume Studio is calibrated for precision multi-page A4 typography, live split-screen ATS intelligence, and wide-canvas design.
+          <p className="text-xs text-zinc-400 leading-relaxed px-1">
+            For the best experience, open the builder on bigger screens with full A4 canvas rendering. While we build the mobile editing suite... thanks for the wait!
           </p>
         </div>
 
-        {/* Working on Mobile Notice */}
-        <div className="w-full p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] text-left space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-zinc-300">
-              Mobile Version In Development
-            </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-semibold border border-amber-500/20">
-              In Progress
-            </span>
-          </div>
-          <p className="text-[11px] text-[#8E94A5] leading-normal">
-            We are actively engineering a responsive mobile companion. In the meantime, please open <span className="text-white font-mono font-medium">pagewise.sadguruchenu.in</span> or your PageWise link on a larger display.
-          </p>
+        {/* Quick Actions */}
+        <div className="w-full pt-2 flex flex-col gap-2.5">
+          <Link
+            href="/dashboard"
+            className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-900 hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Return to Mobile Dashboard</span>
+          </Link>
+          <Link
+            href="/settings"
+            className="w-full py-2.5 px-4 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 border border-white/[0.08] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>View Account &amp; Settings</span>
+          </Link>
         </div>
 
         {/* Resolution note */}
-        <p className="text-[10px] text-[#717789] font-mono">
-          Requires display width of 768px or wider
+        <p className="text-[10px] text-zinc-500 font-mono">
+          Screen width &gt;= 768px recommended for live A4 canvas
         </p>
       </div>
     </div>

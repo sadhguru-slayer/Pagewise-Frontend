@@ -9,7 +9,7 @@
   }
 
   body {
-    @apply bg-[#08080a] text-zinc-100 antialiased selection:bg-[#4ECDC4]/30 selection:text-[#4ECDC4];
+    @apply bg-[#08080a] text-zinc-100 antialiased selection:bg-white/20 selection:text-white;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
   }

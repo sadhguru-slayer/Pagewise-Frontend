@@ -1,5 +1,7 @@
 'use client';
 
+import MobileBlocker from '@/components/MobileBlocker';
+
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -1249,7 +1251,9 @@ function BuilderContent() {
 
 export default function ResumeBuilderPage() {
   return (
-    <Suspense
+    <>
+      <MobileBlocker />
+      <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#090b13] text-zinc-100">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -1258,5 +1262,6 @@ export default function ResumeBuilderPage() {
     >
       <BuilderContent />
     </Suspense>
+    </>
   );
 }

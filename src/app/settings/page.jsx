@@ -281,13 +281,13 @@ function SettingsContent() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center sm:items-start gap-2.5 p-3 rounded-xl transition-all cursor-pointer text-left ${
                   isActive
-                    ? 'bg-[#181B26] text-white border border-[#C88A58]/30 shadow-sm'
+                    ? 'bg-[#181B26] text-white border border-white/20 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent'
                 }`}
               >
                 <div
                   className={`p-2 rounded-lg shrink-0 ${
-                    isActive ? 'bg-[#C88A58]/20 text-[#D49A6A]' : 'bg-white/[0.04] text-zinc-400'
+                    isActive ? 'bg-white text-zinc-950' : 'bg-white/[0.04] text-zinc-400'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -308,7 +308,7 @@ function SettingsContent() {
             {/* Profile Overview Card */}
             <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-700 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-amber-600/20 shrink-0">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-zinc-700 to-zinc-900 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-zinc-900/40 shrink-0">
                   {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div>

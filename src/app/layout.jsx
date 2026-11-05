@@ -155,7 +155,7 @@ export default function RootLayout({ children }) {
         />
         <AuthProvider>
           <ModalProvider>
-            <MobileBlocker />
+            {/* MobileBlocker scoped to builder */}
             {children}
           </ModalProvider>
         </AuthProvider>

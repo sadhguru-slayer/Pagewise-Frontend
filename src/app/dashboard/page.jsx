@@ -22,6 +22,7 @@ import { paymentsApi } from '@/lib/api';
 
 import {
   Home,
+  Menu,
   CreditCard,
   Receipt,
   FileText,
@@ -332,6 +333,7 @@ export default function DashboardPage() {
   const modal = useModal();
 
   const [activeTab, setActiveTab] = useState('home');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [templateSubTab, setTemplateSubTab] = useState('formats'); // 'formats' | 'saved'
   const [resumes, setResumes] = useState([]);
   const [exportsList, setExportsList] = useState([]);
@@ -636,27 +638,149 @@ export default function DashboardPage() {
 
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
-        {/* Mobile Header Bar */}
+        {/* Mobile Header Bar with Hamburger */}
         <header
-          className="md:hidden flex items-center justify-between px-4 py-3 shrink-0 border-b backdrop-blur-md"
-          style={{ background: 'rgba(9,11,16,0.9)', borderColor: BRAND_CONFIG.colors.borderSubtle }}
+          className="md:hidden flex items-center justify-between px-4 py-3 shrink-0 border-b backdrop-blur-md sticky top-0 z-40 bg-[#0c0e15]/95 border-white/[0.08]"
         >
-          <BrandLockup
-            size={24}
-            badgeText={
-              planStatus?.plan_type === 'pilot'
-                ? 'Pilot'
-                : planStatus?.plan_type === 'pro_monthly'
-                ? 'Pro'
-                : planStatus?.plan_type === 'day_pass'
-                ? 'Day Pass'
-                : 'Free'
-            }
-          />
-          <Link href="/settings" className="p-2 text-[#7E869B] hover:text-white">
-            <Settings className="w-4 h-4" />
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 -ml-1 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <BrandLockup
+              size={24}
+              badgeText={
+                planStatus?.plan_type === 'pilot'
+                  ? 'Pilot'
+                  : planStatus?.plan_type === 'pro_monthly'
+                  ? 'Pro'
+                  : planStatus?.plan_type === 'day_pass'
+                  ? 'Day Pass'
+                  : 'Free'
+              }
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsFeedbackModalOpen(true)}
+              className="p-2 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+              title="Give Feedback"
+            >
+              <MessageSquare className="w-4 h-4 text-zinc-400" />
+            </button>
+            <Link href="/settings" className="p-2 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors">
+              <Settings className="w-4 h-4" />
+            </Link>
+          </div>
         </header>
+
+        {/* Mobile Drawer Navigation */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 md:hidden flex">
+            <div
+              className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="relative w-4/5 max-w-xs bg-[#0c0d14] border-r border-white/[0.08] h-full flex flex-col p-4 shadow-2xl z-10">
+              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+                <BrandLockup
+                  size={26}
+                  badgeText={
+                    planStatus?.plan_type === 'pilot'
+                      ? 'Pilot'
+                      : planStatus?.plan_type === 'pro_monthly'
+                      ? 'Pro'
+                      : planStatus?.plan_type === 'day_pass'
+                      ? 'Day Pass'
+                      : 'Free'
+                  }
+                />
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <nav className="flex-1 py-4 space-y-1.5 overflow-y-auto">
+                {[
+                  { id: 'home', label: 'Overview', icon: Home, desc: 'Activity & quick actions' },
+                  { id: 'resumes', label: 'My Resumes', icon: FileText, desc: 'All master & branched resumes' },
+                  { id: 'templates', label: 'Templates Library', icon: Palette, desc: 'Standard & custom styles' },
+                  { id: 'exports', label: 'Export History', icon: FileDown, desc: 'Generated PDFs & DOCX files' },
+                ].map(({ id, label, icon: ItemIcon, desc }) => {
+                  const isActive = activeTab === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        setActiveTab(id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-white/[0.08] text-white border border-white/[0.15] font-semibold'
+                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent font-medium'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${isActive ? 'bg-white text-zinc-900' : 'bg-white/[0.04] text-zinc-400'}`}>
+                        <ItemIcon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs block leading-tight">{label}</span>
+                        <span className="text-[10px] text-zinc-500 block truncate mt-0.5">{desc}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div className="pt-3 border-t border-white/[0.08] space-y-2">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setIsFeedbackModalOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer text-left"
+                >
+                  <MessageSquare className="w-4 h-4 text-zinc-400" />
+                  <span>Give Feedback</span>
+                </button>
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
+                >
+                  <Settings className="w-4 h-4 text-zinc-400" />
+                  <span>Account &amp; Studio</span>
+                </Link>
+                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="w-7 h-7 rounded-lg bg-zinc-700 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{user?.name || 'User'}</p>
+                    <p className="text-[10px] text-zinc-400 truncate">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    title="Sign out"
+                    className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Content Body - Independent Vertical Scroll */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-8 w-full max-w-7xl mx-auto pb-24 md:pb-12">

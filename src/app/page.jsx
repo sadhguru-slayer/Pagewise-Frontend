@@ -9,6 +9,8 @@ import { RESUME_TEMPLATES as builtInTemplates } from '@/lib/resume/templates';
 import {
   FileText,
   ArrowRight,
+  Menu,
+  X,
   CheckCircle2,
   Download,
   FileCode,
@@ -77,6 +79,7 @@ export default function LandingPage() {
   const { isAuthenticated, user } = useAuth();
   const [activePreviewTab, setActivePreviewTab] = useState('editor'); // 'editor' | 'ai' | 'export'
   const [openFaqIdx, setOpenFaqIdx] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#08090D] text-[#EDEDF2] flex flex-col font-sans selection:bg-[#C88A58]/25 selection:text-[#F3D5B5]">
@@ -84,15 +87,15 @@ export default function LandingPage() {
       <PilotBanner variant="topbar" />
 
       {/* ─── Navigation Bar ─── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#08090D]/85 border-b border-white/[0.06]">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090b10]/90 border-b border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand */}
           <Link href="/" className="group flex items-center">
             <BrandLockup size={26} showTagline={false} />
           </Link>
 
-          {/* Centered Navigation */}
-          <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-[#8E94A5]">
+          {/* Centered Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-zinc-400">
             <a href="#studio" className="hover:text-white transition-colors">
               Studio
             </a>
@@ -110,20 +113,16 @@ export default function LandingPage() {
             </a>
           </nav>
 
-          {/* Auth Actions */}
-          <div className="flex items-center gap-3">
+          {/* Actions & Mobile Hamburger */}
+          <div className="flex items-center gap-2.5">
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <span className="hidden sm:inline-block text-xs font-medium text-[#8E94A5]">
+              <div className="flex items-center gap-2.5">
+                <span className="hidden lg:inline-block text-xs font-medium text-zinc-400">
                   Signed in as <span className="text-white font-semibold">{user?.name?.split(' ')[0] || 'Member'}</span>
                 </span>
                 <Link
                   href="/dashboard"
-                  className="py-2 px-4 rounded-xl text-xs font-semibold text-white transition-all inline-flex items-center gap-1.5 shadow-sm"
-                  style={{
-                    background: 'linear-gradient(135deg, #C88A58, #B87A47)',
-                    boxShadow: '0 2px 12px rgba(200, 138, 88, 0.25)',
-                  }}
+                  className="py-2 px-3.5 sm:px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <span>Open Studio</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -133,25 +132,102 @@ export default function LandingPage() {
               <>
                 <Link
                   href="/login"
-                  className="py-2 px-3 sm:px-4 text-xs font-medium text-[#8E94A5] hover:text-white hover:bg-white/[0.04] rounded-xl transition-all"
+                  className="hidden sm:inline-flex py-2 px-3 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="py-2 px-4 rounded-xl text-xs font-semibold text-white transition-all inline-flex items-center gap-1.5 shadow-sm hover:opacity-95"
-                  style={{
-                    background: 'linear-gradient(135deg, #C88A58, #B87A47)',
-                    boxShadow: '0 2px 14px rgba(200, 138, 88, 0.25)',
-                  }}
+                  className="py-2 px-3.5 sm:px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <span>Start Free</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </>
             )}
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Nav Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-white/[0.08] bg-[#0c0d15] px-4 py-4 space-y-3 shadow-xl">
+            <div className="grid grid-cols-2 gap-2 text-xs font-medium">
+              <a
+                href="#studio"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                Studio Canvas
+              </a>
+              <a
+                href="#craft"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                Craft &amp; Accuracy
+              </a>
+              <a
+                href="#templates"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                Typography
+              </a>
+              <a
+                href="#comparison"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                Why PageWise
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                FAQ
+              </a>
+            </div>
+
+            <div className="pt-2 border-t border-white/[0.08] flex items-center gap-2">
+              {!isAuthenticated ? (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 py-2.5 text-center text-xs font-medium text-zinc-300 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded-xl transition"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition"
+                  >
+                    Get Started Free
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition"
+                >
+                  Go to Dashboard
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ─── HERO SECTION ─── */}
@@ -189,10 +265,7 @@ export default function LandingPage() {
             <Link
               href={isAuthenticated ? '/dashboard' : '/register'}
               className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm text-white shadow-lg inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-              style={{
-                background: 'linear-gradient(135deg, #C88A58, #B87A47)',
-                boxShadow: '0 4px 20px rgba(200, 138, 88, 0.28)',
-              }}
+              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-md inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <span>{isAuthenticated ? 'Open Studio Workspace' : 'Start Drafting — It’s Free'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -726,10 +799,7 @@ export default function LandingPage() {
             <Link
               href={isAuthenticated ? '/dashboard' : '/register'}
               className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm text-white shadow-lg inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-              style={{
-                background: 'linear-gradient(135deg, #C88A58, #B87A47)',
-                boxShadow: '0 4px 20px rgba(200, 138, 88, 0.28)',
-              }}
+              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-md inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <span>{isAuthenticated ? 'Open Studio Workspace' : 'Start Drafting Free'}</span>
               <ArrowRight className="w-4 h-4" />
