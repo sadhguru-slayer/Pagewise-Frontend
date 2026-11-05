@@ -1034,12 +1034,12 @@ export default function StructuredSectionEditor({ onCollapse }) {
       )}
 
       {/* ── Document-Style Form Body ────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 max-w-[680px] mx-auto w-full">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 max-w-[680px] mx-auto w-full">
         {/* WORK EXPERIENCE */}
         {sectionType === SECTION_TYPES.EXPERIENCE && (
-          <div className="space-y-8">
+          <div className="space-y-4">
             {items.map((item, idx) => (
-              <div key={item.id || idx} className="space-y-2 relative">
+              <div key={item.id || idx} className="space-y-1 relative">
                 {/* Item Separator & Actions Bar if multiple positions */}
                 {items.length > 1 && (
                   <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5 mb-2">
@@ -1232,9 +1232,9 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
         {/* EDUCATION */}
         {sectionType === SECTION_TYPES.EDUCATION && (
-          <div className="space-y-8">
+          <div className="space-y-4">
             {items.map((item, idx) => (
-              <div key={item.id || idx} className="space-y-2 relative">
+              <div key={item.id || idx} className="space-y-1 relative">
                 {items.length > 1 && (
                   <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5 mb-2">
                     <span className="text-[11px] font-mono text-zinc-400 font-medium">
@@ -1352,9 +1352,9 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
         {/* PROJECTS */}
         {sectionType === SECTION_TYPES.PROJECTS && (
-          <div className="space-y-8">
+          <div className="space-y-4">
             {items.map((item, idx) => (
-              <div key={item.id || idx} className="space-y-2 relative">
+              <div key={item.id || idx} className="space-y-1 relative">
                 {items.length > 1 && (
                   <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5 mb-2">
                     <span className="text-[11px] font-mono text-zinc-400 font-medium">
@@ -1516,7 +1516,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
             )}
 
             {items.map((item, idx) => (
-              <div key={item.id || idx} className="space-y-2 relative">
+              <div key={item.id || idx} className="space-y-1 relative">
                 <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5 mb-2">
                   <span className="text-[11px] font-mono text-zinc-400 font-medium">
                     Category #{idx + 1}
@@ -1567,9 +1567,9 @@ export default function StructuredSectionEditor({ onCollapse }) {
 
         {/* CERTIFICATIONS */}
         {sectionType === SECTION_TYPES.CERTIFICATIONS && (
-          <div className="space-y-8">
+          <div className="space-y-4">
             {items.map((item, idx) => (
-              <div key={item.id || idx} className="space-y-2 relative">
+              <div key={item.id || idx} className="space-y-1 relative">
                 {items.length > 1 && (
                   <div className="flex items-center justify-between border-b border-zinc-800/80 pb-1.5 mb-2">
                     <span className="text-[11px] font-mono text-zinc-400 font-medium">

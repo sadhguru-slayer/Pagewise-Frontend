@@ -20,11 +20,11 @@ export default function AuthShowcasePanel({
   subline = 'Real-time multi-page A4 canvas, zero-hallucination AI refinements, and dual native Word & vector PDF export.',
 }) {
   return (
-    <div className="hidden lg:flex flex-col justify-between p-10 xl:p-14 bg-gradient-to-br from-[#0c0e15] via-[#090b10] to-[#06070a] border-r border-white/[0.08] relative overflow-hidden select-none">
-      {/* Background technical grid and subtle illumination */}
-      <div className="absolute inset-0 subtle-grid opacity-30 pointer-events-none" />
-      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-white/[0.025] blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-10 right-0 w-96 h-96 bg-[#C88A58]/[0.035] blur-[140px] rounded-full pointer-events-none" />
+    <div className="hidden lg:flex flex-col justify-between p-10 xl:p-14 bg-gradient-to-br from-[#0b0d13] via-[#08090d] to-[#050608] border-r border-white/[0.08] relative overflow-hidden select-none">
+      {/* Background technical grid and subtle neutral illumination */}
+      <div className="absolute inset-0 subtle-grid opacity-20 pointer-events-none" />
+      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-10 right-0 w-96 h-96 bg-white/[0.015] blur-[140px] rounded-full pointer-events-none" />
 
       {/* Top Header: Brand Lockup */}
       <div className="relative z-10">
@@ -52,7 +52,7 @@ export default function AuthShowcasePanel({
         </div>
 
         {/* Mini High-Fidelity Studio Document Widget */}
-        <div className="rounded-2xl border border-white/[0.1] bg-[#12141e]/90 shadow-2xl backdrop-blur-xl p-5 space-y-3.5 relative">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#0e1017]/95 shadow-2xl backdrop-blur-xl p-5 space-y-3.5 relative">
           {/* Document Header Bar */}
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.07] text-[11px]">
             <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ export default function AuthShowcasePanel({
           {/* Live Pipeline Badges */}
           <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] font-mono text-zinc-300">
             <div className="flex items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-              <FileDown className="w-3 h-3 text-[#C88A58]" />
+              <FileDown className="w-3 h-3 text-zinc-300" />
               <span>Vector PDF</span>
             </div>
             <div className="flex items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
@@ -97,14 +97,14 @@ export default function AuthShowcasePanel({
               <span>Native .DOCX</span>
             </div>
             <div className="flex items-center gap-1.5 p-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-              <ShieldCheck className="w-3 h-3 text-indigo-400" />
+              <ShieldCheck className="w-3 h-3 text-zinc-300" />
               <span>No Watermarks</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Footer: Security & Guarantee statement */}
+      {/* Bottom Footer */}
       <div className="relative z-10 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-zinc-500">
         <span className="font-mono text-[11px]">Private Local-First Storage • AES-256</span>
         <span className="text-[11px] text-zinc-400 font-medium">PageWise v2.5</span>

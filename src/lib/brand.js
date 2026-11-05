@@ -4,7 +4,8 @@ import React from 'react';
 
 /**
  * Single source of truth for PageWise brand identity and visual styling.
- * Edit this file to change the logo, brand name, tagline, or accent themes across the whole app.
+ * Minimalist, engineering-first aesthetic: deep obsidian blacks, calibrated greys, crisp whites,
+ * with restrained, surgical accents.
  */
 export const BRAND_CONFIG = {
   name: 'PageWise',
@@ -15,34 +16,33 @@ export const BRAND_CONFIG = {
   version: 'v2.5',
   supportEmail: 'pagewises@gmail.com',
 
-  // Theme accents (Sarvam AI Inspired: Warm Terracotta Sand / Muted Champagne / Soft Stone Slate)
+  // Minimalist SaaS Theme (Linear / Vercel monochrome precision)
   colors: {
-    primary: '#C88A58',       // Soothing Earthen Sand / Terracotta
-    primaryHover: '#B87A47',
-    primaryMuted: '#8E5A30',
-    primaryGlow: 'rgba(200, 138, 88, 0.14)',
-    primarySurface: 'rgba(200, 138, 88, 0.07)',
-    primaryBorder: 'rgba(200, 138, 88, 0.22)',
+    primary: '#FFFFFF',
+    primaryHover: '#E4E4E7',
+    primaryMuted: '#A1A1AA',
+    primaryGlow: 'rgba(255, 255, 255, 0.05)',
+    primarySurface: 'rgba(255, 255, 255, 0.06)',
+    primaryBorder: 'rgba(255, 255, 255, 0.12)',
 
-    secondary: '#10B981',     // Soft Sage Emerald
-    secondarySurface: 'rgba(16, 185, 129, 0.07)',
+    secondary: '#10B981',
+    secondarySurface: 'rgba(16, 185, 129, 0.08)',
     secondaryBorder: 'rgba(16, 185, 129, 0.20)',
 
-    accentDark: '#0C0D10',    // Warm Charcoal Obsidian
-    surfaceCard: '#13151B',   // Warm Slate Surface
-    surfaceSubtle: '#181A22', // Slightly elevated surface
-    borderSubtle: 'rgba(255, 255, 255, 0.065)',
-    borderHover: 'rgba(255, 255, 255, 0.13)',
+    accentDark: '#08090D',
+    surfaceCard: '#0E1017',
+    surfaceSubtle: '#14161F',
+    borderSubtle: 'rgba(255, 255, 255, 0.08)',
+    borderHover: 'rgba(255, 255, 255, 0.18)',
 
-    textPrimary: '#EDEDF2',   // Soft eye-soothing off-white
-    textMuted: '#8E94A5',     // Stone Gray
-    textSubtle: '#545A6D',
+    textPrimary: '#F4F4F5',
+    textMuted: '#A1A1AA',
+    textSubtle: '#71717A',
   },
 };
 
 /**
  * PageWise Official Brand Logo Component.
- * Displays the high-resolution PageWise brand emblem with crisp scaling and hover dynamics.
  */
 export function BrandLogo({ size = 28, className = '', showDot = false, alt = 'PageWise Studio Logo' }) {
   return (
@@ -60,8 +60,7 @@ export function BrandLogo({ size = 28, className = '', showDot = false, alt = 'P
 
       {showDot && (
         <span
-          className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[#0A0B0E]"
-          style={{ background: BRAND_CONFIG.colors.primary }}
+          className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-black bg-white"
         />
       )}
     </div>
@@ -85,36 +84,19 @@ export function BrandLockup({
       <BrandLogo size={size} />
       <div className="flex flex-col">
         <div className="flex items-center gap-1.5 leading-none">
-          <span className="font-extrabold text-base tracking-tight text-[#F1F3F9]">
+          <span className="font-extrabold text-base tracking-tight text-white">
             {BRAND_CONFIG.name}
           </span>
           {showBadge && (
             <span
-              className="text-[9px] font-mono px-1.5 py-0.5 rounded tracking-wide uppercase font-semibold border"
-              style={{
-                background: displayBadge.toLowerCase().includes('pro')
-                  ? 'rgba(99, 102, 241, 0.12)'
-                  : displayBadge.toLowerCase().includes('day')
-                  ? 'rgba(200, 138, 88, 0.12)'
-                  : BRAND_CONFIG.colors.primarySurface,
-                color: displayBadge.toLowerCase().includes('pro')
-                  ? '#a5b4fc'
-                  : displayBadge.toLowerCase().includes('day')
-                  ? '#D49A6A'
-                  : BRAND_CONFIG.colors.primary,
-                borderColor: displayBadge.toLowerCase().includes('pro')
-                  ? 'rgba(99, 102, 241, 0.28)'
-                  : displayBadge.toLowerCase().includes('day')
-                  ? 'rgba(200, 138, 88, 0.28)'
-                  : BRAND_CONFIG.colors.primaryBorder,
-              }}
+              className="text-[9px] font-mono px-1.5 py-0.5 rounded tracking-wide uppercase font-semibold border bg-white/[0.06] text-zinc-300 border-white/[0.12]"
             >
               {displayBadge}
             </span>
           )}
         </div>
         {showTagline && (
-          <span className="text-[10px] text-[#7E869B] tracking-wider uppercase font-medium mt-0.5">
+          <span className="text-[10px] text-zinc-400 tracking-wider uppercase font-medium mt-0.5">
             {BRAND_CONFIG.tagline}
           </span>
         )}

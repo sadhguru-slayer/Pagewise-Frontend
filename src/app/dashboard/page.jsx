@@ -94,14 +94,14 @@ function atsColor(score) {
 function MetricCard({ icon: Icon, value, label, subtext, highlightColor }) {
   return (
     <div
-      className="rounded-xl p-4 transition-all duration-200 border border-white/[0.06] hover:border-white/[0.12] bg-[#0E1017]/80"
+      className="rounded-xl p-4 transition-all duration-200 border border-white/[0.08] hover:border-white/[0.12] bg-[#0E1017]"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-medium text-[#8E94A5]">
+        <span className="text-[11px] font-medium text-zinc-400">
           {label}
         </span>
         <div
-          className="w-6 h-6 rounded-md flex items-center justify-center text-[#8E94A5]"
+          className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-400"
           style={{
             background: 'rgba(255,255,255,0.03)',
             color: highlightColor || '#8E94A5',
@@ -110,11 +110,11 @@ function MetricCard({ icon: Icon, value, label, subtext, highlightColor }) {
           <Icon className="w-3.5 h-3.5" />
         </div>
       </div>
-      <p className="text-2xl font-bold text-[#EDEDF2] tracking-tight">
+      <p className="text-2xl font-bold text-zinc-100 tracking-tight">
         {value ?? '—'}
       </p>
       {subtext && (
-        <p className="text-[11px] text-[#7E869B] mt-1 font-sans truncate">
+        <p className="text-[11px] text-zinc-500 mt-1 font-sans truncate">
           {subtext}
         </p>
       )}
@@ -130,7 +130,7 @@ function ResourceBar({
   secondaryValue,
   max = 10,
   unit = '',
-  primaryColor = '#C88A58',
+  primaryColor = '#E4E4E7',
   secondaryColor = '#10B981',
 }) {
   const actualPrimary = primaryValue !== undefined ? primaryValue : (value ?? 0);
@@ -147,10 +147,10 @@ function ResourceBar({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
-        <span className="text-[#F1F3F9] font-medium">{label}</span>
+        <span className="text-zinc-100 font-medium">{label}</span>
         <div className="flex items-center gap-2 font-mono">
           <span className="text-white font-bold">
-            {actualPrimary} <span className="text-[#7E869B] font-normal">{unit}</span>
+            {actualPrimary} <span className="text-zinc-500 font-normal">{unit}</span>
           </span>
           {isDualLayer && (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -168,7 +168,7 @@ function ResourceBar({
             className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
             style={{
               width: `${Math.max(primaryPct, 3)}%`,
-              background: isDualLayer ? 'rgba(200, 138, 88, 0.35)' : `linear-gradient(90deg, ${primaryColor}, #E0A97E)`,
+              background: isDualLayer ? 'rgba(255, 255, 255, 0.25)' : `linear-gradient(90deg, #FFFFFF, #A1A1AA)`,
               borderRight: isDualLayer ? '1px solid rgba(200, 138, 88, 0.7)' : 'none',
             }}
           />
@@ -189,7 +189,7 @@ function ResourceBar({
 
       {/* Dual Layer Indicator Legend */}
       {isDualLayer && (
-        <div className="flex items-center justify-between text-[10px] text-[#7E869B] font-mono pt-0.5">
+        <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono pt-0.5">
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <span>Active in workspace: <strong className="text-white font-medium">{actualSecondary}</strong></span>
@@ -273,9 +273,9 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
         {user?.is_admin && (
           <Link
             href="/admin-290123-7234878"
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-mono text-[#D49A6A] hover:bg-white/[0.04] transition"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-mono text-zinc-300 hover:bg-white/[0.04] transition"
           >
-            <Shield className="w-4 h-4 text-[#D49A6A]" />
+            <Shield className="w-4 h-4 text-zinc-300" />
             <span>Secret Admin Panel</span>
           </Link>
         )}
@@ -284,15 +284,15 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
         <div className="space-y-1.5">
           <button
             onClick={onOpenFeedback}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.04] transition-all cursor-pointer text-left"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all cursor-pointer text-left"
           >
-            <MessageSquare className="w-4 h-4 text-[#D49A6A]" />
+            <MessageSquare className="w-4 h-4 text-zinc-300" />
             <span>Give Feedback</span>
           </button>
 
           <Link
             href="/settings"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-[#8E94A5] hover:text-[#EDEDF2] hover:bg-white/[0.04] transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all"
           >
             <Settings className="w-4 h-4" />
             <span>Account &amp; Studio</span>
@@ -309,13 +309,13 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
               {initial}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-[#EDEDF2] truncate">{user?.name || 'User'}</p>
-              <p className="text-[10px] text-[#8E94A5] truncate">{user?.email}</p>
+              <p className="text-xs font-semibold text-zinc-100 truncate">{user?.name || 'User'}</p>
+              <p className="text-[10px] text-zinc-400 truncate">{user?.email}</p>
             </div>
             <button
               onClick={onLogout}
               title="Sign out"
-              className="p-1 text-[#8E94A5] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+              className="p-1 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
@@ -421,7 +421,7 @@ export default function DashboardPage() {
           name: t.name,
           category: t.category || 'General',
           tag: t.badge || (t.min_plan_tier === 'pro_monthly' ? 'Pagewise Pro' : t.min_plan_tier === 'day_pass' ? 'Day Pass' : 'Standard Free'),
-          badgeColor: t.min_plan_tier === 'pro_monthly' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : t.min_plan_tier === 'day_pass' ? 'bg-[#C88A58]/10 text-[#D49A6A] border-[#C88A58]/25' : 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]',
+          badgeColor: t.min_plan_tier === 'pro_monthly' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : t.min_plan_tier === 'day_pass' ? 'bg-[#E4E4E7]/10 text-zinc-300 border-[#E4E4E7]/25' : 'bg-white/[0.04] text-zinc-400 border-white/[0.08]',
           min_plan_tier: t.min_plan_tier || 'free',
           is_locked: !!t.is_locked,
           description: t.description || '',
@@ -593,11 +593,11 @@ export default function DashboardPage() {
 
   if (authLoading || (!isAuthenticated && !authLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090B10] text-[#F1F3F9]">
+      <div className="min-h-screen flex items-center justify-center bg-[#08090D] text-zinc-100">
         <div className="flex flex-col items-center gap-3">
           <BrandLogo size={36} />
           <Loader2 className="w-5 h-5 animate-spin text-amber-500 mt-2" />
-          <p className="text-xs text-[#7E869B] font-mono">Initializing Resumo Studio...</p>
+          <p className="text-xs text-zinc-500 font-mono">Initializing Resumo Studio...</p>
         </div>
       </div>
     );
@@ -624,7 +624,7 @@ export default function DashboardPage() {
   const recentResumes = [...resumes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 4);
 
   return (
-    <div className="h-screen w-full bg-[#090B10] text-[#F1F3F9] flex font-sans overflow-hidden">
+    <div className="h-screen w-full bg-[#08090D] text-zinc-100 flex font-sans overflow-hidden">
       {/* Precision Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -640,7 +640,7 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         {/* Mobile Header Bar with Hamburger */}
         <header
-          className="md:hidden flex items-center justify-between px-4 py-3 shrink-0 border-b backdrop-blur-md sticky top-0 z-40 bg-[#0c0e15]/95 border-white/[0.08]"
+          className="md:hidden flex items-center justify-between px-4 py-3 shrink-0 border-b backdrop-blur-md sticky top-0 z-40 bg-[#08090D]/95 border-white/[0.08]"
         >
           <div className="flex items-center gap-2.5">
             <button
@@ -684,7 +684,7 @@ export default function DashboardPage() {
               className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <div className="relative w-4/5 max-w-xs bg-[#0c0d14] border-r border-white/[0.08] h-full flex flex-col p-4 shadow-2xl z-10">
+            <div className="relative w-4/5 max-w-xs bg-[#0E1017] border-r border-white/[0.08] h-full flex flex-col p-4 shadow-2xl z-10">
               <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                 <BrandLockup
                   size={26}
@@ -758,7 +758,7 @@ export default function DashboardPage() {
                   <Settings className="w-4 h-4 text-zinc-400" />
                   <span>Account &amp; Studio</span>
                 </Link>
-                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08]">
                   <div className="w-7 h-7 rounded-lg bg-zinc-700 flex items-center justify-center text-xs font-bold text-white shrink-0">
                     {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </div>
@@ -794,12 +794,12 @@ export default function DashboardPage() {
           {activeTab === 'home' && (
             <div className="space-y-8">
               {/* Minimal Clean Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-[#F1F3F9] tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight">
                     Welcome back, {user?.name?.split(' ')[0] || 'there'}
                   </h1>
-                  <p className="text-xs text-[#8E94A5] mt-0.5">
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     Manage your resumes, optimize with Wiser AI, and export production-ready PDFs.
                   </p>
                 </div>
@@ -811,13 +811,13 @@ export default function DashboardPage() {
                       setSelectedResumeForWiser(null);
                       setIsImportModalOpen(true);
                     }}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer border border-white/[0.08] hover:border-white/20 text-[#EDEDF2] hover:bg-white/[0.04]"
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer border border-white/[0.08] hover:border-white/20 text-zinc-100 hover:bg-white/[0.04]"
                     style={{
                       background: BRAND_CONFIG.colors.surfaceCard,
                     }}
                     title="Upload and parse an existing PDF resume"
                   >
-                    <Upload className="w-3.5 h-3.5 text-[#8E94A5]" />
+                    <Upload className="w-3.5 h-3.5 text-zinc-400" />
                     <span>Import PDF</span>
                   </button>
 
@@ -826,12 +826,9 @@ export default function DashboardPage() {
                       setNewResumeName('Senior Engineer Resume');
                       setIsCreateModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white transition-all cursor-pointer hover:opacity-90 shadow-sm"
-                    style={{
-                      background: BRAND_CONFIG.colors.primary,
-                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 transition-all cursor-pointer shadow-sm"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 text-zinc-950" />
                     <span>New Resume</span>
                   </button>
                 </div>
@@ -839,17 +836,17 @@ export default function DashboardPage() {
 
               {/* Subtle Wiser AI Quick Access Bar */}
               <div
-                className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-white/[0.06] bg-[#0E1017]/60 hover:bg-[#0E1017] transition-colors"
+                className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-white/[0.08] bg-[#0E1017]/60 hover:bg-[#0E1017] transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     <Target className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-[#EDEDF2]">
+                    <span className="text-xs font-medium text-zinc-100">
                       Target Audit & ATS Matcher
                     </span>
-                    <span className="text-[11px] text-[#8E94A5]">
+                    <span className="text-[11px] text-zinc-400">
                       • {planStatus?.remaining?.wiser_ai_combined ?? planStatus?.remaining?.wiser_job_help ?? 0} evaluations available
                     </span>
                   </div>
@@ -875,7 +872,7 @@ export default function DashboardPage() {
 
               {/* Workspace Stats Header */}
               <div className="flex items-center justify-between pb-1">
-                <span className="text-xs font-medium text-[#8E94A5]">
+                <span className="text-xs font-medium text-zinc-400">
                   Workspace Overview
                 </span>
                 <button
@@ -893,7 +890,7 @@ export default function DashboardPage() {
                   value={resumeCount}
                   label="Resumes"
                   subtext={`${totalResumes} all-time crafted`}
-                  highlightColor="#C88A58"
+                  highlightColor="#FFFFFF"
                 />
                 <MetricCard
                   icon={Cpu}
@@ -915,10 +912,10 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-semibold text-[#F1F3F9]">
+                    <h2 className="text-sm font-semibold text-zinc-100">
                       Recent Resumes
                     </h2>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-[#7E869B]">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-500">
                       {resumes.length} total
                     </span>
                   </div>
@@ -943,14 +940,14 @@ export default function DashboardPage() {
                       background: BRAND_CONFIG.colors.surfaceCard,
                     }}
                   >
-                    <FolderOpen className="w-8 h-8 text-[#7E869B] mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-[#F1F3F9]">No resumes created yet</p>
-                    <p className="text-xs text-[#7E869B] mt-1">
+                    <FolderOpen className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-zinc-100">No resumes created yet</p>
+                    <p className="text-xs text-zinc-500 mt-1">
                       Choose a template format or import an existing PDF to begin.
                     </p>
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
-                      className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#C88A58] hover:bg-[#B87A47] transition-all inline-flex items-center gap-1.5 shadow-sm"
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#E4E4E7] hover:bg-[#D4D4D8] transition-all inline-flex items-center gap-1.5 shadow-sm"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Create First Resume</span>
@@ -961,7 +958,7 @@ export default function DashboardPage() {
                     {recentResumes.map((resume) => (
                       <div
                         key={resume.id}
-                        className="rounded-xl p-4 flex flex-col justify-between transition-all duration-200 group border border-white/[0.06] hover:border-amber-500/30 bg-[#0E1017]/80 hover:bg-[#0E1017]"
+                        className="rounded-xl p-4 flex flex-col justify-between transition-all duration-200 group border border-white/[0.08] hover:border-white/20 bg-[#0E1017] hover:bg-[#0E1017]"
                       >
                         <div>
                           {/* Status and Targeting Pill */}
@@ -981,27 +978,27 @@ export default function DashboardPage() {
                                 🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
                               </span>
                             ) : !resume.is_primary && !resume.is_locked ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-[#7E869B] bg-white/[0.04] border border-white/[0.06]">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-zinc-500 bg-white/[0.04] border border-white/[0.08]">
                                 Workspace
                               </span>
                             ) : null}
                           </div>
 
-                          <h3 className="font-bold text-sm text-[#F1F3F9] group-hover:text-amber-400 transition-colors line-clamp-1">
+                          <h3 className="font-bold text-sm text-zinc-100 group-hover:text-white transition-colors line-clamp-1">
                             {resume.name}
                           </h3>
 
-                          <p className="text-[11px] text-[#7E869B] mt-1.5 flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-[#7E869B]" />
+                          <p className="text-[11px] text-zinc-500 mt-1.5 flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-zinc-500" />
                             <span>Updated {relativeDate(resume.updated_at)}</span>
                           </p>
                         </div>
 
-                        <div className="pt-4 mt-3 border-t border-white/[0.06] flex items-center justify-between gap-1 flex-wrap">
+                        <div className="pt-4 mt-3 border-t border-white/[0.08] flex items-center justify-between gap-1 flex-wrap">
                           <div className="flex items-center gap-1.5">
                             <Link
                               href={`/builder?id=${resume.id}`}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] transition-all cursor-pointer flex items-center gap-1"
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-white hover:text-zinc-950 text-zinc-100 transition-all cursor-pointer flex items-center gap-1"
                             >
                               <span>{resume.is_locked ? 'View' : 'Open'}</span>
                               <ArrowUpRight className="w-3 h-3" />
@@ -1017,7 +1014,7 @@ export default function DashboardPage() {
                                 setIsWiserModalOpen(true);
                               }}
                               title="Audit with Wiser AI (JD Matching & ATS)"
-                              className="p-1.5 text-[#7E869B] hover:text-[#D49A6A] hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
                             >
                               <Target className="w-3.5 h-3.5" />
                             </button>
@@ -1025,7 +1022,7 @@ export default function DashboardPage() {
                               onClick={() => handleQuickExportPdf(resume.id)}
                               disabled={exportingId === resume.id}
                               title="Quick PDF Export (Recommended)"
-                              className="p-1.5 text-[#7E869B] hover:text-[#F1F3F9] rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-500 hover:text-zinc-100 rounded-lg transition-colors cursor-pointer"
                             >
                               {exportingId === resume.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1036,7 +1033,7 @@ export default function DashboardPage() {
                             <button
                               onClick={() => handleDeleteResume(resume)}
                               title="Delete resume"
-                              className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1053,12 +1050,12 @@ export default function DashboardPage() {
           {/* ── 2. MY RESUMES TAB ────────────────────────────────────────────── */}
           {activeTab === 'resumes' && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
                     My Resumes
                   </h1>
-                  <p className="text-xs text-[#7E869B] mt-1">
+                  <p className="text-xs text-zinc-500 mt-1">
                     Manage your core resumes and job-targeted branches.
                   </p>
                 </div>
@@ -1068,7 +1065,7 @@ export default function DashboardPage() {
                     setNewResumeName('Senior Engineer Resume');
                     setIsCreateModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-[#C88A58] hover:bg-[#B87A47] text-white rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-start sm:self-auto"
+                  className="px-4 py-2 bg-white hover:bg-zinc-100 text-zinc-950 font-semibold shadow-sm rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Resume</span>
@@ -1077,7 +1074,7 @@ export default function DashboardPage() {
 
               {/* Search Strip */}
               <div className="relative max-w-md">
-                <Search className="w-4 h-4 text-[#7E869B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Filter by title, company, or target position..."
@@ -1100,9 +1097,9 @@ export default function DashboardPage() {
                   className="rounded-2xl border border-dashed p-16 text-center"
                   style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
                 >
-                  <FolderOpen className="w-10 h-10 text-[#7E869B] mx-auto mb-3" />
-                  <p className="text-sm font-semibold text-[#F1F3F9]">No resumes match criteria</p>
-                  <p className="text-xs text-[#7E869B] mt-1">
+                  <FolderOpen className="w-10 h-10 text-zinc-500 mx-auto mb-3" />
+                  <p className="text-sm font-semibold text-zinc-100">No resumes match criteria</p>
+                  <p className="text-xs text-zinc-500 mt-1">
                     {searchQuery ? 'Try adjusting your search terms.' : 'Create your first resume to get started.'}
                   </p>
                 </div>
@@ -1114,7 +1111,7 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={resume.id}
-                        className="rounded-xl p-4.5 flex flex-col justify-between transition-all duration-200 group border border-white/[0.06] hover:border-amber-500/30 bg-[#0E1017]/80 hover:bg-[#0E1017]"
+                        className="rounded-xl p-4.5 flex flex-col justify-between transition-all duration-200 group border border-white/[0.08] hover:border-white/20 bg-[#0E1017] hover:bg-[#0E1017]"
                       >
                         <div>
                           {/* Tags header */}
@@ -1135,7 +1132,7 @@ export default function DashboardPage() {
                                   🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
                                 </span>
                               ) : !resume.is_primary && !resume.is_locked ? (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-[#7E869B] bg-white/[0.04] border border-white/[0.06]">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-zinc-500 bg-white/[0.04] border border-white/[0.08]">
                                   Workspace
                                 </span>
                               ) : null}
@@ -1156,11 +1153,11 @@ export default function DashboardPage() {
                             )}
                           </div>
 
-                          <h3 className="font-bold text-base text-[#F1F3F9] group-hover:text-amber-400 transition-colors line-clamp-1">
+                          <h3 className="font-bold text-base text-zinc-100 group-hover:text-white transition-colors line-clamp-1">
                             {resume.name}
                           </h3>
 
-                          <div className="flex items-center gap-3 mt-2 text-[11px] text-[#7E869B]">
+                          <div className="flex items-center gap-3 mt-2 text-[11px] text-zinc-500">
                             <span className="flex items-center gap-1">
                               <Layers className="w-3 h-3" />
                               {resume.section_count || 0} sections
@@ -1173,11 +1170,11 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between gap-1 flex-wrap">
+                        <div className="pt-4 mt-4 border-t border-white/[0.08] flex items-center justify-between gap-1 flex-wrap">
                           <div className="flex items-center gap-1.5">
                             <Link
                               href={`/builder?id=${resume.id}`}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] transition-all cursor-pointer flex items-center gap-1.5"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-white hover:text-zinc-950 text-zinc-100 transition-all cursor-pointer flex items-center gap-1.5"
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>{resume.is_locked ? 'View (Read-Only)' : 'Launch Studio'}</span>
@@ -1193,7 +1190,7 @@ export default function DashboardPage() {
                                 setIsWiserModalOpen(true);
                               }}
                               title="Audit with Wiser AI (JD Matching & ATS)"
-                              className="p-1.5 text-[#7E869B] hover:text-[#D49A6A] hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
                             >
                               <Target className="w-3.5 h-3.5" />
                             </button>
@@ -1201,7 +1198,7 @@ export default function DashboardPage() {
                               onClick={() => handleQuickExportPdf(resume.id)}
                               disabled={exportingId === resume.id}
                               title="Quick PDF Export (Recommended)"
-                              className="p-2 text-[#7E869B] hover:text-[#F1F3F9] rounded-lg transition-colors cursor-pointer"
+                              className="p-2 text-zinc-500 hover:text-zinc-100 rounded-lg transition-colors cursor-pointer"
                             >
                               {exportingId === resume.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1212,7 +1209,7 @@ export default function DashboardPage() {
                             <button
                               onClick={() => handleDeleteResume(resume)}
                               title="Delete resume"
-                              className="p-2 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                              className="p-2 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1230,12 +1227,12 @@ export default function DashboardPage() {
           {activeTab === 'templates' && (
             <div className="space-y-6">
               {/* Header with Sub-tabs */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
                     Template &amp; Format Library
                   </h1>
-                  <p className="text-xs text-[#7E869B] mt-1">
+                  <p className="text-xs text-zinc-500 mt-1">
                     Industry-calibrated typography, margins, and section designs.
                   </p>
                 </div>
@@ -1246,7 +1243,7 @@ export default function DashboardPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       templateSubTab === 'formats'
                         ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'text-[#7E869B] hover:text-white'
+                        : 'text-zinc-500 hover:text-white'
                     }`}
                   >
                     Industry Formats ({systemTemplates.length})
@@ -1256,7 +1253,7 @@ export default function DashboardPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       templateSubTab === 'saved'
                         ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'text-[#7E869B] hover:text-white'
+                        : 'text-zinc-500 hover:text-white'
                     }`}
                   >
                     My Custom Presets ({userTemplates.length})
@@ -1290,52 +1287,52 @@ export default function DashboardPage() {
                               isPro
                                 ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
                                 : isDayPass
-                                ? 'bg-[#C88A58]/15 text-[#D49A6A] border-[#C88A58]/30'
-                                : 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]'
+                                ? 'bg-[#E4E4E7]/15 text-zinc-300 border-[#E4E4E7]/30'
+                                : 'bg-white/[0.04] text-zinc-400 border-white/[0.08]'
                             }`}>
                               {isLocked && <Lock className="w-2.5 h-2.5" />}
                               {tpl.tag || (isPro ? 'Pro Exclusive' : isDayPass ? 'Day Pass' : 'Standard Free')}
                             </span>
-                            <span className="text-[10px] text-[#7E869B] font-mono">
+                            <span className="text-[10px] text-zinc-500 font-mono">
                               {tpl.settings?.bodyFont?.split(',')[0]}
                             </span>
                           </div>
 
-                          <h3 className="font-bold text-base text-[#F1F3F9] group-hover:text-amber-400 transition-colors flex items-center gap-2">
+                          <h3 className="font-bold text-base text-zinc-100 group-hover:text-white transition-colors flex items-center gap-2">
                             <span>{tpl.name}</span>
-                            {isLocked && <Lock className="w-3.5 h-3.5 text-[#7E869B] shrink-0" />}
+                            {isLocked && <Lock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />}
                           </h3>
 
-                          <p className="text-xs text-[#7E869B] mt-2 leading-relaxed">
+                          <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
                             {tpl.description}
                           </p>
 
                           {/* Format Specs Preview */}
-                          <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1.5 text-[11px] font-mono text-[#7E869B]">
+                          <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1.5 text-[11px] font-mono text-zinc-500">
                             <div className="flex justify-between">
                               <span>Font Family:</span>
-                              <span className="text-[#F1F3F9] font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
+                              <span className="text-zinc-100 font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Target Industry:</span>
-                              <span className="text-[#F1F3F9] font-sans truncate max-w-[130px]">{tpl.category}</span>
+                              <span className="text-zinc-100 font-sans truncate max-w-[130px]">{tpl.category}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Required Plan:</span>
-                              <span className={`font-semibold ${isPro ? 'text-indigo-400' : isDayPass ? 'text-[#D49A6A]' : 'text-emerald-400'}`}>
+                              <span className={`font-semibold ${isPro ? 'text-indigo-400' : isDayPass ? 'text-zinc-300' : 'text-emerald-400'}`}>
                                 {isPro ? 'Pagewise Pro' : isDayPass ? 'Day Pass / Pro' : 'Free Forever'}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
+                        <div className="pt-4 mt-4 border-t border-white/[0.08] flex items-center justify-between">
                           {isLocked ? (
                             <button
                               onClick={() => setPricingModalOpen(true)}
-                              className="w-full py-2 bg-gradient-to-r from-amber-500/10 to-[#C88A58]/20 hover:from-amber-500/20 hover:to-[#C88A58]/30 text-[#D49A6A] border border-[#C88A58]/30 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                              className="w-full py-2 bg-gradient-to-r from-amber-500/10 to-[#E4E4E7]/20 hover:from-amber-500/20 hover:to-[#E4E4E7]/30 text-zinc-300 border border-[#E4E4E7]/30 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                             >
-                              <Lock className="w-3.5 h-3.5 text-[#D49A6A]" />
+                              <Lock className="w-3.5 h-3.5 text-zinc-300" />
                               <span>Unlock with {isPro ? 'Pagewise Pro' : 'Wiser Day Pass'}</span>
                             </button>
                           ) : (
@@ -1345,7 +1342,7 @@ export default function DashboardPage() {
                                 setNewResumeName(`${tpl.name} Resume`);
                                 setIsCreateModalOpen(true);
                               }}
-                              className="w-full py-2 bg-white/[0.06] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                              className="w-full py-2 bg-white/[0.06] hover:bg-white hover:text-zinc-950 text-zinc-100 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                             >
                               <Plus className="w-3.5 h-3.5" />
                               <span>Use This Architecture</span>
@@ -1370,8 +1367,8 @@ export default function DashboardPage() {
                       }}
                     >
                       <Bookmark className="w-10 h-10 text-amber-500/60 mx-auto mb-3" />
-                      <h3 className="text-sm font-bold text-[#F1F3F9]">No custom presets saved yet</h3>
-                      <p className="text-xs text-[#7E869B] max-w-md mx-auto mt-1 leading-relaxed">
+                      <h3 className="text-sm font-bold text-zinc-100">No custom presets saved yet</h3>
+                      <p className="text-xs text-zinc-500 max-w-md mx-auto mt-1 leading-relaxed">
                         Customize your typography, margins, and divider rules in the Resume Builder, then click
                         &quot;Save as Template&quot; in the Settings panel to preserve your style.
                       </p>
@@ -1392,40 +1389,40 @@ export default function DashboardPage() {
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20">
                                 Custom Preset
                               </span>
-                              <span className="text-[11px] text-[#7E869B]">
+                              <span className="text-[11px] text-zinc-500">
                                 {relativeDate(tpl.created_at)}
                               </span>
                             </div>
 
-                            <h3 className="font-bold text-base text-[#F1F3F9]">
+                            <h3 className="font-bold text-base text-zinc-100">
                               {tpl.name}
                             </h3>
 
                             {tpl.description && (
-                              <p className="text-xs text-[#7E869B] mt-1.5 leading-relaxed">
+                              <p className="text-xs text-zinc-500 mt-1.5 leading-relaxed">
                                 {tpl.description}
                               </p>
                             )}
 
-                            <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] text-[11px] text-[#7E869B] space-y-1">
+                            <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] text-[11px] text-zinc-500 space-y-1">
                               <div>Font: <span className="text-white">{tpl.settings_json?.bodyFont || 'Default'}</span></div>
                               <div>Heading: <span className="text-white">{tpl.settings_json?.headingColor || '#111827'}</span></div>
                             </div>
                           </div>
 
-                          <div className="pt-4 mt-4 border-t border-white/[0.06] flex items-center justify-between">
+                          <div className="pt-4 mt-4 border-t border-white/[0.08] flex items-center justify-between">
                             <button
                               onClick={() => {
                                 setNewResumeName(`${tpl.name} Resume`);
                                 setIsCreateModalOpen(true);
                               }}
-                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-[#C88A58] hover:text-white text-[#EDEDF2] transition-all cursor-pointer"
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-white hover:text-zinc-950 text-zinc-100 transition-all cursor-pointer"
                             >
                               Create with Preset
                             </button>
                             <button
                               onClick={() => handleDeleteTemplate(tpl)}
-                              className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                               title="Delete preset"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1443,12 +1440,12 @@ export default function DashboardPage() {
           {/* ── EXPORT HISTORY TAB ─────────────────────────────────────────── */}
           {activeTab === 'exports' && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
                     Exported Resumes Archive
                   </h1>
-                  <p className="text-xs text-[#7E869B] mt-1">
+                  <p className="text-xs text-zinc-500 mt-1">
                     Track which job, company, and template each export was built for. Redownload or clean up files.
                   </p>
                 </div>
@@ -1466,9 +1463,9 @@ export default function DashboardPage() {
                     background: BRAND_CONFIG.colors.surfaceCard,
                   }}
                 >
-                  <FileDown className="w-10 h-10 text-[#7E869B] mx-auto mb-3" />
-                  <h3 className="text-sm font-bold text-[#F1F3F9]">No exported files yet</h3>
-                  <p className="text-xs text-[#7E869B] max-w-md mx-auto mt-1 leading-relaxed">
+                  <FileDown className="w-10 h-10 text-zinc-500 mx-auto mb-3" />
+                  <h3 className="text-sm font-bold text-zinc-100">No exported files yet</h3>
+                  <p className="text-xs text-zinc-500 max-w-md mx-auto mt-1 leading-relaxed">
                     When you export a PDF, PNG image, or HTML document from the Resume Studio, your generated files and job targeting metadata will be logged here.
                   </p>
                 </div>
@@ -1476,7 +1473,7 @@ export default function DashboardPage() {
                 <div className="rounded-2xl overflow-hidden border border-white/[0.07]" style={{ background: BRAND_CONFIG.colors.surfaceCard }}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="border-b border-white/[0.06] bg-black/40 text-[10px] font-mono uppercase tracking-wider text-[#7E869B]">
+                      <thead className="border-b border-white/[0.08] bg-black/40 text-[10px] font-mono uppercase tracking-wider text-zinc-500">
                         <tr>
                           <th className="py-3 px-4">File Name</th>
                           <th className="py-3 px-4">Format</th>
@@ -1489,12 +1486,12 @@ export default function DashboardPage() {
                       <tbody className="divide-y divide-white/[0.04]">
                         {exportsList.map((exp) => (
                           <tr key={exp.id} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="py-3.5 px-4 font-semibold text-[#F1F3F9]">
+                            <td className="py-3.5 px-4 font-semibold text-zinc-100">
                               <div className="flex items-center gap-2">
                                 <FileText className="w-4 h-4 text-amber-500 shrink-0" />
                                 <div>
                                   <p className="truncate max-w-[200px]">{exp.resume_name || exp.file_name}</p>
-                                  <p className="text-[10px] text-[#7E869B] font-mono truncate max-w-[200px]">{exp.file_name}</p>
+                                  <p className="text-[10px] text-zinc-500 font-mono truncate max-w-[200px]">{exp.file_name}</p>
                                 </div>
                               </div>
                             </td>
@@ -1518,20 +1515,20 @@ export default function DashboardPage() {
                                   <span>{exp.target_company ? `${exp.target_company} · ` : ''}{exp.target_job_title}</span>
                                 </span>
                               ) : (
-                                <span className="text-[11px] text-[#7E869B]">General Master Export</span>
+                                <span className="text-[11px] text-zinc-500">General Master Export</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-4 text-[#7E869B] font-sans">
+                            <td className="py-3.5 px-4 text-zinc-500 font-sans">
                               {exp.template_name || 'Standard Format'}
                             </td>
-                            <td className="py-3.5 px-4 text-[#7E869B] font-mono text-[11px]">
+                            <td className="py-3.5 px-4 text-zinc-500 font-mono text-[11px]">
                               {relativeDate(exp.created_at)}
                             </td>
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => exportsApi.downloadFile(exp.id, exp.file_name)}
-                                  className="px-2.5 py-1 bg-white/[0.06] hover:bg-[#C88A58] hover:text-white rounded-lg text-xs font-semibold text-[#EDEDF2] transition-all flex items-center gap-1 cursor-pointer"
+                                  className="px-2.5 py-1 bg-white/[0.06] hover:bg-white hover:text-zinc-950 rounded-lg text-xs font-semibold text-zinc-100 transition-all flex items-center gap-1 cursor-pointer"
                                   title="Download this file"
                                 >
                                   <Download className="w-3.5 h-3.5" />
@@ -1539,7 +1536,7 @@ export default function DashboardPage() {
                                 </button>
                                 <button
                                   onClick={() => handleDeleteExport(exp)}
-                                  className="p-1.5 text-[#7E869B] hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                                  className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
                                   title="Delete record"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1560,12 +1557,12 @@ export default function DashboardPage() {
           {activeTab === 'usage' && (
             <div className="space-y-6">
               {/* Header with Duration Filter */}
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-white/[0.06]">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-[#F1F3F9] tracking-tight">
+                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
                     Intelligence &amp; Usage Telemetry
                   </h1>
-                  <p className="text-xs text-[#7E869B] mt-1">
+                  <p className="text-xs text-zinc-500 mt-1">
                     Audited resource quotas, billing duration breakdown, and Wiser AI engine telemetry.
                   </p>
                 </div>
@@ -1580,7 +1577,7 @@ export default function DashboardPage() {
                       className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                         selectedPeriod === bp.key
                           ? 'bg-amber-500 text-black shadow-lg font-bold'
-                          : 'text-[#7E869B] hover:text-white hover:bg-white/[0.04]'
+                          : 'text-zinc-500 hover:text-white hover:bg-white/[0.04]'
                       }`}
                     >
                       {bp.label}
@@ -1597,7 +1594,7 @@ export default function DashboardPage() {
                   border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
                 }}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.06]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
@@ -1617,10 +1614,10 @@ export default function DashboardPage() {
                         {planStatus?.plan_name || 'Pagewise Free'}
                       </span>
                     </div>
-                    <h2 className="text-lg font-bold text-[#F1F3F9] mt-1">
+                    <h2 className="text-lg font-bold text-zinc-100 mt-1">
                       Current Plan Allowance &amp; Telemetry Limits
                     </h2>
-                    <p className="text-xs text-[#7E869B] mt-0.5">
+                    <p className="text-xs text-zinc-500 mt-0.5">
                       Strict limit tracking across your active workspaces, exports, and Wiser AI evaluations.
                     </p>
                   </div>
@@ -1628,15 +1625,15 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-3">
                     {planStatus?.expires_at && (
                       <div className="text-right">
-                        <span className="text-[10px] text-[#7E869B] uppercase font-mono block">Pass Expires</span>
-                        <span className="text-xs font-mono font-bold text-[#D49A6A]">
+                        <span className="text-[10px] text-zinc-500 uppercase font-mono block">Pass Expires</span>
+                        <span className="text-xs font-mono font-bold text-zinc-300">
                           {new Date(planStatus.expires_at).toLocaleString()}
                         </span>
                       </div>
                     )}
                     <button
                       onClick={() => setPricingModalOpen(true)}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#C88A58] hover:bg-[#B87A47] text-white font-semibold text-xs transition-all cursor-pointer shadow-sm"
+                      className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-zinc-100 text-zinc-950 font-semibold shadow-sm font-semibold text-xs transition-all cursor-pointer shadow-sm"
                     >
                       {planStatus?.plan_type === 'pro_monthly' ? 'Manage Plan' : 'Upgrade Plan'}
                     </button>
@@ -1646,24 +1643,24 @@ export default function DashboardPage() {
                 {/* Quota Progress Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* 1. Resume Workspaces */}
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.08] space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#F1F3F9]">Resume Workspaces</span>
-                      <span className="text-xs font-mono text-[#7E869B]">
+                      <span className="text-xs font-semibold text-zinc-100">Resume Workspaces</span>
+                      <span className="text-xs font-mono text-zinc-500">
                         <strong className="text-white">{planStatus?.usage?.active_resumes ?? 0}</strong> / {planStatus?.limits?.resumes ?? 1}
                       </span>
                     </div>
                     <div className="w-full bg-white/[0.08] h-2 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
-                          (planStatus?.remaining?.resumes ?? 0) === 0 ? 'bg-rose-500' : 'bg-[#C88A58]'
+                          (planStatus?.remaining?.resumes ?? 0) === 0 ? 'bg-rose-500' : 'bg-[#E4E4E7]'
                         }`}
                         style={{
                           width: `${Math.min(100, Math.round(((planStatus?.usage?.active_resumes ?? 0) / (planStatus?.limits?.resumes || 1)) * 100))}%`,
                         }}
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500">
                       <span>{planStatus?.remaining?.resumes ?? 0} workspace(s) left</span>
                       {(planStatus?.remaining?.resumes ?? 0) === 0 ? (
                         <span className="text-rose-400 font-semibold">Limit Reached</span>
@@ -1674,10 +1671,10 @@ export default function DashboardPage() {
                   </div>
 
                   {/* 2. Verified Exports */}
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.08] space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#F1F3F9]">Verified Exports</span>
-                      <span className="text-xs font-mono text-[#7E869B]">
+                      <span className="text-xs font-semibold text-zinc-100">Verified Exports</span>
+                      <span className="text-xs font-mono text-zinc-500">
                         <strong className="text-white">{planStatus?.usage?.exports_used ?? 0}</strong> / {planStatus?.limits?.exports ?? 1}
                       </span>
                     </div>
@@ -1691,7 +1688,7 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500">
                       <span>{planStatus?.remaining?.exports ?? 0} export(s) left</span>
                       {(planStatus?.remaining?.exports ?? 0) === 0 ? (
                         <span className="text-rose-400 font-semibold">Exhausted</span>
@@ -1702,10 +1699,10 @@ export default function DashboardPage() {
                   </div>
 
                   {/* 3. Wiser Job Help */}
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.08] space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#F1F3F9]">Wiser Job Help (JD Match)</span>
-                      <span className="text-xs font-mono text-[#7E869B]">
+                      <span className="text-xs font-semibold text-zinc-100">Wiser Job Help (JD Match)</span>
+                      <span className="text-xs font-mono text-zinc-500">
                         <strong className="text-white">{planStatus?.usage?.wiser_job_help_used ?? 0}</strong> / {planStatus?.limits?.wiser_job_help ?? 1}
                       </span>
                     </div>
@@ -1719,7 +1716,7 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500">
                       <span>{planStatus?.remaining?.wiser_job_help ?? 0} analysis left</span>
                       {(planStatus?.remaining?.wiser_job_help ?? 0) === 0 ? (
                         <span className="text-rose-400 font-semibold">Exhausted</span>
@@ -1730,10 +1727,10 @@ export default function DashboardPage() {
                   </div>
 
                   {/* 4. Wiser ATS Check */}
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.08] space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#F1F3F9]">Wiser ATS Evaluations</span>
-                      <span className="text-xs font-mono text-[#7E869B]">
+                      <span className="text-xs font-semibold text-zinc-100">Wiser ATS Evaluations</span>
+                      <span className="text-xs font-mono text-zinc-500">
                         <strong className="text-white">{planStatus?.usage?.wiser_ats_used ?? 0}</strong> / {planStatus?.limits?.wiser_ats ?? 1}
                       </span>
                     </div>
@@ -1747,7 +1744,7 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500">
                       <span>{planStatus?.remaining?.wiser_ats ?? 0} evaluation(s) left</span>
                       {(planStatus?.remaining?.wiser_ats ?? 0) === 0 ? (
                         <span className="text-rose-400 font-semibold">Exhausted</span>
@@ -1758,10 +1755,10 @@ export default function DashboardPage() {
                   </div>
 
                   {/* 5. Custom Templates */}
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.06] space-y-2">
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/[0.08] space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#F1F3F9]">Custom Style Presets</span>
-                      <span className="text-xs font-mono text-[#7E869B]">
+                      <span className="text-xs font-semibold text-zinc-100">Custom Style Presets</span>
+                      <span className="text-xs font-mono text-zinc-500">
                         <strong className="text-white">{planStatus?.usage?.custom_templates_count ?? 0}</strong> / {planStatus?.limits?.custom_templates ?? 1}
                       </span>
                     </div>
@@ -1775,7 +1772,7 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-[#7E869B]">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-500">
                       <span>{planStatus?.remaining?.custom_templates ?? 0} preset(s) left</span>
                       {(planStatus?.remaining?.custom_templates ?? 0) === 0 ? (
                         <span className="text-rose-400 font-semibold">Exhausted</span>
@@ -1800,7 +1797,7 @@ export default function DashboardPage() {
                       </span>
                       {loadingStats && <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />}
                     </div>
-                    <p className="text-[11px] text-[#7E869B] font-mono mt-0.5">
+                    <p className="text-[11px] text-zinc-500 font-mono mt-0.5">
                       {usageStats?.period_start
                         ? `${new Date(usageStats.period_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${
                             usageStats?.period_end
@@ -1826,7 +1823,7 @@ export default function DashboardPage() {
                   value={selectedPeriod === 'all' ? totalResumes : (usageStats?.period_resumes_created ?? 0)}
                   label={selectedPeriod === 'all' ? 'Master Resumes' : `Resumes (${usageStats?.period_label || 'Period'})`}
                   subtext={`${resumeCount} active in studio`}
-                  highlightColor="#C88A58"
+                  highlightColor="#FFFFFF"
                 />
                 <MetricCard
                   icon={Cpu}
@@ -1863,10 +1860,10 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold text-[#F1F3F9]">
+                      <h2 className="text-sm font-semibold text-zinc-100">
                         Workspace Resource Quotas
                       </h2>
-                      <p className="text-[11px] text-[#7E869B] mt-0.5">
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
                         Active assets in studio vs audited generation ledger
                       </p>
                     </div>
@@ -1918,11 +1915,11 @@ export default function DashboardPage() {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <Cpu className="w-4 h-4 text-amber-400" />
-                        <h2 className="text-sm font-semibold text-[#F1F3F9]">
+                        <h2 className="text-sm font-semibold text-zinc-100">
                           Wiser AI Engine Processing
                         </h2>
                       </div>
-                      <p className="text-[11px] text-[#7E869B] mt-0.5">
+                      <p className="text-[11px] text-zinc-500 mt-0.5">
                         Autonomous career telemetry and diagnostic throughput
                       </p>
                     </div>
@@ -1953,7 +1950,7 @@ export default function DashboardPage() {
                   </div>
 
                   {selectedPeriod !== 'all' && (
-                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs text-[#9DA4B7]">
+                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between text-xs text-[#9DA4B7]">
                       <span>All-Time Cumulative Wiser Invocations:</span>
                       <span className="font-mono font-bold text-white">
                         {usageStats?.lifetime_wiser_invocations ?? wiserTotal} actions
@@ -1965,29 +1962,29 @@ export default function DashboardPage() {
 
               {/* Professional Compliance & Accounting Policies */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-start gap-3.5">
-                  <div className="p-2.5 rounded-xl bg-white/[0.04] text-[#9DA4B7] shrink-0 border border-white/[0.06]">
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-white/[0.04] text-[#9DA4B7] shrink-0 border border-white/[0.08]">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#F1F3F9]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-100">
                       Audit Retention &amp; Historical Ledger
                     </h3>
-                    <p className="text-xs text-[#7E869B] leading-relaxed">
+                    <p className="text-xs text-zinc-500 leading-relaxed">
                       Document creation records, export transactions, and style configurations are permanently preserved in your workspace ledger. Deleting a document from your active list removes it from the editor view while maintaining an accurate compliance and billing audit trail.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-start gap-3.5">
-                  <div className="p-2.5 rounded-xl bg-white/[0.04] text-[#9DA4B7] shrink-0 border border-white/[0.06]">
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] flex items-start gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-white/[0.04] text-[#9DA4B7] shrink-0 border border-white/[0.08]">
                     <Activity className="w-4 h-4 text-amber-400" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#F1F3F9]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-100">
                       Wiser Metering &amp; Quota Enforcement
                     </h3>
-                    <p className="text-xs text-[#7E869B] leading-relaxed">
+                    <p className="text-xs text-zinc-500 leading-relaxed">
                       Wiser AI processing—encompassing Job Description targeting and ATS compliance evaluations—is metered per billing period. Usage counters automatically reconcile against plan quotas at the beginning of each billing cycle.
                     </p>
                   </div>
@@ -2003,16 +2000,16 @@ export default function DashboardPage() {
                 }}
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-[#F1F3F9]">
+                  <h2 className="text-sm font-semibold text-zinc-100">
                     Recent Modifications &amp; Audits
                   </h2>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-[#7E869B]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-500">
                     {resumes.length} tracked records
                   </span>
                 </div>
 
                 {resumes.length === 0 ? (
-                  <p className="text-xs text-[#7E869B]">No recent activity recorded.</p>
+                  <p className="text-xs text-zinc-500">No recent activity recorded.</p>
                 ) : (
                   <div className="space-y-3">
                     {resumes.slice(0, 6).map((r) => (
@@ -2021,7 +2018,7 @@ export default function DashboardPage() {
                         className="flex items-center justify-between p-3 rounded-xl bg-black/30 border border-white/[0.04]"
                       >
                         <div className="min-w-0 pr-2">
-                          <p className="text-xs font-semibold text-[#F1F3F9] truncate">
+                          <p className="text-xs font-semibold text-zinc-100 truncate">
                             {r.name}
                           </p>
                           {r.target_job_title && (
@@ -2030,7 +2027,7 @@ export default function DashboardPage() {
                             </p>
                           )}
                         </div>
-                        <span className="text-[10px] text-[#7E869B] font-mono shrink-0">
+                        <span className="text-[10px] text-zinc-500 font-mono shrink-0">
                           {relativeDate(r.updated_at)}
                         </span>
                       </div>
@@ -2045,16 +2042,16 @@ export default function DashboardPage() {
           {activeTab === 'billing' && (
             <div className="space-y-8 animate-in fade-in duration-200">
               {/* Executive Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-white/[0.06]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-white/[0.08]">
                 <div>
                   <span className="text-[11px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
                     Studio Finance &amp; Subscriptions
                   </span>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F1F3F9] tracking-tight mt-1 flex items-center gap-2.5">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-100 tracking-tight mt-1 flex items-center gap-2.5">
                     <CreditCard className="w-7 h-7 text-amber-500" />
                     <span>Purchases, Subscriptions &amp; Invoices</span>
                   </h1>
-                  <p className="text-xs text-[#7E869B] mt-1">
+                  <p className="text-xs text-zinc-500 mt-1">
                     Manage your active subscription tier, track remaining period allocations, and inspect official receipts.
                   </p>
                 </div>
@@ -2076,7 +2073,7 @@ export default function DashboardPage() {
                   border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
                 }}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-base font-bold text-white">
@@ -2092,7 +2089,7 @@ export default function DashboardPage() {
                         {planStatus?.status?.toUpperCase() || 'ACTIVE'}
                       </span>
                     </div>
-                    <p className="text-xs text-[#7E869B] mt-1">
+                    <p className="text-xs text-zinc-500 mt-1">
                       {planStatus?.expires_at
                         ? `Current term active until ${new Date(planStatus.expires_at).toLocaleDateString()} (${Math.max(0, Math.ceil((new Date(planStatus.expires_at) - new Date()) / (1000 * 60 * 60 * 24)))} days remaining)`
                         : 'Standard Free Tier · Quotas reset automatically at month boundaries'}
@@ -2109,9 +2106,9 @@ export default function DashboardPage() {
 
                 {/* Quota meters */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#8E94A5]">Workspaces</span>
+                      <span className="text-zinc-400">Workspaces</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.active_resumes || 0} / {planStatus?.limits?.resumes ?? 1}
                       </span>
@@ -2124,14 +2121,14 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-[#7E869B] block">
+                    <span className="text-[10px] text-zinc-500 block">
                       {planStatus?.remaining?.resumes ?? 0} workspace(s) left
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#8E94A5]">PDF Exports</span>
+                      <span className="text-zinc-400">PDF Exports</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.exports_used || 0} / {planStatus?.limits?.exports ?? 1}
                       </span>
@@ -2144,14 +2141,14 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-[#7E869B] block">
+                    <span className="text-[10px] text-zinc-500 block">
                       {planStatus?.remaining?.exports ?? 0} export(s) left
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#8E94A5]">Wiser Job Match</span>
+                      <span className="text-zinc-400">Wiser Job Match</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.wiser_job_help_used || 0} / {planStatus?.limits?.wiser_job_help ?? 1}
                       </span>
@@ -2164,14 +2161,14 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-[#7E869B] block">
+                    <span className="text-[10px] text-zinc-500 block">
                       {planStatus?.remaining?.wiser_job_help ?? 0} runs left
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] space-y-1.5">
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#8E94A5]">ATS Audits</span>
+                      <span className="text-zinc-400">ATS Audits</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.wiser_ats_used || 0} / {planStatus?.limits?.wiser_ats ?? 1}
                       </span>
@@ -2184,7 +2181,7 @@ export default function DashboardPage() {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-[#7E869B] block">
+                    <span className="text-[10px] text-zinc-500 block">
                       {planStatus?.remaining?.wiser_ats ?? 0} audits left
                     </span>
                   </div>
@@ -2212,7 +2209,7 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleCreateResume} className="space-y-4">
           <div>
-            <label className="block text-xs font-mono uppercase tracking-wider text-[#7E869B] mb-1.5">
+            <label className="block text-xs font-mono uppercase tracking-wider text-zinc-500 mb-1.5">
               Resume Title
             </label>
             <input
@@ -2232,7 +2229,7 @@ export default function DashboardPage() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-mono uppercase tracking-wider text-[#7E869B]">
+              <label className="text-xs font-mono uppercase tracking-wider text-zinc-500">
                 Choose Layout Architecture ({systemTemplates.length})
               </label>
               <span className="text-[11px] text-zinc-500 font-mono">
@@ -2260,7 +2257,7 @@ export default function DashboardPage() {
                       isSelected
                         ? 'border-amber-500 bg-amber-500/10 shadow-md shadow-amber-500/5'
                         : isLocked
-                        ? 'border-white/[0.04] bg-white/[0.01] opacity-75 hover:border-amber-500/30'
+                        ? 'border-white/[0.04] bg-white/[0.01] opacity-75 hover:border-white/20'
                         : 'border-white/[0.08] hover:border-white/20 bg-white/[0.02]'
                     }`}
                     style={{
@@ -2274,7 +2271,7 @@ export default function DashboardPage() {
                             isPro
                               ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
                               : tpl.min_plan_tier === 'day_pass'
-                              ? 'bg-[#C88A58]/15 text-[#D49A6A] border-[#C88A58]/30'
+                              ? 'bg-[#E4E4E7]/15 text-zinc-300 border-[#E4E4E7]/30'
                               : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                           }`}>
                             {isPro ? 'Pro Only' : tpl.min_plan_tier === 'day_pass' ? 'Day Pass' : 'Free Standard'}
@@ -2296,11 +2293,11 @@ export default function DashboardPage() {
                       ) : null}
                     </div>
 
-                    <p className="text-[11px] text-[#7E869B] line-clamp-2 leading-relaxed mt-1">
+                    <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed mt-1">
                       {tpl.description}
                     </p>
 
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/[0.05] text-[10px] font-mono text-[#7E869B]">
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/[0.05] text-[10px] font-mono text-zinc-500">
                       <span>{tpl.category?.split(',')[0]}</span>
                       <span className="text-zinc-400 font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
                     </div>
@@ -2315,14 +2312,14 @@ export default function DashboardPage() {
               type="button"
               disabled={creatingResume}
               onClick={() => setIsCreateModalOpen(false)}
-              className="px-3.5 py-2 text-xs text-[#7E869B] hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 text-xs text-zinc-500 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={creatingResume}
-              className="px-4 py-2 bg-[#C88A58] hover:bg-[#B87A47] text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 bg-white hover:bg-zinc-100 text-zinc-950 font-semibold shadow-sm rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {creatingResume ? (
                 <>
