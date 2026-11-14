@@ -150,7 +150,9 @@ export default function ForgotPasswordPage() {
       />
 
       {/* ─── Right Side: Human-Crafted Auth Form ─── */}
-      <div className="flex flex-col justify-between p-6 sm:p-10 lg:p-16 xl:p-20 relative">
+      <div className="flex flex-col justify-between p-6 sm:p-10 lg:p-16 xl:p-20 relative overflow-hidden">
+        {/* Warm ambient background glow */}
+        <div className="absolute top-0 right-0 w-80 h-80 blur-[140px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(200, 138, 88, 0.08) 0%, transparent 70%)" }} />
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between pb-6 border-b border-white/[0.08] mb-8">
           <Link href="/" className="inline-block">
@@ -168,7 +170,7 @@ export default function ForgotPasswordPage() {
         <div className="max-w-md w-full mx-auto my-auto space-y-6">
           {/* Header */}
           <div>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 font-semibold block mb-1">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#C88A58] font-bold block mb-1">
               Security Protocol
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -207,7 +209,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#C88A58]/60 focus:ring-1 focus:ring-[#C88A58]/25 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
@@ -215,7 +217,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -260,7 +262,7 @@ export default function ForgotPasswordPage() {
                     placeholder="123456"
                     required
                     autoFocus
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-sm font-mono tracking-widest text-white placeholder-zinc-600 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all text-center"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-sm font-mono tracking-widest text-white placeholder-zinc-600 focus:outline-none focus:border-[#C88A58]/60 focus:ring-1 focus:ring-[#C88A58]/25 focus:bg-white/[0.05] transition-all text-center"
                   />
                 </div>
               </div>
@@ -268,7 +270,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -313,7 +315,7 @@ export default function ForgotPasswordPage() {
                     placeholder="At least 8 characters"
                     required
                     minLength={8}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#C88A58]/60 focus:ring-1 focus:ring-[#C88A58]/25 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
@@ -330,7 +332,7 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 focus:bg-white/[0.05] transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#C88A58]/60 focus:ring-1 focus:ring-[#C88A58]/25 focus:bg-white/[0.05] transition-all"
                   />
                 </div>
               </div>
@@ -338,7 +340,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-3 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>

@@ -444,8 +444,7 @@ export default function ImportPdfModal({
               <button
                 type="button"
                 onClick={handleOpenUpgrade}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity cursor-pointer shadow-sm"
-                style={{ background: BRAND_CONFIG.colors.primary }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
               >
                 Upgrade Plan
               </button>
@@ -454,8 +453,7 @@ export default function ImportPdfModal({
                 type="button"
                 onClick={handleStartImport}
                 disabled={isProcessing || !selectedFile || (importOption === 'new' && isResumeLimitReached)}
-                className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: BRAND_CONFIG.colors.primary }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 {isProcessing ? 'Importing...' : 'Import Resume'}
               </button>

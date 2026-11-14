@@ -60,10 +60,9 @@ export default function PilotBanner({
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setFeedbackOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold text-white transition-all cursor-pointer shadow-sm"
-                style={{ background: BRAND_CONFIG.colors.primary }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
               >
-                <MessageSquarePlus className="w-3.5 h-3.5" />
+                <MessageSquarePlus className="w-3.5 h-3.5 text-zinc-950" />
                 <span>Give Feedback</span>
               </button>
 

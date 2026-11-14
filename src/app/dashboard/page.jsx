@@ -302,10 +302,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
             style={{ background: BRAND_CONFIG.colors.surfaceCard }}
           >
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-              style={{ background: BRAND_CONFIG.colors.primary }}
-            >
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold bg-white text-zinc-950 shrink-0 shadow-sm">
               {initial}
             </div>
             <div className="flex-1 min-w-0">
@@ -947,7 +944,7 @@ export default function DashboardPage() {
                     </p>
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
-                      className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#E4E4E7] hover:bg-[#D4D4D8] transition-all inline-flex items-center gap-1.5 shadow-sm"
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-[0.98]"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Create First Resume</span>

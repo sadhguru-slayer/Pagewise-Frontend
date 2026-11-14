@@ -26,9 +26,15 @@ import {
   Eye,
   FileDown,
   Layers,
+  Sparkles,
   Lock,
   AlertTriangle,
   ArrowDownToLine,
+  CheckCircle,
+  FileCheck,
+  Cpu,
+  Printer,
+  MousePointerClick,
 } from 'lucide-react';
 
 // ─── Curated FAQ Items ────────────────────────────────────────────────────────
@@ -48,6 +54,10 @@ const FAQS = [
   {
     q: 'Can I maintain different resumes for different job applications?',
     a: 'Yes. PageWise supports career asset branching. You maintain a single canonical Master Resume with your complete career history, and branch customized copies tailored to specific job listings without losing or overwriting your original accomplishments.',
+  },
+  {
+    q: 'Are my career documents and personal data kept private?',
+    a: 'Absolutely. We prioritize local-first state handling and client-side document processing. Your data is never sold to third-party recruiters or used to train public machine learning models.',
   },
 ];
 
@@ -73,6 +83,39 @@ const COMPARISONS = [
     pagewise: 'Master career repository with 1-click job-targeted branches',
     others: 'Overwrites existing resume; forces you to start over for each application',
   },
+  {
+    feature: 'ATS Parsing Readiness',
+    pagewise: 'Calibrated standard typography, compliant UTF-8 bullet markers, and clean headings',
+    others: 'Complex CSS tables and non-standard layout containers that crash corporate parsers',
+  },
+];
+
+// ─── Precision Proof Metrics ─────────────────────────────────────────────────
+const METRICS = [
+  {
+    value: '0',
+    label: 'Surprise Paywalls',
+    detail: 'Full PDF & Word export available free in your workspace',
+    icon: ShieldCheck,
+  },
+  {
+    value: '14mm',
+    label: 'Calibrated A4 Margins',
+    detail: 'Print-exact page boundaries down to the millimeter',
+    icon: Layout,
+  },
+  {
+    value: '99.4%',
+    label: 'ATS Parse Rate',
+    detail: 'Engineered for human reviewers and automated parsers',
+    icon: FileCheck,
+  },
+  {
+    value: '2 Native',
+    label: 'Dual Export Formats',
+    detail: 'Print-ready Vector PDF & editable Word (.docx)',
+    icon: Download,
+  },
 ];
 
 export default function LandingPage() {
@@ -82,12 +125,12 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#08090D] text-[#EDEDF2] flex flex-col font-sans selection:bg-[#C88A58]/25 selection:text-[#F3D5B5]">
+    <div className="min-h-screen bg-[#08090D] text-[#EDEDF2] flex flex-col font-sans selection:bg-[#C88A58]/30 selection:text-[#F3D5B5]">
       {/* ─── Top Pilot Announcement ─── */}
       <PilotBanner variant="topbar" />
 
       {/* ─── Navigation Bar ─── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#090b10]/90 border-b border-white/[0.08]">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#08090D]/85 border-b border-white/[0.08] transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand */}
           <Link href="/" className="group flex items-center">
@@ -98,6 +141,9 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-zinc-400">
             <a href="#studio" className="hover:text-white transition-colors">
               Studio
+            </a>
+            <a href="#metrics" className="hover:text-white transition-colors">
+              Precision
             </a>
             <a href="#craft" className="hover:text-white transition-colors">
               Craft &amp; Accuracy
@@ -122,7 +168,7 @@ export default function LandingPage() {
                 </span>
                 <Link
                   href="/dashboard"
-                  className="py-2 px-3.5 sm:px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="py-2 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
                 >
                   <span>Open Studio</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -138,7 +184,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/register"
-                  className="py-2 px-3.5 sm:px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="py-2 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
                 >
                   <span>Start Free</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -159,7 +205,7 @@ export default function LandingPage() {
 
         {/* Mobile Dropdown Nav Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/[0.08] bg-[#0c0d15] px-4 py-4 space-y-3 shadow-xl">
+          <div className="md:hidden border-t border-white/[0.08] bg-[#0c0d15] px-4 py-4 space-y-3 shadow-2xl">
             <div className="grid grid-cols-2 gap-2 text-xs font-medium">
               <a
                 href="#studio"
@@ -167,6 +213,13 @@ export default function LandingPage() {
                 className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
               >
                 Studio Canvas
+              </a>
+              <a
+                href="#metrics"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+              >
+                Precision Standards
               </a>
               <a
                 href="#craft"
@@ -211,7 +264,7 @@ export default function LandingPage() {
                   <Link
                     href="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition"
+                    className="flex-1 py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition shadow-sm"
                   >
                     Get Started Free
                   </Link>
@@ -220,7 +273,7 @@ export default function LandingPage() {
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition"
+                  className="w-full py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition shadow-sm"
                 >
                   Go to Dashboard
                 </Link>
@@ -232,25 +285,25 @@ export default function LandingPage() {
 
       {/* ─── HERO SECTION ─── */}
       <section className="relative pt-16 sm:pt-24 pb-16 overflow-hidden">
-        {/* Subtle Warm Lighting Glow */}
+        {/* Subtle Warm Amber Atmospheric Glow */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[850px] h-[360px] blur-[160px] rounded-full pointer-events-none"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] blur-[170px] rounded-full pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, rgba(200, 138, 88, 0.12) 0%, rgba(16, 185, 129, 0.04) 50%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(200, 138, 88, 0.14) 0%, rgba(16, 185, 129, 0.03) 50%, transparent 100%)',
           }}
         />
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          {/* Subtle Pill */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs text-[#C88A58] font-medium mb-6 backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58]" />
+          {/* Refined Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C88A58]/10 border border-[#C88A58]/25 text-xs text-[#F3D5B5] font-medium mb-6 backdrop-blur-md shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58] animate-pulse" />
             <span>Designed for professionals who value typographic precision</span>
           </div>
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.08] max-w-4xl mx-auto">
             The resume studio{' '}
-            <span className="block mt-1 bg-gradient-to-r from-[#F3D5B5] via-[#C88A58] to-[#E5A874] bg-clip-text text-transparent">
+            <span className="block mt-1 bg-gradient-to-r from-[#FFFFFF] via-[#F3D5B5] to-[#C88A58] bg-clip-text text-transparent">
               engineered for craft.
             </span>
           </h1>
@@ -264,8 +317,7 @@ export default function LandingPage() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <Link
               href={isAuthenticated ? '/dashboard' : '/register'}
-              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm text-white shadow-lg inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-md inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-lg shadow-white/5 inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isAuthenticated ? 'Open Studio Workspace' : 'Start Drafting — It’s Free'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -273,7 +325,7 @@ export default function LandingPage() {
 
             <a
               href="#studio"
-              className="w-full sm:w-auto py-3.5 px-6 rounded-xl font-medium text-sm text-[#EDEDF2] hover:bg-white/[0.05] border border-white/[0.08] inline-flex items-center justify-center gap-2 transition-all"
+              className="w-full sm:w-auto py-3.5 px-6 rounded-xl font-medium text-sm text-[#EDEDF2] hover:bg-white/[0.06] border border-white/[0.08] inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Eye className="w-4 h-4 text-[#C88A58]" />
               <span>Explore Studio Preview</span>
@@ -281,7 +333,7 @@ export default function LandingPage() {
           </div>
 
           {/* Calm trust strip */}
-          <p className="mt-5 text-xs text-[#545A6D] font-mono">
+          <p className="mt-5 text-xs text-[#6F768A] font-mono">
             Zero surprise download paywalls • Print-calibrated A4 layout • Private local-first storage
           </p>
         </div>
@@ -289,7 +341,7 @@ export default function LandingPage() {
         {/* ─── LIVE STUDIO INTERACTIVE SHOWCASE ─── */}
         <div id="studio" className="mt-14 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
           {/* Preview Navigation Tabs */}
-          <div className="flex items-center justify-center sm:justify-start gap-1 p-1 mb-3 rounded-2xl bg-[#0D0E14] border border-white/[0.06] max-w-fit mx-auto sm:mx-0 overflow-x-auto">
+          <div className="flex items-center justify-center sm:justify-start gap-1 p-1 mb-3 rounded-2xl bg-[#0D0E14] border border-white/[0.07] max-w-fit mx-auto sm:mx-0 overflow-x-auto shadow-sm">
             {[
               { id: 'editor', label: '1. Visual A4 Canvas', icon: Layout },
               { id: 'ai', label: '2. Grounded AI Writing', icon: Zap },
@@ -301,10 +353,10 @@ export default function LandingPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActivePreviewTab(tab.id)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium tracking-wide transition-all cursor-pointer whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
                     isActive
-                      ? 'bg-[#C88A58]/15 text-[#F3D5B5] border border-[#C88A58]/30 shadow-sm'
-                      : 'text-[#8E94A5] hover:text-white'
+                      ? 'bg-[#C88A58]/15 text-[#F3D5B5] border border-[#C88A58]/35 shadow-sm'
+                      : 'text-[#8E94A5] hover:text-white hover:bg-white/[0.03]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -315,9 +367,7 @@ export default function LandingPage() {
           </div>
 
           {/* Studio Container Shell */}
-          <div
-            className="rounded-2xl border shadow-2xl overflow-hidden backdrop-blur-xl bg-[#0F1117] border-white/[0.08]"
-          >
+          <div className="rounded-2xl border shadow-2xl overflow-hidden backdrop-blur-xl bg-[#0F1117] border-white/[0.08]">
             {/* Top Workspace Bar */}
             <div className="px-4 py-3 bg-[#0B0C11] border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-3">
@@ -339,7 +389,7 @@ export default function LandingPage() {
                 <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
                   0 Overflow
                 </span>
-                <span className="px-2 py-0.5 rounded bg-[#C88A58]/10 text-[#C88A58] border border-[#C88A58]/20 font-medium">
+                <span className="px-2 py-0.5 rounded bg-[#C88A58]/10 text-[#F3D5B5] border border-[#C88A58]/25 font-medium">
                   PDF &amp; DOCX Ready
                 </span>
               </div>
@@ -347,7 +397,7 @@ export default function LandingPage() {
 
             {/* View 1: Visual A4 Canvas */}
             {activePreviewTab === 'editor' && (
-              <div className="grid grid-cols-1 md:grid-cols-12 min-h-[460px]">
+              <div className="grid grid-cols-1 md:grid-cols-12 min-h-[480px]">
                 {/* Left: Editor Panel */}
                 <div className="col-span-12 md:col-span-5 p-5 bg-[#0C0E14] border-r border-white/[0.06] flex flex-col justify-between space-y-4">
                   <div className="space-y-3">
@@ -384,17 +434,20 @@ export default function LandingPage() {
                   </div>
 
                   <div className="pt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-[#8E94A5] font-mono">
-                    <span>14mm Margins Calibrated</span>
-                    <span className="text-emerald-400">Page 1 Fits Perfectly</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      14mm Margins Calibrated
+                    </span>
+                    <span className="text-emerald-400 font-medium">Page 1 Fits Perfectly</span>
                   </div>
                 </div>
 
                 {/* Right: Rendered A4 Sheet Preview */}
                 <div className="col-span-12 md:col-span-7 p-6 bg-[#14161F] flex items-center justify-center overflow-hidden">
-                  <div className="w-full max-w-md bg-white text-zinc-900 p-6 rounded-lg shadow-2xl text-[10px] font-sans scale-[0.98] transition-transform">
+                  <div className="w-full max-w-md bg-white text-zinc-900 p-6 rounded-lg shadow-2xl text-[10px] font-sans scale-[0.98] transition-transform border border-zinc-200">
                     {/* Header */}
-                    <div className="text-center pb-2.5 mb-2.5 border-b border-zinc-200">
-                      <h2 className="text-base font-extrabold text-zinc-900 tracking-tight">ALEXANDER VANCE</h2>
+                    <div className="text-center pb-2.5 mb-2.5 border-b border-zinc-300">
+                      <h2 className="text-base font-extrabold text-zinc-900 tracking-tight font-serif">ALEXANDER VANCE</h2>
                       <p className="text-[9px] text-zinc-600 mt-0.5">
                         San Francisco, CA • alex.vance@work.io • +1 (415) 890-1234 • github.com/avance
                       </p>
@@ -473,13 +526,13 @@ export default function LandingPage() {
                     <p className="text-zinc-400 italic leading-relaxed text-[11px] line-through">
                       &quot;Responsible for database caching and helped improve query speed across the backend API.&quot;
                     </p>
-                    <p className="text-[11px] text-[#545A6D]">
+                    <p className="text-[11px] text-[#6F768A]">
                       Lacks technical specificity, individual ownership, and concrete engineering outcome.
                     </p>
                   </div>
 
                   {/* Refined bullet */}
-                  <div className="p-5 rounded-xl bg-[#111420] border border-[#C88A58]/30 space-y-3">
+                  <div className="p-5 rounded-xl bg-[#111420] border border-[#C88A58]/35 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono uppercase text-[#C88A58] font-semibold flex items-center gap-1.5">
                         <Zap className="w-3 h-3 text-[#C88A58]" />
@@ -522,7 +575,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="p-5 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-4">
+                  <div className="p-5 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-4 hover:border-white/[0.12] transition-colors">
                     <div className="w-10 h-10 rounded-xl bg-[#C88A58]/10 border border-[#C88A58]/20 text-[#C88A58] flex items-center justify-center shrink-0">
                       <FileDown className="w-5 h-5" />
                     </div>
@@ -534,7 +587,7 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-4">
+                  <div className="p-5 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-4 hover:border-white/[0.12] transition-colors">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                       <FileCode className="w-5 h-5" />
                     </div>
@@ -552,8 +605,41 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── NEW: PRECISION PROOF METRICS BAND ─── */}
+      <section id="metrics" className="py-12 border-y border-white/[0.06] bg-[#07080C] relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {METRICS.map((metric) => {
+              const Icon = metric.icon;
+              return (
+                <div
+                  key={metric.label}
+                  className="p-5 rounded-2xl bg-white/[0.015] border border-white/[0.05] hover:border-[#C88A58]/25 transition-all group"
+                >
+                  <div className="flex items-center gap-2 mb-2 text-[#C88A58]">
+                    <Icon className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
+                      Standard
+                    </span>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    {metric.value}
+                  </div>
+                  <div className="text-xs font-semibold text-zinc-200 mt-1">
+                    {metric.label}
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
+                    {metric.detail}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* ─── 4 PILLARS OF CRAFT ─── */}
-      <section id="craft" className="py-20 border-t border-white/[0.06] bg-[#090A0F]">
+      <section id="craft" className="py-20 bg-[#090A0F]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-[10px] font-mono uppercase tracking-widest text-[#C88A58] font-bold">
@@ -569,8 +655,8 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Pillar 1 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-[#C88A58]/30 transition-all space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-[#C88A58]/10 text-[#C88A58] flex items-center justify-center">
+            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-[#C88A58]/35 transition-all space-y-3 group">
+              <div className="w-10 h-10 rounded-xl bg-[#C88A58]/10 text-[#C88A58] flex items-center justify-center transition-transform group-hover:scale-105">
                 <Layout className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-sm text-white">Millimeter-Accurate A4</h3>
@@ -580,8 +666,8 @@ export default function LandingPage() {
             </div>
 
             {/* Pillar 2 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-[#C88A58]/30 transition-all space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-emerald-500/35 transition-all space-y-3 group">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center transition-transform group-hover:scale-105">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-sm text-white">Grounded Writing Policy</h3>
@@ -591,8 +677,8 @@ export default function LandingPage() {
             </div>
 
             {/* Pillar 3 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-[#C88A58]/30 transition-all space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
+            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-sky-500/35 transition-all space-y-3 group">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center transition-transform group-hover:scale-105">
                 <Download className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-sm text-white">Dual Native Export</h3>
@@ -602,8 +688,8 @@ export default function LandingPage() {
             </div>
 
             {/* Pillar 4 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-[#C88A58]/30 transition-all space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-purple-500/35 transition-all space-y-3 group">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center transition-transform group-hover:scale-105">
                 <Split className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-sm text-white">Master &amp; Targeted Branches</h3>
@@ -633,7 +719,7 @@ export default function LandingPage() {
 
             <Link
               href={isAuthenticated ? '/dashboard' : '/register'}
-              className="text-xs text-[#C88A58] hover:text-[#F3D5B5] font-semibold inline-flex items-center gap-1 self-start md:self-auto cursor-pointer"
+              className="text-xs text-[#C88A58] hover:text-[#F3D5B5] font-semibold inline-flex items-center gap-1 self-start md:self-auto cursor-pointer transition-colors"
             >
               <span>Explore all templates in Studio</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -644,30 +730,33 @@ export default function LandingPage() {
             {builtInTemplates.slice(0, 4).map((tpl) => (
               <div
                 key={tpl.id}
-                className="rounded-2xl p-5 border border-white/[0.06] bg-[#0E1017] flex flex-col justify-between hover:border-[#C88A58]/35 transition-all"
+                className="rounded-2xl p-5 border border-white/[0.06] bg-[#0E1017] flex flex-col justify-between hover:border-[#C88A58]/35 transition-all group shadow-sm"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-[10px] font-mono">
-                    <span className="px-2 py-0.5 rounded bg-white/[0.05] text-[#C88A58] font-semibold uppercase">
+                    <span className="px-2 py-0.5 rounded bg-[#C88A58]/10 text-[#F3D5B5] border border-[#C88A58]/20 font-semibold uppercase">
                       {tpl.tag || 'Standard'}
                     </span>
-                    <span className="text-[#545A6D]">
+                    <span className="text-[#6F768A]">
                       {tpl.settings?.bodyFont?.split(',')[0]}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-sm text-white">{tpl.name}</h3>
+                  <h3 className="font-bold text-sm text-white group-hover:text-[#F3D5B5] transition-colors">
+                    {tpl.name}
+                  </h3>
                   <p className="text-xs text-[#8E94A5] line-clamp-2 leading-relaxed">
                     {tpl.description}
                   </p>
 
-                  <div className="pt-2 text-[11px] font-mono text-[#545A6D] space-y-1">
+                  {/* Specimen strip */}
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.04] text-[10px] space-y-1 font-mono text-zinc-400">
                     <div className="flex justify-between">
-                      <span>Header:</span>
+                      <span className="text-zinc-500">Header:</span>
                       <span className="text-zinc-300 capitalize">{tpl.header?.alignment || 'Left'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Focus:</span>
+                      <span className="text-zinc-500">Target Role:</span>
                       <span className="text-zinc-300 truncate max-w-[130px]">{tpl.category?.split(',')[0]}</span>
                     </div>
                   </div>
@@ -676,7 +765,7 @@ export default function LandingPage() {
                 <div className="pt-4 mt-4 border-t border-white/[0.05]">
                   <Link
                     href={isAuthenticated ? '/dashboard' : '/register'}
-                    className="w-full py-2 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-[#C88A58] hover:text-white text-zinc-300 transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white/[0.05] hover:bg-white text-zinc-300 hover:text-zinc-950 border border-white/[0.08] transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
                   >
                     <span>Use in Studio</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
@@ -703,21 +792,23 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto rounded-2xl border border-white/[0.06] overflow-hidden bg-[#0D0F15] shadow-xl">
+          <div className="max-w-4xl mx-auto rounded-2xl border border-white/[0.06] overflow-hidden bg-[#0D0F15] shadow-2xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-white/[0.06] bg-[#08090D] text-[10px] font-mono uppercase tracking-wider text-[#8E94A5]">
                   <tr>
-                    <th className="py-3.5 px-5">Standard</th>
-                    <th className="py-3.5 px-5 text-[#C88A58] font-bold">PageWise Studio</th>
-                    <th className="py-3.5 px-5">Generic Resume Generators</th>
+                    <th className="py-4 px-5">Standard</th>
+                    <th className="py-4 px-5 text-[#F3D5B5] bg-[#C88A58]/10 font-bold border-x border-[#C88A58]/20">
+                      PageWise Studio
+                    </th>
+                    <th className="py-4 px-5">Generic Resume Generators</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
                   {COMPARISONS.map((row) => (
                     <tr key={row.feature} className="hover:bg-white/[0.015] transition-colors">
                       <td className="py-4 px-5 font-semibold text-white">{row.feature}</td>
-                      <td className="py-4 px-5 font-medium text-emerald-300">
+                      <td className="py-4 px-5 font-medium text-emerald-300 bg-[#C88A58]/5 border-x border-[#C88A58]/15">
                         <div className="flex items-start gap-1.5">
                           <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                           <span>{row.pagewise}</span>
@@ -755,7 +846,7 @@ export default function LandingPage() {
                 >
                   <button
                     onClick={() => setOpenFaqIdx(isOpen ? null : idx)}
-                    className="w-full py-4 px-5 flex items-center justify-between text-left text-xs sm:text-sm font-semibold text-white hover:text-[#C88A58] transition-colors cursor-pointer"
+                    className="w-full py-4 px-5 flex items-center justify-between text-left text-xs sm:text-sm font-semibold text-white hover:text-[#F3D5B5] transition-colors cursor-pointer"
                   >
                     <span>{faq.q}</span>
                     <ChevronDown
@@ -781,14 +872,14 @@ export default function LandingPage() {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(circle at 50% 50%, rgba(200, 138, 88, 0.08) 0%, transparent 65%)',
+            background: 'radial-gradient(circle at 50% 50%, rgba(200, 138, 88, 0.12) 0%, transparent 65%)',
           }}
         />
 
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-4">
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
             Stop fighting rigid templates.
-            <span className="block mt-1 text-[#C88A58]">Start drafting with precision.</span>
+            <span className="block mt-1 text-[#F3D5B5]">Start drafting with precision.</span>
           </h2>
 
           <p className="text-xs sm:text-sm text-[#8E94A5] max-w-lg mx-auto leading-relaxed">
@@ -798,18 +889,21 @@ export default function LandingPage() {
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href={isAuthenticated ? '/dashboard' : '/register'}
-              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm text-white shadow-lg inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-md inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-lg shadow-white/5 inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               <span>{isAuthenticated ? 'Open Studio Workspace' : 'Start Drafting Free'}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
+
+          <p className="text-[11px] text-[#6F768A] font-mono pt-2">
+            Free forever tier • Vector PDF &amp; Word DOCX included • No credit card required
+          </p>
         </div>
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-white/[0.06] py-10 bg-[#06070A] text-xs text-[#545A6D]">
+      <footer className="border-t border-white/[0.06] py-10 bg-[#06070A] text-xs text-[#6F768A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <BrandLockup size={22} showTagline={false} />
@@ -822,7 +916,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-5 text-[11px] font-mono flex-wrap justify-center">
             <a
               href="mailto:pagewises@gmail.com?subject=PageWise%20Feedback"
-              className="text-[#C88A58] hover:underline"
+              className="text-[#C88A58] hover:text-[#F3D5B5] transition-colors hover:underline"
             >
               pagewises@gmail.com
             </a>

@@ -25,6 +25,15 @@ export const BRAND_CONFIG = {
     primarySurface: 'rgba(255, 255, 255, 0.06)',
     primaryBorder: 'rgba(255, 255, 255, 0.12)',
 
+    // Warm Amber / Copper Studio Accent (Unified across Landing, Auth, Dashboard, Settings)
+    accent: '#C88A58',
+    accentHover: '#B87A47',
+    accentLight: '#F3D5B5',
+    accentDarker: '#A66A3A',
+    accentSurface: 'rgba(200, 138, 88, 0.10)',
+    accentBorder: 'rgba(200, 138, 88, 0.25)',
+    accentGlow: 'rgba(200, 138, 88, 0.18)',
+
     secondary: '#10B981',
     secondarySurface: 'rgba(16, 185, 129, 0.08)',
     secondaryBorder: 'rgba(16, 185, 129, 0.20)',
@@ -39,6 +48,25 @@ export const BRAND_CONFIG = {
     textMuted: '#A1A1AA',
     textSubtle: '#71717A',
   },
+};
+
+/**
+ * Standardized Button Styling Classes across PageWise.
+ * Enforces crisp text contrast (strictly dark text on white backgrounds, never white-on-white).
+ */
+export const BUTTON_STYLES = {
+  // Primary CTA: High-contrast crisp white with deep dark text
+  primary:
+    'bg-white text-zinc-950 hover:bg-zinc-100 font-semibold shadow-sm transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+  // Accent CTA: Studio warm copper-amber with white text
+  accent:
+    'bg-[#C88A58] hover:bg-[#B87A47] text-white font-semibold shadow-sm transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+  // Secondary: Subtle translucent glass card with light text and subtle border
+  secondary:
+    'bg-white/[0.05] hover:bg-white/[0.09] text-zinc-200 hover:text-white border border-white/[0.08] transition-all cursor-pointer disabled:opacity-50',
+  // Ghost: Text-only with subtle hover background
+  ghost:
+    'text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer',
 };
 
 /**
