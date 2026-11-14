@@ -20,6 +20,7 @@ import { resumesApi, paymentsApi } from '@/lib/api';
 import { useResumeStore } from '@/lib/resume/store';
 import { applyWiserEnhancementsToSections } from '@/lib/resume/applyWiserEnhancements';
 import { renderTiptapJson } from '@/lib/resume/renderTiptap';
+import { renderStructuredSectionHtml, isStructuredSection } from '@/lib/resume/sectionSchemas';
 import PricingModal from '@/components/pricing/PricingModal';
 
 /* ─── Compact Circular Score Gauge ────────────────────────────── */
@@ -85,12 +86,15 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
     sections,
     settings,
     targetJobDescription,
+    targetAtsScore,
     activeJdAnalysis,
     setActiveJdAnalysis,
     replaceSections,
     addKeywordToResume,
     dismissedSuggestionKeys = [],
     dismissSuggestion,
+    dismissAllSuggestions,
+    clearDismissedSuggestions,
     appliedSuggestionKeys = [],
     markSuggestionApplied,
   } = useResumeStore();
@@ -103,6 +107,41 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
   const [analysisPhase, setAnalysisPhase] = useState('idle'); // 'idle' | 'reading' | 'analyzing' | 'scoring' | 'finalizing'
   const [analysisError, setAnalysisError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'suggestions' | 'keywords'
+  const [expandedAppliedIds, setExpandedAppliedIds] = useState(new Set());
+
+  const toggleExpandApplied = (id) => {
+    setExpandedAppliedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDismissSingleSuggestion = (sugId) => {
+    if (sugId) {
+      dismissSuggestion(String(sugId));
+      toast('Suggestion dismissed', { icon: '🗑️' });
+    }
+  };
+
+  const handleDismissAllSuggestions = () => {
+    const unappliedKeys = [];
+    sectionEnhancements.forEach((sec) => {
+      (sec.suggestions || []).forEach((sug) => {
+        const sid = String(sug.id);
+        const isApplied = appliedSuggestionKeys?.includes(sid);
+        const isDismissed = dismissedSuggestionKeys?.includes(sid) && !isApplied;
+        if (!isApplied && !isDismissed) {
+          unappliedKeys.push(sid);
+        }
+      });
+    });
+    if (unappliedKeys.length > 0) {
+      dismissAllSuggestions(unappliedKeys);
+      toast('All pending suggestions dismissed', { icon: '🗑️' });
+    }
+  };
 
   const setActiveSectionId = useResumeStore((s) => s.setActiveSectionId);
   const setHighlightedSectionId = useResumeStore((s) => s.setHighlightedSectionId);
@@ -163,6 +202,26 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
   const grade = atsCheck?.grade || (score > 85 ? 'Strong' : score > 65 ? 'Good' : 'Needs Work');
   const sectionEnhancements = currentAnalysis?.section_enhancements || [];
 
+  const totalActiveSuggestions = sectionEnhancements.reduce((acc, sec) => {
+    const count = (sec.suggestions || []).filter((sug) => {
+      const sid = String(sug.id);
+      const isApplied = appliedSuggestionKeys?.includes(sid);
+      const isDismissed = dismissedSuggestionKeys?.includes(sid) && !isApplied;
+      return !isDismissed;
+    }).length;
+    return acc + count;
+  }, 0);
+
+  const totalUnappliedSuggestions = sectionEnhancements.reduce((acc, sec) => {
+    const count = (sec.suggestions || []).filter((sug) => {
+      const sid = String(sug.id);
+      const isApplied = appliedSuggestionKeys?.includes(sid);
+      const isDismissed = dismissedSuggestionKeys?.includes(sid) && !isApplied;
+      return !isApplied && !isDismissed;
+    }).length;
+    return acc + count;
+  }, 0);
+
   const handleStartAnalysis = async () => {
     if (wiserMode === 'jobhelp' && (!jobDescription || jobDescription.trim().length < 30)) {
       toast.error('Please paste a job description (at least 30 characters).');
@@ -178,14 +237,25 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
     );
 
     try {
+      const {
+        sections: latestSections,
+        header: latestHeader,
+        settings: latestSettings,
+        resumeName: latestName,
+        resumeId: latestResumeId,
+        isDirty: latestIsDirty,
+      } = useResumeStore.getState();
+
+      const activeRid = latestResumeId || resumeId;
+
       // Flush save to DB if store is dirty
-      if (useResumeStore.getState().isDirty && resumeId) {
+      if (latestIsDirty && activeRid) {
         try {
-          await resumesApi.update(resumeId, {
-            name: resumeName,
-            headerJson: header,
-            settingsJson: settings,
-            sectionsJson: sections,
+          await resumesApi.update(activeRid, {
+            name: latestName,
+            headerJson: latestHeader,
+            settingsJson: latestSettings,
+            sectionsJson: latestSections,
           });
           useResumeStore.getState().markSaved(new Date().toISOString());
         } catch (e) {
@@ -193,33 +263,56 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
         }
       }
 
+      // Cross-reference appliedSuggestionKeys to build applied_bullet_ids
+      const appliedBulletIds = new Set();
+      (appliedSuggestionKeys || []).forEach((k) => appliedBulletIds.add(String(k)));
+      (activeJdAnalysis?.section_enhancements || []).forEach((sec) => {
+        (sec.suggestions || []).forEach((sug) => {
+          if (appliedSuggestionKeys?.includes(String(sug.id))) {
+            if (sug.item_id != null && sug.point_index != null) {
+              appliedBulletIds.add(`${sug.item_id}:${sug.point_index}`);
+            }
+          }
+        });
+      });
+      const appliedList = Array.from(appliedBulletIds);
+
       const currentResumeOverride = {
-        id: resumeId,
-        name: resumeName,
-        header_json: header,
-        settings_json: settings,
-        sections_json: sections.map((sec) => ({
+        id: activeRid,
+        name: latestName,
+        target_ats_score: targetAtsScore || score || null,
+        applied_bullet_ids: appliedList,
+        header_json: latestHeader,
+        settings_json: latestSettings,
+        sections_json: latestSections.map((sec) => ({
           id: sec.id,
           title: sec.title,
           content: sec.content,
-          contentHtml:
-            typeof sec.content === 'string'
+          contentHtml: (() => {
+            if (isStructuredSection(sec) && Array.isArray(sec.items) && sec.items.length > 0) {
+              return renderStructuredSectionHtml(sec, latestSettings) || sec.contentHtml || '';
+            }
+            return typeof sec.content === 'string'
               ? sec.content
-              : renderTiptapJson(sec.content) || sec.contentHtml || '',
+              : renderTiptapJson(sec.content) || sec.contentHtml || '';
+          })(),
+          items: isStructuredSection(sec) ? (sec.items || []) : undefined,
         })),
       };
 
       let res;
       if (wiserMode === 'jobhelp') {
         res = await resumesApi.analyzeJobDescription({
-          resumeId: resumeId || null,
+          resumeId: activeRid || null,
           jobDescription: jobDescription.trim(),
           currentResumeOverride,
+          appliedBulletIds: appliedList,
         });
       } else {
         res = await resumesApi.analyzeStandaloneAts({
-          resumeId: resumeId || null,
+          resumeId: activeRid || null,
           currentResumeOverride,
+          appliedBulletIds: appliedList,
         });
       }
 
@@ -266,8 +359,9 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
         },
       ],
     };
+    const latestSections = useResumeStore.getState().sections;
     const { sections: nextSections, appliedCount } = applyWiserEnhancementsToSections(
-      sections,
+      latestSections,
       singleAnalysis
     );
     if (appliedCount > 0) {
@@ -282,8 +376,9 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
 
   const handleApplyAllSuggestions = () => {
     if (!currentAnalysis) return;
+    const latestSections = useResumeStore.getState().sections;
     const { sections: nextSections, appliedCount } = applyWiserEnhancementsToSections(
-      sections,
+      latestSections,
       currentAnalysis
     );
     if (appliedCount > 0) {
@@ -473,9 +568,9 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
                 }`}
               >
                 <span>Upgrades</span>
-                {sectionEnhancements.reduce((acc, s) => acc + (s.suggestions?.length || 0), 0) > 0 && (
+                {totalUnappliedSuggestions > 0 && (
                   <span className="w-4 h-4 rounded-full bg-[#C88A58]/20 text-[#D49A6A] text-[9px] flex items-center justify-center font-bold">
-                    {sectionEnhancements.reduce((acc, s) => acc + (s.suggestions?.length || 0), 0)}
+                    {totalUnappliedSuggestions}
                   </span>
                 )}
               </button>
@@ -539,73 +634,212 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
             {activeTab === 'suggestions' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-zinc-300">Section Upgrades</span>
-                  {sectionEnhancements.length > 0 && (
-                    <button
-                      onClick={handleApplyAllSuggestions}
-                      className="text-[10px] text-[#D49A6A] hover:underline font-semibold cursor-pointer"
-                    >
-                      Apply All
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-zinc-300">Section Upgrades</span>
+                    {totalUnappliedSuggestions > 0 && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#C88A58]/20 text-[#D49A6A] font-semibold">
+                        {totalUnappliedSuggestions} pending
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {totalUnappliedSuggestions > 0 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleDismissAllSuggestions}
+                          className="text-[10px] text-zinc-400 hover:text-zinc-200 transition font-medium cursor-pointer"
+                          title="Dismiss all recommendations"
+                        >
+                          Dismiss All
+                        </button>
+                        <span className="text-zinc-600 text-xs">|</span>
+                        <button
+                          type="button"
+                          onClick={handleApplyAllSuggestions}
+                          className="text-[10px] text-[#D49A6A] hover:underline font-semibold cursor-pointer flex items-center gap-1"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Apply All</span>
+                        </button>
+                      </>
+                    )}
+                    {dismissedSuggestionKeys?.length > 0 && totalUnappliedSuggestions === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearDismissedSuggestions();
+                          toast('Restored dismissed suggestions', { icon: '↩️' });
+                        }}
+                        className="text-[10px] text-zinc-400 hover:text-zinc-200 font-medium cursor-pointer"
+                      >
+                        Undo Dismiss ({dismissedSuggestionKeys.length})
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {sectionEnhancements.length === 0 ? (
-                  <div className="text-center py-6 text-zinc-500 text-[11px]">
-                    No bullet improvements needed for this section!
+                {sectionEnhancements.length === 0 || totalActiveSuggestions === 0 ? (
+                  <div className="text-center py-8 text-zinc-500 text-[11px] space-y-2 bg-[#10121d]/50 border border-white/[0.04] rounded-xl p-4">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center">
+                      <Check className="w-4 h-4" />
+                    </div>
+                    <p className="text-zinc-300 font-medium">All recommendations reviewed!</p>
+                    <p className="text-zinc-500 text-[10px]">No pending upgrades for your resume sections.</p>
+                    {dismissedSuggestionKeys?.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearDismissedSuggestions();
+                          toast('Restored dismissed suggestions', { icon: '↩️' });
+                        }}
+                        className="text-[10px] text-[#D49A6A] hover:underline cursor-pointer block mx-auto pt-1"
+                      >
+                        Restore {dismissedSuggestionKeys.length} dismissed suggestions
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  sectionEnhancements.map((sec) => (
-                    <div key={sec.section_id} className="space-y-2">
-                      <span className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
-                        {sec.section_title}
-                      </span>
-                      {sec.suggestions?.map((sug) => {
-                        const isApplied = appliedSuggestionKeys?.includes(String(sug.id));
-                        return (
-                          <div
-                            key={sug.id}
-                            className="bg-[#111420] border border-white/[0.08] rounded-xl p-2.5 space-y-2"
-                          >
-                            <div className="text-[11px] text-zinc-400 line-through opacity-70">
-                              {sug.original_text}
-                            </div>
-                            <div
-                              className="text-[11px] text-emerald-300 font-medium"
-                              dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
-                            />
-                            {sug.reasoning && (
-                              <p className="text-[10px] text-zinc-500 italic">{sug.reasoning}</p>
-                            )}
-                            <div className="pt-1 flex items-center justify-between gap-2">
-                              <button
-                                onClick={() => handleReviewAndApply(sec.section_id)}
-                                className="text-[10px] text-[#D49A6A] hover:underline font-medium flex items-center gap-1 cursor-pointer"
-                                title="Go to this section in editor to review inline"
+                  sectionEnhancements.map((sec) => {
+                    const visibleSuggestions = (sec.suggestions || []).filter((sug) => {
+                      const sid = String(sug.id);
+                      const isApplied = appliedSuggestionKeys?.includes(sid);
+                      const isDismissed = dismissedSuggestionKeys?.includes(sid) && !isApplied;
+                      return !isDismissed;
+                    });
+
+                    if (visibleSuggestions.length === 0) return null;
+
+                    return (
+                      <div key={sec.section_id} className="space-y-2">
+                        <span className="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">
+                          {sec.section_title}
+                        </span>
+                        {visibleSuggestions.map((sug) => {
+                          const sid = String(sug.id);
+                          const isApplied = appliedSuggestionKeys?.includes(sid);
+                          const isExpanded = expandedAppliedIds.has(sid);
+
+                          if (isApplied && !isExpanded) {
+                            const cleanSnippet = (sug.enhanced_html || sug.original_text || '')
+                              .replace(/<[^>]+>/g, '')
+                              .trim();
+                            return (
+                              <div
+                                key={sug.id}
+                                className="bg-[#0f121d] border border-emerald-500/25 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2 transition hover:border-emerald-500/40"
                               >
-                                <span>Review in Editor ›</span>
-                              </button>
-                              <div className="flex items-center gap-1.5">
-                                {isApplied ? (
-                                  <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                                    <Check className="w-3 h-3" /> Applied
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                  </div>
+                                  <span className="text-[10px] font-semibold text-emerald-400 shrink-0 uppercase tracking-wider">
+                                    Applied
                                   </span>
+                                  <span className="text-[11px] text-zinc-400 truncate font-normal">
+                                    {cleanSnippet}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandApplied(sid)}
+                                  className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded hover:bg-white/[0.05] transition cursor-pointer shrink-0"
+                                  title="Expand applied details"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={sug.id}
+                              className={`border rounded-xl p-2.5 space-y-2 transition ${
+                                isApplied
+                                  ? 'bg-[#0f121d] border-emerald-500/30'
+                                  : 'bg-[#111420] border-white/[0.08] hover:border-white/[0.15]'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  {isApplied ? (
+                                    <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1">
+                                      <Check className="w-3 h-3 stroke-[3]" /> Applied to Resume
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-medium text-amber-400/90 flex items-center gap-1">
+                                      <Sparkles className="w-3 h-3" /> Upgrade Recommendation
+                                    </span>
+                                  )}
+                                </div>
+                                {isApplied ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpandApplied(sid)}
+                                    className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded hover:bg-white/[0.05] transition cursor-pointer flex items-center gap-1 text-[10px]"
+                                    title="Minimize"
+                                  >
+                                    <span>Minimize</span>
+                                    <ChevronUp className="w-3 h-3" />
+                                  </button>
                                 ) : (
                                   <button
-                                    onClick={() => handleApplySingleSuggestion(sug, sec.section_id)}
-                                    className="px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[10px] font-semibold transition cursor-pointer flex items-center gap-1"
-                                    title="Apply directly to resume"
+                                    type="button"
+                                    onClick={() => handleDismissSingleSuggestion(sug.id)}
+                                    className="text-zinc-500 hover:text-zinc-300 p-1 rounded hover:bg-white/[0.06] transition cursor-pointer"
+                                    title="Dismiss suggestion"
                                   >
-                                    <Check className="w-3 h-3" /> Apply
+                                    <X className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </div>
+
+                              <div className="text-[11px] text-zinc-400 line-through opacity-70">
+                                {sug.original_text}
+                              </div>
+                              <div
+                                className="text-[11px] text-emerald-300 font-medium leading-relaxed"
+                                dangerouslySetInnerHTML={{ __html: sug.enhanced_html }}
+                              />
+                              {sug.reasoning && (
+                                <p className="text-[10px] text-zinc-500 italic">{sug.reasoning}</p>
+                              )}
+                              <div className="pt-1 flex items-center justify-between gap-2">
+                                <button
+                                  onClick={() => handleReviewAndApply(sec.section_id)}
+                                  className="text-[10px] text-[#D49A6A] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                                  title="Go to this section in editor to review inline"
+                                >
+                                  <span>Review in Editor ›</span>
+                                </button>
+                                <div className="flex items-center gap-1.5">
+                                  {!isApplied && (
+                                    <>
+                                      <button
+                                        onClick={() => handleDismissSingleSuggestion(sug.id)}
+                                        className="px-2 py-0.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] rounded-lg text-[10px] font-medium transition cursor-pointer"
+                                        title="Dismiss"
+                                      >
+                                        Dismiss
+                                      </button>
+                                      <button
+                                        onClick={() => handleApplySingleSuggestion(sug, sec.section_id)}
+                                        className="px-2.5 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[10px] font-semibold transition cursor-pointer flex items-center gap-1"
+                                        title="Apply directly to resume"
+                                      >
+                                        <Check className="w-3 h-3" /> Apply
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))
+                          );
+                        })}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}

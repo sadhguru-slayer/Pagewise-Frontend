@@ -97,6 +97,7 @@ function BuilderContent() {
   const targetAtsScore = useResumeStore((s) => s.targetAtsScore);
 
   const saveTimeoutRef = useRef(null);
+  const lastSaveStartedRef = useRef(0);
   const [initialLoading, setInitialLoading] = useState(true);
   const [leftTab, setLeftTab] = useState('sections'); // 'sections' | 'header' | 'settings'
   const [mobileView, setMobileView] = useState('editor'); // 'editor' | 'preview'
@@ -229,38 +230,50 @@ function BuilderContent() {
 
   // ─── Auto-Save ─────────────────────────────────────────────────────────────
   const saveResume = useCallback(async () => {
-    if (!resumeId || isLocked) return;
+    const store = useResumeStore.getState();
+    const { resumeId: rid, resumeName: rname, header: hdr, settings: sett, sections: secs } = store;
+    if (!rid || isLocked) return;
+    const saveId = Date.now();
+    lastSaveStartedRef.current = saveId;
     setSaving(true);
     try {
-      const data = await resumesApi.update(resumeId, {
-        name: resumeName,
-        headerJson: header,
-        settingsJson: settings,
-        sectionsJson: sections,
+      const data = await resumesApi.update(rid, {
+        name: rname,
+        headerJson: hdr,
+        settingsJson: sett,
+        sectionsJson: secs,
       });
-      markSaved(data.updated_at);
+      if (lastSaveStartedRef.current === saveId) {
+        markSaved(data.updated_at);
+      }
     } catch (err) {
       setSaveError(err.message);
       toast.error('Auto-save error: ' + err.message);
     }
-  }, [resumeId, isLocked, resumeName, sections, header, settings, setSaving, markSaved, setSaveError]);
+  }, [isLocked, setSaving, markSaved, setSaveError]);
 
   const handleManualSave = async () => {
-    if (!resumeId) return;
+    const store = useResumeStore.getState();
+    const { resumeId: rid, resumeName: rname, header: hdr, settings: sett, sections: secs } = store;
+    if (!rid) return;
     if (isLocked) {
       toast.error('This resume is in Read-Only mode under your workspace limit. Click "Set as Master Resume" above to edit.');
       return;
     }
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    const saveId = Date.now();
+    lastSaveStartedRef.current = saveId;
     setSaving(true);
     try {
-      const data = await resumesApi.update(resumeId, {
-        name: resumeName,
-        headerJson: header,
-        settingsJson: settings,
-        sectionsJson: sections,
+      const data = await resumesApi.update(rid, {
+        name: rname,
+        headerJson: hdr,
+        settingsJson: sett,
+        sectionsJson: secs,
       });
-      markSaved(data.updated_at);
+      if (lastSaveStartedRef.current === saveId) {
+        markSaved(data.updated_at);
+      }
       toast.success('Resume saved successfully!');
     } catch (err) {
       setSaveError(err.message);
@@ -539,7 +552,7 @@ function BuilderContent() {
           {/* Wiser AI Docked Panel Toggle & Score Chip */}
           <button
             onClick={() => {
-              if (isDirty) saveResume();
+              if (useResumeStore.getState().isDirty) saveResume();
               setIsWiserPanelOpen(!isWiserPanelOpen);
             }}
             className={`border rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${

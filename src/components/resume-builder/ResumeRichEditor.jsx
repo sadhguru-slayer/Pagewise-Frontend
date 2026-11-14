@@ -476,24 +476,31 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
 
   const isSuggestionApplied = (sug, idx) => {
     const key = getSuggestionKey(sug, idx);
-    if (appliedSuggestionKeys.includes(key)) return true;
+    return appliedSuggestionKeys.includes(key);
+  };
 
-    // Also check if enhanced content already exists in editor content
-    if (editor && sug.enhanced_html) {
-      const cleanEnhanced = sug.enhanced_html
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase();
-      if (cleanEnhanced.length > 20) {
-        const editorText = editor.getText().replace(/\s+/g, ' ').toLowerCase();
-        const snippet = cleanEnhanced.slice(0, 35);
-        if (editorText.includes(snippet)) {
-          return true;
-        }
+  const isSummarySection =
+    (section?.title || '').toLowerCase().includes('summary') ||
+    (section?.title || '').toLowerCase().includes('objective') ||
+    (section?.title || '').toLowerCase().includes('profile') ||
+    (section?.title || '').toLowerCase().includes('about');
+
+  const cleanHtmlForEditor = (html, toParagraph = false) => {
+    if (!html) return '';
+    let text = html.trim();
+    if (toParagraph || isSummarySection) {
+      const liMatches = text.match(/<li[^>]*>(.*?)<\/li>/gis);
+      if (liMatches && liMatches.length > 0) {
+        text = liMatches
+          .map((m) => `<p>${m.replace(/<\/?li[^>]*>/gi, '').trim()}</p>`)
+          .join('');
+      } else if (text.toLowerCase().startsWith('<li>') && text.toLowerCase().endsWith('</li>')) {
+        text = `<p>${text.slice(4, -5).trim()}</p>`;
+      } else if (!text.startsWith('<p>') && !text.startsWith('<div>') && !text.startsWith('<h')) {
+        text = `<p>${text}</p>`;
       }
     }
-    return false;
+    return text;
   };
 
   // Helper: Apply recommendation at cursor (Primary & Recommended)
@@ -504,22 +511,16 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
       toast('This suggestion is already applied in your document.', { icon: 'ℹ️' });
       return;
     }
-    let htmlToInsert = (sug.enhanced_html || '').trim();
-    if (!htmlToInsert && sug.original_text) {
-      htmlToInsert = `<p>${sug.original_text}</p>`;
-    }
+    let htmlToInsert = cleanHtmlForEditor(sug.enhanced_html || sug.original_text || '', isSummarySection);
     editor.chain().focus().insertContent(htmlToInsert).run();
     if (markSuggestionApplied) markSuggestionApplied(key);
-    toast.success('Inserted at cursor position!');
+    toast.success('Applied to document!');
   };
 
   // Helper: Re-apply another copy at cursor if user explicitly chooses to
   const handleReapplyAtCursor = (sug) => {
     if (!editor) return;
-    let htmlToInsert = (sug.enhanced_html || '').trim();
-    if (!htmlToInsert && sug.original_text) {
-      htmlToInsert = `<p>${sug.original_text}</p>`;
-    }
+    let htmlToInsert = cleanHtmlForEditor(sug.enhanced_html || sug.original_text || '', isSummarySection);
     editor.chain().focus().insertContent(htmlToInsert).run();
     toast.success('Inserted another copy at cursor position!');
   };
@@ -534,25 +535,28 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
     }
 
     const currentHtml = editor.getHTML();
-    if (!currentHtml || !currentHtml.trim()) {
-      editor.chain().focus().insertContent(sug.enhanced_html || sug.original_text).run();
+    const isDefaultEmpty = !currentHtml || !currentHtml.trim() || currentHtml === '<p></p>' || currentHtml === '<p> </p>';
+    if (isDefaultEmpty) {
+      const formatted = cleanHtmlForEditor(sug.enhanced_html || sug.original_text, isSummarySection);
+      editor.commands.setContent(formatted);
       if (markSuggestionApplied) markSuggestionApplied(key);
-      toast.success('Inserted into section!');
+      toast.success('Applied to section!');
       return;
     }
 
     const orig = (sug.original_text || '').trim();
     if (!orig) {
-      toast("Original text not specified. Use 'Apply at Cursor' to insert at your selected position.", { icon: 'ℹ️' });
+      handleApplyAtCursor(sug, idx);
       return;
     }
 
     // 1. Direct exact HTML string replacement
-    if (currentHtml.includes(orig) && sug.enhanced_html?.trim()) {
-      const updatedHtml = currentHtml.replace(orig, sug.enhanced_html);
+    const formattedReplacement = cleanHtmlForEditor(sug.enhanced_html, isSummarySection);
+    if (currentHtml.includes(orig) && formattedReplacement) {
+      const updatedHtml = currentHtml.replace(orig, formattedReplacement);
       editor.commands.setContent(updatedHtml);
       if (markSuggestionApplied) markSuggestionApplied(key);
-      toast.success('Replaced original bullet in-place!');
+      toast.success('Applied to section!');
       return;
     }
 
@@ -605,35 +609,27 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
               const innerLi = tempDoc.body.querySelector('li');
               bestMatch.innerHTML = innerLi ? innerLi.innerHTML : (tempDoc.body.innerHTML || sug.enhanced_html);
             } else {
-              const firstChild = tempDoc.body.firstElementChild;
-              if (firstChild && firstChild.tagName.toLowerCase() === bestMatch.tagName.toLowerCase()) {
-                bestMatch.innerHTML = firstChild.innerHTML;
-              } else {
-                bestMatch.innerHTML = tempDoc.body.innerHTML || sug.enhanced_html;
-              }
+              // Target is <p> (e.g. in summary) - unwrap inner text so it stays a <p>
+              const innerLi = tempDoc.body.querySelector('li');
+              bestMatch.innerHTML = innerLi ? innerLi.innerHTML : (tempDoc.body.innerHTML || sug.enhanced_html);
             }
 
             const serializedResult = doc.body.innerHTML;
-            // Strict content integrity check to never wipe user content
             if (serializedResult && serializedResult.length >= currentHtml.length * 0.4 && doc.body.textContent.trim().length > 10) {
               editor.commands.setContent(serializedResult);
               if (markSuggestionApplied) markSuggestionApplied(key);
-              toast.success('Replaced original bullet in-place!');
+              toast.success('Applied upgrade to section!');
               return;
             }
           }
         }
-      } catch (err) {
-        console.warn('DOM serialize-and-replace failed:', err);
+      } catch (e) {
+        console.warn('DOM replacement error in rich editor:', e);
       }
     }
 
-    // Do NOT blindly append to the bottom or wipe content.
-    // Prompt the user to use 'Apply at Cursor' which puts exact control in their hands.
-    toast("Couldn't locate the exact original sentence in this section. Please click 'Apply at Cursor' to insert it at your cursor position.", {
-      icon: 'ℹ️',
-      duration: 5000,
-    });
+    // Fallback: apply at cursor
+    handleApplyAtCursor(sug, idx);
   };
 
   const editor = useEditor({
@@ -960,15 +956,29 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
           <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] text-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              Wiser Recommendations
+              Wiser Recommendations ({activeSuggestions.length})
             </span>
-            <span className="text-[10px] text-[#7E869B]">
-              {activeJdAnalysis?.job_analysis?.title
-                ? `Role: ${activeJdAnalysis.job_analysis.title}`
-                : activeJdAnalysis?.inferred_domain?.title
-                ? `Focus: ${activeJdAnalysis.inferred_domain.title}`
-                : 'General Polish'}
-            </span>
+            <div className="flex items-center gap-2">
+              {activeSuggestions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    activeSuggestions.forEach((s, i) => dismissSuggestion(getSuggestionKey(s, i)));
+                    toast('All suggestions dismissed for this section', { icon: '🗑️' });
+                  }}
+                  className="text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                >
+                  Dismiss All
+                </button>
+              )}
+              <span className="text-[10px] text-[#7E869B]">
+                {activeJdAnalysis?.job_analysis?.title
+                  ? `Role: ${activeJdAnalysis.job_analysis.title}`
+                  : activeJdAnalysis?.inferred_domain?.title
+                  ? `Focus: ${activeJdAnalysis.inferred_domain.title}`
+                  : 'General Polish'}
+              </span>
+            </div>
           </div>
 
           {/* Missing Keywords Quick-Insert & Add-to-Skills Strip */}
@@ -1129,22 +1139,23 @@ export default function ResumeRichEditor({ sectionId: propSectionId, onCollapse 
                     <div className="flex items-center gap-2 ml-auto">
                       <button
                         type="button"
-                        onClick={() => handleAutoApplySuggestion(sug, idx)}
-                        className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer border border-white/[0.06]"
-                        title="Attempts in-place replacement of the matching line"
+                        onClick={() => {
+                          dismissSuggestion(key);
+                          toast('Suggestion dismissed', { icon: '🗑️' });
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] text-[11px] font-medium transition-colors cursor-pointer"
+                        title="Dismiss / Reject this recommendation"
                       >
-                        <Check className="w-3 h-3 text-zinc-400" />
-                        <span>Auto Replace</span>
+                        Reject
                       </button>
-
                       <button
                         type="button"
-                        onClick={() => handleApplyAtCursor(sug, idx)}
+                        onClick={() => handleAutoApplySuggestion(sug, idx)}
                         className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border border-emerald-500/30"
-                        title="Insert this bullet directly at your current cursor position"
+                        title="Apply upgrade to document"
                       >
-                        <ArrowDownToLine className="w-3.5 h-3.5 text-emerald-100" />
-                        <span>Apply at Cursor</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-100" />
+                        <span>Apply</span>
                       </button>
                     </div>
                   )}

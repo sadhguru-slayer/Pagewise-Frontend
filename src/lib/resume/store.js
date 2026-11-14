@@ -571,6 +571,24 @@ export const useResumeStore = create(
           ? s.dismissedSuggestionKeys
           : [...(s.dismissedSuggestionKeys || []), key],
       })),
+    dismissAllSuggestions: (keys) =>
+      set((s) => {
+        let keysToDismiss = keys;
+        if (!keysToDismiss || !Array.isArray(keysToDismiss) || keysToDismiss.length === 0) {
+          const allKeys = [];
+          (s.activeJdAnalysis?.section_enhancements || []).forEach((sec) => {
+            (sec.suggestions || []).forEach((sug) => {
+              if (sug?.id) allKeys.push(String(sug.id));
+            });
+          });
+          keysToDismiss = allKeys;
+        }
+        return {
+          dismissedSuggestionKeys: Array.from(
+            new Set([...(s.dismissedSuggestionKeys || []), ...keysToDismiss.map(String)])
+          ),
+        };
+      }),
     undismissSuggestion: (key) =>
       set((s) => ({
         dismissedSuggestionKeys: (s.dismissedSuggestionKeys || []).filter((k) => k !== key),

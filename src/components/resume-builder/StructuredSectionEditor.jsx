@@ -531,6 +531,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
     markSuggestionApplied,
     dismissedSuggestionKeys = [],
     dismissSuggestion,
+    dismissAllSuggestions,
     highlightedSectionId,
     setHighlightedSectionId,
     addKeywordToResume,
@@ -738,7 +739,7 @@ export default function StructuredSectionEditor({ onCollapse }) {
           if (origWords.length > 0) {
             const matchedCount = origWords.filter((w) => ptClean.includes(w)).length;
             const score = matchedCount / origWords.length;
-            if (score > 0.35 && score > bestScore) {
+            if (score > 0.55 && score > bestScore) {
               bestScore = score;
               targetItemId = it.id;
               targetBulletIdx = bIdx;
@@ -783,12 +784,14 @@ export default function StructuredSectionEditor({ onCollapse }) {
       return;
     }
 
-    const firstItem = { ...updatedItems[0] };
+    if (items.length === 0) return;
+    const fallbackItems = [...items];
+    const firstItem = { ...fallbackItems[0] };
     const newIdx = (firstItem.points || []).length;
     firstItem.points = [...(firstItem.points || []).filter(Boolean), cleanText];
-    updatedItems[0] = firstItem;
+    fallbackItems[0] = firstItem;
 
-    updateSectionItems(activeSectionId, updatedItems);
+    updateSectionItems(activeSectionId, fallbackItems);
     markSuggestionApplied?.(key);
     dismissSuggestion?.(key);
     setAppliedFlashTarget({ itemId: firstItem.id, bulletIdx: newIdx, ts: Date.now() });
@@ -846,6 +849,59 @@ export default function StructuredSectionEditor({ onCollapse }) {
     const key = getSuggestionKey(sug);
     dismissSuggestion?.(key);
     toast('Suggestion dismissed', { icon: '🗑️' });
+  };
+
+  const handleApplyCertificationSuggestion = (sug) => {
+    const key = getSuggestionKey(sug);
+    const cleanText = (sug.enhanced_html || sug.enhanced_text || sug.original_text || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleanText) return;
+
+    const orig = (sug.original_text || '').toLowerCase().trim();
+    let matchedIdx = -1;
+    let fieldToUpdate = 'name';
+
+    items.forEach((it, idx) => {
+      if (orig && ((it.name || '').toLowerCase().includes(orig) || orig.includes((it.name || '').toLowerCase()))) {
+        matchedIdx = idx;
+        fieldToUpdate = 'name';
+      } else if (orig && ((it.issuer || '').toLowerCase().includes(orig) || orig.includes((it.issuer || '').toLowerCase()))) {
+        matchedIdx = idx;
+        fieldToUpdate = 'issuer';
+      }
+    });
+
+    if (matchedIdx !== -1) {
+      const updated = items.map((it, idx) => {
+        if (idx === matchedIdx) {
+          return { ...it, [fieldToUpdate]: cleanText };
+        }
+        return it;
+      });
+      updateSectionItems(activeSectionId, updated);
+      markSuggestionApplied?.(key);
+      dismissSuggestion?.(key);
+      toast.success(`Updated certification ${fieldToUpdate}!`, { icon: '✅' });
+      return;
+    }
+
+    if (items.length > 0 && (!items[0].name || items[0].name.trim() === '')) {
+      const updated = items.map((it, idx) => (idx === 0 ? { ...it, name: cleanText } : it));
+      updateSectionItems(activeSectionId, updated);
+      markSuggestionApplied?.(key);
+      dismissSuggestion?.(key);
+      toast.success('Updated certification name!', { icon: '✅' });
+      return;
+    }
+
+    const newItem = createDefaultSectionItem(SECTION_TYPES.CERTIFICATIONS);
+    newItem.name = cleanText;
+    updateSectionItems(activeSectionId, [...items, newItem]);
+    markSuggestionApplied?.(key);
+    dismissSuggestion?.(key);
+    toast.success('Added new certification!', { icon: '✅' });
   };
 
   return (
@@ -1017,19 +1073,33 @@ export default function StructuredSectionEditor({ onCollapse }) {
               {activeSuggestions.length} Wiser AI {activeSuggestions.length === 1 ? 'Upgrade' : 'Upgrades'} Available
             </span>
             <span className="text-[10px] text-zinc-400 font-normal">
-              — Review inline on each bullet point below
+              — Review inline recommendations below
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              activeSuggestions.forEach((s) => handleApplySuggestion(s));
-            }}
-            className="px-2.5 py-1 rounded bg-[#D49A6A]/15 hover:bg-[#D49A6A]/25 border border-[#D49A6A]/30 text-[#D49A6A] text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1"
-          >
-            <Check className="w-3 h-3" />
-            <span>Apply All ({activeSuggestions.length})</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const keys = activeSuggestions.map((s) => String(s.id));
+                dismissAllSuggestions?.(keys);
+                toast('Dismissed suggestions for this section', { icon: '🗑️' });
+              }}
+              className="px-2 py-1 rounded hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200 text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              <span>Dismiss All</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                activeSuggestions.forEach((s) => handleApplySuggestion(s));
+              }}
+              className="px-2.5 py-1 rounded bg-[#D49A6A]/15 hover:bg-[#D49A6A]/25 border border-[#D49A6A]/30 text-[#D49A6A] text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <Check className="w-3 h-3" />
+              <span>Apply All ({activeSuggestions.length})</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1568,6 +1638,70 @@ export default function StructuredSectionEditor({ onCollapse }) {
         {/* CERTIFICATIONS */}
         {sectionType === SECTION_TYPES.CERTIFICATIONS && (
           <div className="space-y-4">
+            {/* Active Wiser Suggestions for Certifications */}
+            {activeSuggestions.length > 0 && (
+              <div className="p-3 rounded-xl bg-[#111420] border border-amber-500/30 space-y-2.5 shadow-md">
+                <div className="flex items-center justify-between text-xs pb-1 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-1.5 text-amber-300 font-semibold">
+                    <Target className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Wiser AI Recommendations ({activeSuggestions.length})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const keys = activeSuggestions.map((s) => getSuggestionKey(s));
+                      dismissAllSuggestions?.(keys);
+                      toast('Dismissed all suggestions for this section', { icon: '🗑️' });
+                    }}
+                    className="text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                  >
+                    Dismiss All
+                  </button>
+                </div>
+                {activeSuggestions.map((sug) => {
+                  const key = getSuggestionKey(sug);
+                  return (
+                    <div
+                      key={sug.id || key}
+                      className="p-2.5 rounded-lg bg-black/40 border border-white/[0.06] space-y-2 text-xs"
+                    >
+                      {sug.original_text && (
+                        <div className="text-[11px] text-zinc-400 line-through opacity-70">
+                          {sug.original_text}
+                        </div>
+                      )}
+                      <div
+                        className="text-emerald-300 font-medium leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: sug.enhanced_html || sug.original_text }}
+                      />
+                      {sug.reasoning && (
+                        <p className="text-[10px] text-zinc-500 italic">{sug.reasoning}</p>
+                      )}
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDismissInlineSuggestion(sug)}
+                          className="px-2.5 py-1 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] text-[11px] font-medium transition-colors cursor-pointer"
+                          title="Reject this recommendation"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyCertificationSuggestion(sug)}
+                          className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                          title="Apply this recommendation"
+                        >
+                          <Check className="w-3 h-3 stroke-[2.5]" />
+                          <span>Apply</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {items.map((item, idx) => (
               <div key={item.id || idx} className="space-y-1 relative">
                 {items.length > 1 && (

@@ -334,24 +334,26 @@ export const resumesApi = {
     return data;
   },
 
-  async analyzeJobDescription({ resumeId, jobDescription, currentResumeOverride = null }) {
+  async analyzeJobDescription({ resumeId, jobDescription, currentResumeOverride = null, appliedBulletIds = [] }) {
     return fetchApi('/resumes/analyze-jd', {
       method: 'POST',
       body: JSON.stringify({
         resume_id: resumeId || null,
         job_description: jobDescription,
         current_resume_override: currentResumeOverride,
+        applied_bullet_ids: appliedBulletIds,
         include_all_user_resumes: false,
       }),
     });
   },
 
-  async analyzeStandaloneAts({ resumeId, currentResumeOverride = null }) {
+  async analyzeStandaloneAts({ resumeId, currentResumeOverride = null, appliedBulletIds = [] }) {
     return fetchApi('/resumes/analyze-ats', {
       method: 'POST',
       body: JSON.stringify({
         resume_id: resumeId || null,
         current_resume_override: currentResumeOverride,
+        applied_bullet_ids: appliedBulletIds,
       }),
     });
   },

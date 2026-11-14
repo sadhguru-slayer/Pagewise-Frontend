@@ -1,3 +1,5 @@
+import { renderStructuredSectionHtml } from './sectionSchemas.js';
+
 function htmlToText(value) {
   if (!value) return '';
   return String(value)
@@ -80,14 +82,14 @@ function applySuggestionsToStructuredItems(items, suggestions) {
           if (origWords.length > 0) {
             const matched = origWords.filter((w) => ptClean.includes(w)).length;
             const score = matched / origWords.length;
-            if (score > 0.40 && score > bestScore) {
+            if (score > 0.55 && score > bestScore) {
               bestScore = score;
               bestIdx = idx;
             }
           }
         });
 
-        if (bestIdx !== -1 && bestScore >= 0.40) {
+        if (bestIdx !== -1 && bestScore >= 0.55) {
           nextPoints.splice(bestIdx, 1, ...enhancedPoints);
           appliedCount += 1;
         }
@@ -122,9 +124,11 @@ export function applyWiserEnhancementsToSections(sections, analysis) {
         match.suggestions
       );
       totalApplied += appliedCount;
+      const updatedHtml = renderStructuredSectionHtml({ ...sec, items: updatedItems });
       return {
         ...sec,
         items: updatedItems,
+        contentHtml: updatedHtml || sec.contentHtml,
       };
     }
 

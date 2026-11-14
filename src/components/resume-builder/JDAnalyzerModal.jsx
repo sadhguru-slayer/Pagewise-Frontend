@@ -26,6 +26,7 @@ import { resumesApi, paymentsApi } from '@/lib/api';
 import { useResumeStore } from '@/lib/resume/store';
 import { applyWiserEnhancementsToSections } from '@/lib/resume/applyWiserEnhancements';
 import { renderTiptapJson } from '@/lib/resume/renderTiptap';
+import { renderStructuredSectionHtml, isStructuredSection } from '@/lib/resume/sectionSchemas';
 import PricingModal from '@/components/pricing/PricingModal';
 
 /* ─── ATS Score SVG Gauge ─────────────────────────────────────────── */
@@ -279,14 +280,22 @@ export default function JDAnalyzerModal({
         jobDescription: jobDescription.trim(),
       };
       if (resumeId) {
+        const {
+          sections: latestSections,
+          header: latestHeader,
+          settings: latestSettings,
+          resumeName: latestName,
+          isDirty: latestIsDirty,
+        } = useResumeStore.getState();
+
         // If there are pending changes in store, flush save to DB
-        if (useResumeStore.getState().isDirty) {
+        if (latestIsDirty) {
           try {
             await resumesApi.update(resumeId, {
-              name: resumeName,
-              headerJson: header,
-              settingsJson: settings,
-              sectionsJson: sections,
+              name: latestName,
+              headerJson: latestHeader,
+              settingsJson: latestSettings,
+              sectionsJson: latestSections,
             });
             useResumeStore.getState().markSaved(new Date().toISOString());
           } catch (e) {
@@ -296,17 +305,22 @@ export default function JDAnalyzerModal({
 
         payload.currentResumeOverride = {
           id: resumeId,
-          name: resumeName,
-          header_json: header,
-          settings_json: settings,
-          sections_json: sections.map((sec) => ({
+          name: latestName,
+          header_json: latestHeader,
+          settings_json: latestSettings,
+          sections_json: latestSections.map((sec) => ({
             id: sec.id,
             title: sec.title,
             content: sec.content,
-            contentHtml:
-              typeof sec.content === 'string'
+            contentHtml: (() => {
+              if (isStructuredSection(sec) && Array.isArray(sec.items) && sec.items.length > 0) {
+                return renderStructuredSectionHtml(sec, latestSettings) || sec.contentHtml || '';
+              }
+              return typeof sec.content === 'string'
                 ? sec.content
-                : renderTiptapJson(sec.content) || sec.contentHtml || '',
+                : renderTiptapJson(sec.content) || sec.contentHtml || '';
+            })(),
+            items: isStructuredSection(sec) ? (sec.items || []) : undefined,
           })),
         };
       }
@@ -348,13 +362,21 @@ export default function JDAnalyzerModal({
         resumeId: effectiveResumeId || null,
       };
       if (resumeId) {
-        if (useResumeStore.getState().isDirty) {
+        const {
+          sections: latestSections,
+          header: latestHeader,
+          settings: latestSettings,
+          resumeName: latestName,
+          isDirty: latestIsDirty,
+        } = useResumeStore.getState();
+
+        if (latestIsDirty) {
           try {
             await resumesApi.update(resumeId, {
-              name: resumeName,
-              headerJson: header,
-              settingsJson: settings,
-              sectionsJson: sections,
+              name: latestName,
+              headerJson: latestHeader,
+              settingsJson: latestSettings,
+              sectionsJson: latestSections,
             });
             useResumeStore.getState().markSaved(new Date().toISOString());
           } catch (e) {
@@ -364,17 +386,22 @@ export default function JDAnalyzerModal({
 
         payload.currentResumeOverride = {
           id: resumeId,
-          name: resumeName,
-          header_json: header,
-          settings_json: settings,
-          sections_json: sections.map((sec) => ({
+          name: latestName,
+          header_json: latestHeader,
+          settings_json: latestSettings,
+          sections_json: latestSections.map((sec) => ({
             id: sec.id,
             title: sec.title,
             content: sec.content,
-            contentHtml:
-              typeof sec.content === 'string'
+            contentHtml: (() => {
+              if (isStructuredSection(sec) && Array.isArray(sec.items) && sec.items.length > 0) {
+                return renderStructuredSectionHtml(sec, latestSettings) || sec.contentHtml || '';
+              }
+              return typeof sec.content === 'string'
                 ? sec.content
-                : renderTiptapJson(sec.content) || sec.contentHtml || '',
+                : renderTiptapJson(sec.content) || sec.contentHtml || '';
+            })(),
+            items: isStructuredSection(sec) ? (sec.items || []) : undefined,
           })),
         };
       }
