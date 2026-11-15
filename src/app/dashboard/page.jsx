@@ -93,28 +93,23 @@ function atsColor(score) {
 // ─── Editorial Metric Card (Industrial Warm Aesthetic) ────────────────────────
 function MetricCard({ icon: Icon, value, label, subtext, highlightColor }) {
   return (
-    <div
-      className="rounded-xl p-4 transition-all duration-200 border border-white/[0.08] hover:border-white/[0.12] bg-[#0E1017]"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-medium text-zinc-400">
+    <div className="rounded-xl p-5 transition-all duration-200 border border-white/[0.08] hover:border-white/[0.14] bg-[#0D0F17]">
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-xs font-medium text-zinc-400">
           {label}
         </span>
         <div
-          className="w-6 h-6 rounded-md flex items-center justify-center text-zinc-400"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            color: highlightColor || '#8E94A5',
-          }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center border border-white/[0.06] bg-white/[0.03]"
+          style={{ color: highlightColor || '#A1A1AA' }}
         >
           <Icon className="w-3.5 h-3.5" />
         </div>
       </div>
-      <p className="text-2xl font-bold text-zinc-100 tracking-tight">
+      <p className="text-2xl font-bold text-white tracking-tight">
         {value ?? '—'}
       </p>
       {subtext && (
-        <p className="text-[11px] text-zinc-500 mt-1 font-sans truncate">
+        <p className="text-[11px] text-zinc-500 mt-1.5 font-mono truncate">
           {subtext}
         </p>
       )}
@@ -224,20 +219,11 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
     : 'Free';
 
   return (
-    <aside
-      className="hidden md:flex flex-col w-[240px] shrink-0 h-full overflow-hidden"
-      style={{
-        background: '#0B0D13',
-        borderRight: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-      }}
-    >
+    <aside className="hidden md:flex flex-col w-[240px] shrink-0 h-full overflow-hidden bg-[#0A0C11] border-r border-white/[0.08]">
       {/* Brand Header */}
-      <div
-        className="px-5 py-4 border-b shrink-0"
-        style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
-      >
+      <div className="px-5 py-4 border-b border-white/[0.08] shrink-0">
         <Link href="/" className="group block">
-          <BrandLockup size={28} showTagline={true} badgeText={planBadge} />
+          <BrandLockup size={26} showTagline={false} badgeText={planBadge} />
         </Link>
       </div>
 
@@ -249,16 +235,13 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer text-left"
-              style={{
-                background: isActive ? BRAND_CONFIG.colors.primarySurface : 'transparent',
-                color: isActive ? BRAND_CONFIG.colors.primary : BRAND_CONFIG.colors.textMuted,
-                border: isActive
-                  ? `1px solid ${BRAND_CONFIG.colors.primaryBorder}`
-                  : '1px solid transparent',
-              }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs tracking-wide transition-all cursor-pointer text-left ${
+                isActive
+                  ? 'bg-white/[0.08] text-white border border-white/[0.14] font-semibold shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent font-medium'
+              }`}
             >
-              <Icon className="w-4 h-4 shrink-0" />
+              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
               <span>{label}</span>
             </button>
           );
@@ -266,10 +249,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
       </nav>
 
       {/* Bottom Pinned Section */}
-      <div
-        className="shrink-0 mt-auto border-t p-3 space-y-1.5"
-        style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
-      >
+      <div className="shrink-0 mt-auto border-t border-white/[0.08] p-3 space-y-1.5">
         {user?.is_admin && (
           <Link
             href="/admin-290123-7234878"
@@ -286,7 +266,7 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
             onClick={onOpenFeedback}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all cursor-pointer text-left"
           >
-            <MessageSquare className="w-4 h-4 text-zinc-300" />
+            <MessageSquare className="w-4 h-4 text-zinc-400" />
             <span>Give Feedback</span>
           </button>
 
@@ -294,14 +274,11 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout, onOpenUpgrade, onOpe
             href="/settings"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04] transition-all"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-4 h-4 text-zinc-400" />
             <span>Account &amp; Studio</span>
           </Link>
 
-          <div
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
-            style={{ background: BRAND_CONFIG.colors.surfaceCard }}
-          >
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08]">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold bg-white text-zinc-950 shrink-0 shadow-sm">
               {initial}
             </div>
@@ -621,7 +598,7 @@ export default function DashboardPage() {
   const recentResumes = [...resumes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 4);
 
   return (
-    <div className="h-screen w-full bg-[#08090D] text-zinc-100 flex font-sans overflow-hidden">
+    <div className="h-screen w-full bg-[#090A0F] text-[#EDEDF2] flex font-sans overflow-hidden selection:bg-[#C88A58]/30 selection:text-[#F3D5B5]">
       {/* Precision Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -637,7 +614,7 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         {/* Mobile Header Bar with Hamburger */}
         <header
-          className="md:hidden flex items-center justify-between px-4 py-3 shrink-0 border-b backdrop-blur-md sticky top-0 z-40 bg-[#08090D]/95 border-white/[0.08]"
+          className="md:hidden flex items-center justify-between px-4 py-3 shrink-0 border-b backdrop-blur-md sticky top-0 z-40 bg-[#090A0F]/95 border-white/[0.08]"
         >
           <div className="flex items-center gap-2.5">
             <button
@@ -649,6 +626,7 @@ export default function DashboardPage() {
             </button>
             <BrandLockup
               size={24}
+              showTagline={false}
               badgeText={
                 planStatus?.plan_type === 'pilot'
                   ? 'Pilot'
@@ -681,7 +659,7 @@ export default function DashboardPage() {
               className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <div className="relative w-4/5 max-w-xs bg-[#0E1017] border-r border-white/[0.08] h-full flex flex-col p-4 shadow-2xl z-10">
+            <div className="relative w-4/5 max-w-xs bg-[#0A0C11] border-r border-white/[0.08] h-full flex flex-col p-4 shadow-2xl z-10">
               <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
                 <BrandLockup
                   size={26}
@@ -780,23 +758,21 @@ export default function DashboardPage() {
         )}
 
         {/* Content Body - Independent Vertical Scroll */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-8 w-full max-w-7xl mx-auto pb-24 md:pb-12">
-          {/* Mobile Screen Recommendation Notice */}
-          <MobileNotice className="mb-4" />
-
-          {/* Pilot Notification & Feedback Banner */}
-          <PilotBanner variant="compact" className="mb-5" />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6 sm:px-8 sm:py-7 w-full pb-20 md:pb-12">
+          <div className="max-w-6xl w-full">
+            {/* Mobile Screen Recommendation Notice (Mobile only) */}
+            <MobileNotice className="mb-4" />
 
           {/* ── 1. OVERVIEW TAB ──────────────────────────────────────────────── */}
           {activeTab === 'home' && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Minimal Clean Header */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                     Welcome back, {user?.name?.split(' ')[0] || 'there'}
                   </h1>
-                  <p className="text-xs text-zinc-400 mt-0.5">
+                  <p className="text-xs text-zinc-400 mt-1">
                     Manage your resumes, optimize with Wiser AI, and export production-ready PDFs.
                   </p>
                 </div>
@@ -808,10 +784,7 @@ export default function DashboardPage() {
                       setSelectedResumeForWiser(null);
                       setIsImportModalOpen(true);
                     }}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer border border-white/[0.08] hover:border-white/20 text-zinc-100 hover:bg-white/[0.04]"
-                    style={{
-                      background: BRAND_CONFIG.colors.surfaceCard,
-                    }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer"
                     title="Upload and parse an existing PDF resume"
                   >
                     <Upload className="w-3.5 h-3.5 text-zinc-400" />
@@ -823,7 +796,7 @@ export default function DashboardPage() {
                       setNewResumeName('Senior Engineer Resume');
                       setIsCreateModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 transition-all cursor-pointer shadow-sm"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
                   >
                     <Plus className="w-4 h-4 text-zinc-950" />
                     <span>New Resume</span>
@@ -833,17 +806,17 @@ export default function DashboardPage() {
 
               {/* Subtle Wiser AI Quick Access Bar */}
               <div
-                className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-white/[0.08] bg-[#0E1017]/60 hover:bg-[#0E1017] transition-colors"
+                className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-white/[0.08] bg-[#0D0F17] hover:border-white/[0.14] transition-all"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 text-[#C88A58] border border-amber-500/20">
                     <Target className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-zinc-100">
+                    <span className="text-xs font-medium text-zinc-200">
                       Target Audit & ATS Matcher
                     </span>
-                    <span className="text-[11px] text-zinc-400">
+                    <span className="text-[11px] text-zinc-500 font-mono">
                       • {planStatus?.remaining?.wiser_ai_combined ?? planStatus?.remaining?.wiser_job_help ?? 0} evaluations available
                     </span>
                   </div>
@@ -860,9 +833,9 @@ export default function DashboardPage() {
                     setWiserTargetResumeId(null);
                     setIsWiserModalOpen(true);
                   }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 transition-all cursor-pointer self-start sm:self-auto shrink-0 flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-200 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] transition-all cursor-pointer self-start sm:self-auto shrink-0 flex items-center gap-1.5"
                 >
-                  <Target className="w-3 h-3" />
+                  <Target className="w-3 h-3 text-[#C88A58]" />
                   <span>Audit Resume</span>
                 </button>
               </div>
@@ -933,8 +906,7 @@ export default function DashboardPage() {
                   <div
                     className="rounded-2xl border border-dashed p-10 text-center"
                     style={{
-                      borderColor: BRAND_CONFIG.colors.borderSubtle,
-                      background: BRAND_CONFIG.colors.surfaceCard,
+                      background: '#0D0F17',
                     }}
                   >
                     <FolderOpen className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
@@ -955,37 +927,37 @@ export default function DashboardPage() {
                     {recentResumes.map((resume) => (
                       <div
                         key={resume.id}
-                        className="rounded-xl p-4 flex flex-col justify-between transition-all duration-200 group border border-white/[0.08] hover:border-white/20 bg-[#0E1017] hover:bg-[#0E1017]"
+                        className="rounded-xl p-5 flex flex-col justify-between transition-all duration-200 group border border-white/[0.08] hover:border-white/[0.16] bg-[#0D0F17] hover:bg-[#111420]"
                       >
                         <div>
                           {/* Status and Targeting Pill */}
                           <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
                             {resume.is_primary ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/25">
                                 ★ Master Workspace
                               </span>
                             ) : resume.is_locked ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/30">
                                 🔒 Read-Only
                               </span>
                             ) : null}
 
                             {resume.target_job_title ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 truncate max-w-[170px]">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 truncate max-w-[170px]">
                                 🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
                               </span>
                             ) : !resume.is_primary && !resume.is_locked ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-zinc-500 bg-white/[0.04] border border-white/[0.08]">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-zinc-400 bg-white/[0.04] border border-white/[0.08]">
                                 Workspace
                               </span>
                             ) : null}
                           </div>
 
-                          <h3 className="font-bold text-sm text-zinc-100 group-hover:text-white transition-colors line-clamp-1">
+                          <h3 className="font-semibold text-sm text-zinc-100 group-hover:text-white transition-colors line-clamp-1">
                             {resume.name}
                           </h3>
 
-                          <p className="text-[11px] text-zinc-500 mt-1.5 flex items-center gap-1">
+                          <p className="text-[11px] text-zinc-500 mt-1.5 flex items-center gap-1.5">
                             <Calendar className="w-3 h-3 text-zinc-500" />
                             <span>Updated {relativeDate(resume.updated_at)}</span>
                           </p>
@@ -995,13 +967,11 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-1.5">
                             <Link
                               href={`/builder?id=${resume.id}`}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.05] hover:bg-white hover:text-zinc-950 text-zinc-100 transition-all cursor-pointer flex items-center gap-1"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
                             >
                               <span>{resume.is_locked ? 'View' : 'Open'}</span>
                               <ArrowUpRight className="w-3 h-3" />
                             </Link>
-
-
                           </div>
 
                           <div className="flex items-center gap-1">
@@ -1011,7 +981,7 @@ export default function DashboardPage() {
                                 setIsWiserModalOpen(true);
                               }}
                               title="Audit with Wiser AI (JD Matching & ATS)"
-                              className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
                             >
                               <Target className="w-3.5 h-3.5" />
                             </button>
@@ -1019,7 +989,7 @@ export default function DashboardPage() {
                               onClick={() => handleQuickExportPdf(resume.id)}
                               disabled={exportingId === resume.id}
                               title="Quick PDF Export (Recommended)"
-                              className="p-1.5 text-zinc-500 hover:text-zinc-100 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
                             >
                               {exportingId === resume.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1030,7 +1000,7 @@ export default function DashboardPage() {
                             <button
                               onClick={() => handleDeleteResume(resume)}
                               title="Delete resume"
-                              className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1049,10 +1019,10 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                     My Resumes
                   </h1>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     Manage your core resumes and job-targeted branches.
                   </p>
                 </div>
@@ -1062,7 +1032,7 @@ export default function DashboardPage() {
                     setNewResumeName('Senior Engineer Resume');
                     setIsCreateModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-white hover:bg-zinc-100 text-zinc-950 font-semibold shadow-sm rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm cursor-pointer self-start sm:self-auto"
+                  className="px-4 py-2 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold shadow-sm rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto active:scale-[0.98]"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Resume</span>
@@ -1077,11 +1047,7 @@ export default function DashboardPage() {
                   placeholder="Filter by title, company, or target position..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-colors"
-                  style={{
-                    background: BRAND_CONFIG.colors.surfaceCard,
-                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-                  }}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs text-white placeholder-zinc-500 bg-[#0D0F17] border border-white/[0.08] focus:outline-none focus:border-white/20 transition-colors"
                 />
               </div>
 
@@ -1092,7 +1058,6 @@ export default function DashboardPage() {
               ) : filteredResumes.length === 0 ? (
                 <div
                   className="rounded-2xl border border-dashed p-16 text-center"
-                  style={{ borderColor: BRAND_CONFIG.colors.borderSubtle }}
                 >
                   <FolderOpen className="w-10 h-10 text-zinc-500 mx-auto mb-3" />
                   <p className="text-sm font-semibold text-zinc-100">No resumes match criteria</p>
@@ -1108,28 +1073,28 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={resume.id}
-                        className="rounded-xl p-4.5 flex flex-col justify-between transition-all duration-200 group border border-white/[0.08] hover:border-white/20 bg-[#0E1017] hover:bg-[#0E1017]"
+                        className="rounded-xl p-5 flex flex-col justify-between transition-all duration-200 group border border-white/[0.08] hover:border-white/[0.16] bg-[#0D0F17] hover:bg-[#111420]"
                       >
                         <div>
                           {/* Tags header */}
                           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {resume.is_primary ? (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/25">
                                   ★ Master Workspace
                                 </span>
                               ) : resume.is_locked ? (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold text-rose-300 bg-rose-500/10 border border-rose-500/30">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold text-rose-300 bg-rose-500/10 border border-rose-500/30">
                                   🔒 Read-Only Workspace
                                 </span>
                               ) : null}
 
                               {resume.target_job_title ? (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-semibold truncate max-w-[180px]">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-medium truncate max-w-[180px]">
                                   🎯 {resume.target_company ? `${resume.target_company} · ` : ''}{resume.target_job_title}
                                 </span>
                               ) : !resume.is_primary && !resume.is_locked ? (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-zinc-500 bg-white/[0.04] border border-white/[0.08]">
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md text-zinc-400 bg-white/[0.04] border border-white/[0.08]">
                                   Workspace
                                 </span>
                               ) : null}
@@ -1142,7 +1107,7 @@ export default function DashboardPage() {
                                   setWiserTargetResumeId(resume.id);
                                   setIsWiserModalOpen(true);
                                 }}
-                                className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold border transition cursor-pointer hover:opacity-90 ${badgeCls}`}
+                                className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold border transition cursor-pointer hover:opacity-90 ${badgeCls}`}
                                 title="Click to view ATS score breakdown and keyword audit"
                               >
                                 ATS {Math.round(score)}%
@@ -1150,7 +1115,7 @@ export default function DashboardPage() {
                             )}
                           </div>
 
-                          <h3 className="font-bold text-base text-zinc-100 group-hover:text-white transition-colors line-clamp-1">
+                          <h3 className="font-semibold text-base text-zinc-100 group-hover:text-white transition-colors line-clamp-1">
                             {resume.name}
                           </h3>
 
@@ -1171,13 +1136,11 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-1.5">
                             <Link
                               href={`/builder?id=${resume.id}`}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-white hover:text-zinc-950 text-zinc-100 transition-all cursor-pointer flex items-center gap-1.5"
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-200 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
                             >
                               <Edit3 className="w-3 h-3" />
                               <span>{resume.is_locked ? 'View (Read-Only)' : 'Launch Studio'}</span>
                             </Link>
-
-
                           </div>
 
                           <div className="flex items-center gap-1">
@@ -1187,7 +1150,7 @@ export default function DashboardPage() {
                                 setIsWiserModalOpen(true);
                               }}
                               title="Audit with Wiser AI (JD Matching & ATS)"
-                              className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/[0.04] rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
                             >
                               <Target className="w-3.5 h-3.5" />
                             </button>
@@ -1195,7 +1158,7 @@ export default function DashboardPage() {
                               onClick={() => handleQuickExportPdf(resume.id)}
                               disabled={exportingId === resume.id}
                               title="Quick PDF Export (Recommended)"
-                              className="p-2 text-zinc-500 hover:text-zinc-100 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
                             >
                               {exportingId === resume.id ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1206,7 +1169,7 @@ export default function DashboardPage() {
                             <button
                               onClick={() => handleDeleteResume(resume)}
                               title="Delete resume"
-                              className="p-2 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -1226,31 +1189,31 @@ export default function DashboardPage() {
               {/* Header with Sub-tabs */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                     Template &amp; Format Library
                   </h1>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     Industry-calibrated typography, margins, and section designs.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1 bg-[#12141D] p-1 rounded-xl border border-white/[0.08]">
+                <div className="flex items-center gap-1 bg-[#0D0F17] p-1 rounded-xl border border-white/[0.08]">
                   <button
                     onClick={() => setTemplateSubTab('formats')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all cursor-pointer ${
                       templateSubTab === 'formats'
-                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'text-zinc-500 hover:text-white'
+                        ? 'bg-white/[0.08] text-white border border-white/[0.14] font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200 border border-transparent font-medium'
                     }`}
                   >
                     Industry Formats ({systemTemplates.length})
                   </button>
                   <button
                     onClick={() => setTemplateSubTab('saved')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs tracking-wide transition-all cursor-pointer ${
                       templateSubTab === 'saved'
-                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                        : 'text-zinc-500 hover:text-white'
+                        ? 'bg-white/[0.08] text-white border border-white/[0.14] font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200 border border-transparent font-medium'
                     }`}
                   >
                     My Custom Presets ({userTemplates.length})
@@ -1269,13 +1232,9 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={tpl.id}
-                        className={`rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group relative ${
-                          isLocked ? 'border-white/[0.08] opacity-90' : 'hover:border-amber-500/40'
+                        className={`rounded-xl p-5 flex flex-col justify-between transition-all duration-200 group relative border border-white/[0.08] hover:border-white/[0.16] bg-[#0D0F17] hover:bg-[#111420] ${
+                          isLocked ? 'opacity-90' : ''
                         }`}
-                        style={{
-                          background: BRAND_CONFIG.colors.surfaceCard,
-                          border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-                        }}
                       >
                         <div>
                           {/* Format category badge */}
@@ -1295,27 +1254,27 @@ export default function DashboardPage() {
                             </span>
                           </div>
 
-                          <h3 className="font-bold text-base text-zinc-100 group-hover:text-white transition-colors flex items-center gap-2">
+                          <h3 className="font-semibold text-base text-zinc-100 group-hover:text-white transition-colors flex items-center gap-2">
                             <span>{tpl.name}</span>
                             {isLocked && <Lock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />}
                           </h3>
 
-                          <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+                          <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
                             {tpl.description}
                           </p>
 
                           {/* Format Specs Preview */}
-                          <div className="mt-4 p-3 rounded-xl bg-black/40 border border-white/[0.05] space-y-1.5 text-[11px] font-mono text-zinc-500">
+                          <div className="mt-4 p-3 rounded-xl bg-[#090A0F] border border-white/[0.06] space-y-1.5 text-[11px] font-mono text-zinc-400">
                             <div className="flex justify-between">
-                              <span>Font Family:</span>
-                              <span className="text-zinc-100 font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
+                              <span className="text-zinc-500">Font Family:</span>
+                              <span className="text-zinc-200 font-sans">{tpl.settings?.bodyFont?.split(',')[0]}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Target Industry:</span>
-                              <span className="text-zinc-100 font-sans truncate max-w-[130px]">{tpl.category}</span>
+                              <span className="text-zinc-500">Target Industry:</span>
+                              <span className="text-zinc-200 font-sans truncate max-w-[130px]">{tpl.category}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Required Plan:</span>
+                              <span className="text-zinc-500">Required Plan:</span>
                               <span className={`font-semibold ${isPro ? 'text-indigo-400' : isDayPass ? 'text-zinc-300' : 'text-emerald-400'}`}>
                                 {isPro ? 'Pagewise Pro' : isDayPass ? 'Day Pass / Pro' : 'Free Forever'}
                               </span>
@@ -1327,9 +1286,9 @@ export default function DashboardPage() {
                           {isLocked ? (
                             <button
                               onClick={() => setPricingModalOpen(true)}
-                              className="w-full py-2 bg-gradient-to-r from-amber-500/10 to-[#E4E4E7]/20 hover:from-amber-500/20 hover:to-[#E4E4E7]/30 text-zinc-300 border border-[#E4E4E7]/30 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                              className="w-full py-2 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 border border-white/[0.1] rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                             >
-                              <Lock className="w-3.5 h-3.5 text-zinc-300" />
+                              <Lock className="w-3.5 h-3.5 text-zinc-400" />
                               <span>Unlock with {isPro ? 'Pagewise Pro' : 'Wiser Day Pass'}</span>
                             </button>
                           ) : (
@@ -1339,7 +1298,7 @@ export default function DashboardPage() {
                                 setNewResumeName(`${tpl.name} Resume`);
                                 setIsCreateModalOpen(true);
                               }}
-                              className="w-full py-2 bg-white/[0.06] hover:bg-white hover:text-zinc-950 text-zinc-100 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                              className="w-full py-2 bg-white/[0.06] hover:bg-white hover:text-zinc-950 text-zinc-200 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                             >
                               <Plus className="w-3.5 h-3.5" />
                               <span>Use This Architecture</span>
@@ -1359,8 +1318,7 @@ export default function DashboardPage() {
                     <div
                       className="rounded-2xl border border-dashed p-16 text-center"
                       style={{
-                        borderColor: BRAND_CONFIG.colors.borderSubtle,
-                        background: BRAND_CONFIG.colors.surfaceCard,
+                        background: '#0D0F17',
                       }}
                     >
                       <Bookmark className="w-10 h-10 text-amber-500/60 mx-auto mb-3" />
@@ -1377,8 +1335,7 @@ export default function DashboardPage() {
                           key={tpl.id}
                           className="rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:border-amber-500/40"
                           style={{
-                            background: BRAND_CONFIG.colors.surfaceCard,
-                            border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                            background: '#0D0F17',
                           }}
                         >
                           <div>
@@ -1439,10 +1396,10 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                     Exported Resumes Archive
                   </h1>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     Track which job, company, and template each export was built for. Redownload or clean up files.
                   </p>
                 </div>
@@ -1456,8 +1413,7 @@ export default function DashboardPage() {
                 <div
                   className="rounded-2xl border border-dashed p-16 text-center"
                   style={{
-                    borderColor: BRAND_CONFIG.colors.borderSubtle,
-                    background: BRAND_CONFIG.colors.surfaceCard,
+                    background: '#0D0F17',
                   }}
                 >
                   <FileDown className="w-10 h-10 text-zinc-500 mx-auto mb-3" />
@@ -1467,7 +1423,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-2xl overflow-hidden border border-white/[0.07]" style={{ background: BRAND_CONFIG.colors.surfaceCard }}>
+                <div className="rounded-2xl overflow-hidden border border-white/[0.07]" className="bg-[#0D0F17]">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="border-b border-white/[0.08] bg-black/40 text-[10px] font-mono uppercase tracking-wider text-zinc-500">
@@ -1556,25 +1512,25 @@ export default function DashboardPage() {
               {/* Header with Duration Filter */}
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-white/[0.08]">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-zinc-100 tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                     Intelligence &amp; Usage Telemetry
                   </h1>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     Audited resource quotas, billing duration breakdown, and Wiser AI engine telemetry.
                   </p>
                 </div>
 
                 {/* Primary Duration / Billing Cycle Filter */}
-                <div className="flex items-center gap-1.5 bg-[#12141D] p-1.5 rounded-2xl border border-white/[0.08] self-start lg:self-auto overflow-x-auto max-w-full">
+                <div className="flex items-center gap-1 bg-[#0D0F17] p-1 rounded-xl border border-white/[0.08] self-start lg:self-auto overflow-x-auto max-w-full">
                   {BILLING_PERIODS.map((bp) => (
                     <button
                       key={bp.key}
                       onClick={() => handleSelectPeriod(bp.key)}
                       disabled={loadingStats}
-                      className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                         selectedPeriod === bp.key
-                          ? 'bg-amber-500 text-black shadow-lg font-bold'
-                          : 'text-zinc-500 hover:text-white hover:bg-white/[0.04]'
+                          ? 'bg-white/[0.08] text-white border border-white/[0.14] font-semibold shadow-sm'
+                          : 'text-zinc-400 hover:text-zinc-200 border border-transparent font-medium'
                       }`}
                     >
                       {bp.label}
@@ -1587,8 +1543,7 @@ export default function DashboardPage() {
               <div
                 className="rounded-2xl p-6 space-y-6"
                 style={{
-                  background: BRAND_CONFIG.colors.surfaceCard,
-                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                  background: '#0D0F17',
                 }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
@@ -1851,8 +1806,7 @@ export default function DashboardPage() {
                 <div
                   className="rounded-2xl p-6 space-y-5"
                   style={{
-                    background: BRAND_CONFIG.colors.surfaceCard,
-                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                    background: '#0D0F17',
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -1904,8 +1858,7 @@ export default function DashboardPage() {
                 <div
                   className="rounded-2xl p-6 space-y-5"
                   style={{
-                    background: BRAND_CONFIG.colors.surfaceCard,
-                    border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                    background: '#0D0F17',
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -1992,8 +1945,7 @@ export default function DashboardPage() {
               <div
                 className="rounded-2xl p-6 space-y-4"
                 style={{
-                  background: BRAND_CONFIG.colors.surfaceCard,
-                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                  background: '#0D0F17',
                 }}
               >
                 <div className="flex items-center justify-between">
@@ -2037,25 +1989,25 @@ export default function DashboardPage() {
         
           {/* ── 6. PURCHASES & BILLING TAB ────────────────────────────────────────── */}
           {activeTab === 'billing' && (
-            <div className="space-y-8 animate-in fade-in duration-200">
+            <div className="space-y-6 animate-in fade-in duration-200">
               {/* Executive Header */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-white/[0.08]">
                 <div>
                   <span className="text-[11px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
                     Studio Finance &amp; Subscriptions
                   </span>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-100 tracking-tight mt-1 flex items-center gap-2.5">
-                    <CreditCard className="w-7 h-7 text-amber-500" />
+                  <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight mt-1 flex items-center gap-2.5">
+                    <CreditCard className="w-6 h-6 text-[#C88A58]" />
                     <span>Purchases, Subscriptions &amp; Invoices</span>
                   </h1>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     Manage your active subscription tier, track remaining period allocations, and inspect official receipts.
                   </p>
                 </div>
 
                 <button
                   onClick={() => setPricingModalOpen(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-amber-600/20 cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
+                  className="px-4 py-2 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold shadow-sm rounded-xl text-xs transition-all cursor-pointer self-start sm:self-auto flex items-center gap-1.5 active:scale-[0.98]"
                 >
                   <Target className="w-3.5 h-3.5" />
                   <span>{planStatus?.plan_type === 'pro_monthly' ? 'Manage Subscription' : 'Upgrade Plan'}</span>
@@ -2066,8 +2018,7 @@ export default function DashboardPage() {
               <div
                 className="rounded-2xl p-6 space-y-6"
                 style={{
-                  background: BRAND_CONFIG.colors.surfaceCard,
-                  border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
+                  background: '#0D0F17',
                 }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
@@ -2190,6 +2141,7 @@ export default function DashboardPage() {
             </div>
           )}
 
+          </div>
         </main>
       </div>
 
@@ -2216,11 +2168,7 @@ export default function DashboardPage() {
               placeholder="e.g. Senior Backend Engineer - Stripe"
               required
               autoFocus
-              className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-colors"
-              style={{
-                background: BRAND_CONFIG.colors.surfaceCard,
-                border: `1px solid ${BRAND_CONFIG.colors.borderSubtle}`,
-              }}
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white placeholder-zinc-500 bg-[#090A0F] border border-white/[0.08] focus:outline-none focus:border-white/20 transition-colors"
             />
           </div>
 
@@ -2252,14 +2200,11 @@ export default function DashboardPage() {
                     }}
                     className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all relative ${
                       isSelected
-                        ? 'border-amber-500 bg-amber-500/10 shadow-md shadow-amber-500/5'
+                        ? 'border-amber-500/80 bg-amber-500/[0.06] shadow-sm'
                         : isLocked
-                        ? 'border-white/[0.04] bg-white/[0.01] opacity-75 hover:border-white/20'
-                        : 'border-white/[0.08] hover:border-white/20 bg-white/[0.02]'
+                        ? 'border-white/[0.04] bg-white/[0.01] opacity-70 hover:border-white/10'
+                        : 'border-white/[0.08] hover:border-white/20 bg-[#090A0F]'
                     }`}
-                    style={{
-                      background: isSelected ? 'rgba(245, 158, 11, 0.08)' : BRAND_CONFIG.colors.surfaceCard,
-                    }}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="min-w-0 flex-1">
@@ -2316,7 +2261,7 @@ export default function DashboardPage() {
             <button
               type="submit"
               disabled={creatingResume}
-              className="px-4 py-2 bg-white hover:bg-zinc-100 text-zinc-950 font-semibold shadow-sm rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold shadow-sm rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-[0.98]"
             >
               {creatingResume ? (
                 <>

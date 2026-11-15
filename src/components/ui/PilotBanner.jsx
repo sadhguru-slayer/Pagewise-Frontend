@@ -88,21 +88,32 @@ export default function PilotBanner({
     return (
       <>
         <div
-          className={`rounded-xl px-3 py-2 flex items-center justify-between gap-3 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-200 ${className}`}
+          className={`rounded-xl px-3.5 py-2 flex items-center justify-between gap-3 text-xs bg-white/[0.02] border border-white/[0.07] text-zinc-400 ${className}`}
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <Info className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="truncate">
-              <strong className="text-white">Pilot Release:</strong> Build freely till it breaks.
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58] shrink-0" />
+            <span className="truncate text-zinc-300">
+              <strong className="text-white font-medium">Pilot Release:</strong> Build freely &amp; report any bugs.
             </span>
           </div>
-          <button
-            onClick={() => setFeedbackOpen(true)}
-            className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded transition-colors bg-white hover:bg-zinc-100 text-zinc-950 flex items-center gap-1 cursor-pointer shadow-sm"
-          >
-            <MessageSquarePlus className="w-3 h-3" />
-            <span>Give Feedback</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              className="text-[11px] font-medium px-2.5 py-1 rounded-lg text-zinc-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <MessageSquarePlus className="w-3 h-3 text-[#C88A58]" />
+              <span>Feedback</span>
+            </button>
+            {dismissible && (
+              <button
+                onClick={() => setDismissed(true)}
+                className="text-zinc-500 hover:text-zinc-300 p-1 rounded transition-colors cursor-pointer"
+                title="Dismiss banner"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} initialCategory="pilot_feedback" />
       </>

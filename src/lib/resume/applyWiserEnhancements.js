@@ -1,11 +1,16 @@
 import { renderStructuredSectionHtml } from './sectionSchemas.js';
 
-function htmlToText(value) {
+function cleanPointText(value) {
   if (!value) return '';
   return String(value)
+    .replace(/<\/?(strong|b|em|i|u|span)[^>]*>/gi, '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function htmlToText(value) {
+  return cleanPointText(value);
 }
 
 /**
@@ -18,21 +23,17 @@ function extractEnhancedPoints(enhancedHtml) {
   // If there are multiple <li> tags:
   const liMatches = text.match(/<li[^>]*>(.*?)<\/li>/gi);
   if (liMatches && liMatches.length > 0) {
-    return liMatches.map((m) =>
-      m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    ).filter(Boolean);
+    return liMatches.map((m) => cleanPointText(m)).filter(Boolean);
   }
 
   // If there are <p> tags:
   const pMatches = text.match(/<p[^>]*>(.*?)<\/p>/gi);
   if (pMatches && pMatches.length > 1) {
-    return pMatches.map((m) =>
-      m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-    ).filter(Boolean);
+    return pMatches.map((m) => cleanPointText(m)).filter(Boolean);
   }
 
   // Single point
-  const clean = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const clean = cleanPointText(text);
   return clean ? [clean] : [];
 }
 

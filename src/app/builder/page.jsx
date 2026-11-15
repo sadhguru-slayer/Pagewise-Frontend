@@ -555,10 +555,10 @@ function BuilderContent() {
               if (useResumeStore.getState().isDirty) saveResume();
               setIsWiserPanelOpen(!isWiserPanelOpen);
             }}
-            className={`border rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`border rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer relative ${
               isWiserPanelOpen
-                ? "bg-[#C88A58]/25 border-[#C88A58] text-white shadow-sm"
-                : "bg-[#C88A58]/10 hover:bg-[#C88A58]/20 text-[#D49A6A] border-[#C88A58]/25"
+                ? "bg-[#C88A58]/25 border-[#C88A58] text-white shadow-sm ring-1 ring-[#C88A58]/40"
+                : "bg-[#C88A58]/10 hover:bg-[#C88A58]/20 text-[#D49A6A] border-[#C88A58]/25 hover:border-[#C88A58]/40"
             }`}
             title="Toggle Wiser AI: ATS Score, Bullet Polish & Role Alignment Panel"
           >
@@ -917,11 +917,13 @@ function BuilderContent() {
             onMouseDown={startDragLeft}
             onDoubleClick={() => setLeftWidth(310)}
             title="Drag to resize panel (Double-click to reset)"
-            className={`w-1.5 hover:w-2 bg-zinc-900 hover:bg-blue-500 cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group ${
-              isDraggingLeft ? 'bg-blue-500 w-2' : ''
+            className={`w-1.5 hover:w-2 bg-zinc-900 hover:bg-[#C88A58]/80 cursor-col-resize shrink-0 transition-all z-20 flex flex-col items-center justify-center gap-1 group ${
+              isDraggingLeft ? 'bg-[#C88A58] w-2' : ''
             }`}
           >
-            <div className="w-0.5 h-8 bg-zinc-700 group-hover:bg-white rounded-full opacity-60 group-hover:opacity-100" />
+            <div className="w-1 h-1 rounded-full bg-zinc-600 group-hover:bg-white transition-colors" />
+            <div className="w-1 h-1 rounded-full bg-zinc-600 group-hover:bg-white transition-colors" />
+            <div className="w-1 h-1 rounded-full bg-zinc-600 group-hover:bg-white transition-colors" />
           </div>
         )}
 
@@ -958,11 +960,13 @@ function BuilderContent() {
             onMouseDown={startDragEditor}
             onDoubleClick={() => setEditorWidth(440)}
             title="Drag to resize editor & preview (Double-click to reset)"
-            className={`w-1.5 hover:w-2 bg-zinc-900 hover:bg-blue-500 cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group ${
-              isDraggingEditor ? 'bg-blue-500 w-2' : ''
+            className={`w-1.5 hover:w-2 bg-zinc-900 hover:bg-[#C88A58]/80 cursor-col-resize shrink-0 transition-all z-20 flex flex-col items-center justify-center gap-1 group ${
+              isDraggingEditor ? 'bg-[#C88A58] w-2' : ''
             }`}
           >
-            <div className="w-0.5 h-8 bg-zinc-700 group-hover:bg-white rounded-full opacity-60 group-hover:opacity-100" />
+            <div className="w-1 h-1 rounded-full bg-zinc-600 group-hover:bg-white transition-colors" />
+            <div className="w-1 h-1 rounded-full bg-zinc-600 group-hover:bg-white transition-colors" />
+            <div className="w-1 h-1 rounded-full bg-zinc-600 group-hover:bg-white transition-colors" />
           </div>
         )}
 
@@ -1001,7 +1005,7 @@ function BuilderContent() {
             </div>
 
             {/* Preview Workspace */}
-            <div id="preview-panel" tabIndex={-1} className="flex-1 flex flex-col overflow-hidden min-h-0 outline-none">
+            <div id="preview-panel" tabIndex={-1} className="flex-1 flex flex-col overflow-hidden min-h-0 outline-none bg-[#0e1017] bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:16px_16px]">
               <ResumePreview
                 onSelectSection={handleSelectSectionFromPreview}
                 onSelectHeader={handleSelectHeaderFromPreview}

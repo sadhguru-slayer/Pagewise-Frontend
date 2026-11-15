@@ -120,6 +120,7 @@ export const useResumeStore = create(
               ? JSON.parse(resume.jd_analysis_json || '{}')
               : null),
         appliedSuggestionKeys: [],
+        appliedBulletIndexKeys: [],
         isDirty: false,
         lastSaved: resume.updatedAt || resume.updated_at,
       });
@@ -553,18 +554,27 @@ export const useResumeStore = create(
     // ─── AI / JD Suggestions ──────────────────────────────────────────────────
     activeJdAnalysis: null,
     appliedSuggestionKeys: [],
+    appliedBulletIndexKeys: [],
     dismissedSuggestionKeys: [],
     highlightedSectionId: null,
     setHighlightedSectionId: (id) => set({ highlightedSectionId: id }),
     setActiveJdAnalysis: (analysis) =>
-      set({ activeJdAnalysis: analysis, appliedSuggestionKeys: [], dismissedSuggestionKeys: [] }),
-    markSuggestionApplied: (key) =>
+      set((s) => ({
+        activeJdAnalysis: analysis,
+        appliedSuggestionKeys: [],
+        dismissedSuggestionKeys: [],
+        appliedBulletIndexKeys: s.appliedBulletIndexKeys || [],
+      })),
+    markSuggestionApplied: (key, bulletIndexKey) =>
       set((s) => ({
         appliedSuggestionKeys: s.appliedSuggestionKeys?.includes(key)
           ? s.appliedSuggestionKeys
           : [...(s.appliedSuggestionKeys || []), key],
+        appliedBulletIndexKeys: bulletIndexKey && !s.appliedBulletIndexKeys?.includes(bulletIndexKey)
+          ? [...(s.appliedBulletIndexKeys || []), bulletIndexKey]
+          : (s.appliedBulletIndexKeys || []), 
       })),
-    clearAppliedSuggestions: () => set({ appliedSuggestionKeys: [] }),
+    clearAppliedSuggestions: () => set({ appliedSuggestionKeys: [], appliedBulletIndexKeys: [] }),
     dismissSuggestion: (key) =>
       set((s) => ({
         dismissedSuggestionKeys: s.dismissedSuggestionKeys?.includes(key)

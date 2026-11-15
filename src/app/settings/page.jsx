@@ -225,10 +225,10 @@ function SettingsContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#090b13] text-[#e2e8f0] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#090A0F] text-[#EDEDF2] flex flex-col font-sans selection:bg-[#C88A58]/30 selection:text-[#F3D5B5]">
       {/* Top Header */}
-      <header className="border-b border-white/[0.07] bg-[#0c0e17]/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="border-b border-white/[0.08] bg-[#090A0F]/90 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
@@ -260,19 +260,16 @@ function SettingsContent() {
       </header>
 
       {/* Main Settings Body */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-6 sm:px-8 py-7 pb-20">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white tracking-tight">Account &amp; Studio Settings</h1>
-          <p className="text-xs text-[#7E869B] mt-1">
+          <p className="text-xs text-zinc-400 mt-1">
             Centralized hub for your authentication, AI typography rules, quotas, and billing records.
           </p>
         </div>
 
-        {/* Global Pilot Notice */}
-        <PilotBanner variant="card" dismissible={false} className="mb-6" />
-
-        {/* Centralized Navigation Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-8 p-1.5 bg-black/40 rounded-2xl border border-white/[0.06]">
+                {/* Centralized Navigation Tabs */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-7 p-1 bg-[#0D0F17] rounded-xl border border-white/[0.08]">
           {SETTINGS_TABS.map(({ id, label, icon: Icon, description }) => {
             const isActive = activeTab === id;
             return (
@@ -281,8 +278,8 @@ function SettingsContent() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center sm:items-start gap-2.5 p-3 rounded-xl transition-all cursor-pointer text-left ${
                   isActive
-                    ? 'bg-[#181B26] text-white border border-[#C88A58]/35 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent'
+                    ? 'bg-white/[0.08] text-white border border-white/[0.14] font-semibold shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent font-medium'
                 }`}
               >
                 <div
@@ -306,15 +303,15 @@ function SettingsContent() {
         {activeTab === 'profile' && (
           <div className="space-y-6">
             {/* Profile Overview Card */}
-            <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl">
+            <div className="bg-[#0D0F17] border border-white/[0.08] rounded-xl p-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-zinc-700 to-zinc-900 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-zinc-900/40 shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-white text-zinc-950 flex items-center justify-center text-lg font-bold shrink-0 shadow-sm">
                   {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-bold text-white">{user?.name || 'User'}</h2>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400 border border-white/[0.08]">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.04] text-zinc-400 border border-white/[0.08]">
                       @{user?.name || 'user'}
                     </span>
                   </div>
@@ -331,7 +328,7 @@ function SettingsContent() {
             </div>
 
             {/* Change Password Card — Authenticated OTP Flow */}
-            <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-5">
+            <div className="bg-[#0D0F17] border border-white/[0.08] rounded-xl p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
@@ -356,7 +353,7 @@ function SettingsContent() {
 
               {/* STAGE 1: Request OTP */}
               {pwStage === 'INIT' && (
-                <div className="p-5 rounded-xl bg-black/40 border border-white/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="p-5 rounded-xl bg-[#090A0F] border border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                       <Shield className="w-4 h-4 text-amber-400" />
@@ -372,7 +369,7 @@ function SettingsContent() {
                     type="button"
                     onClick={handleRequestProfileOtp}
                     disabled={pwLoading}
-                    className="shrink-0 px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-100 shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer active:scale-[0.98]"
+                    className="shrink-0 px-4 py-2 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-200 shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer active:scale-[0.98]"
                   >
                     {pwLoading ? (
                       <>
@@ -391,7 +388,7 @@ function SettingsContent() {
 
               {/* STAGE 2: Show OTP Form */}
               {pwStage === 'OTP_FORM' && (
-                <form onSubmit={handleVerifyProfileOtp} className="p-5 rounded-xl bg-black/40 border border-amber-500/20 space-y-4 max-w-md">
+                <form onSubmit={handleVerifyProfileOtp} className="p-5 rounded-xl bg-[#090A0F] border border-white/[0.08] space-y-4 max-w-md">
                   <div className="space-y-1">
                     <span className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">
                       Step 2 of 3: Verify Security Code
@@ -411,7 +408,7 @@ function SettingsContent() {
                       placeholder="123456"
                       required
                       autoFocus
-                      className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/[0.12] rounded-xl text-base tracking-[0.3em] font-mono font-bold text-amber-400 placeholder-[#7E869B] focus:outline-none focus:border-amber-500 transition-all text-center"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#0D0F17] border border-white/[0.08] rounded-xl text-base tracking-[0.3em] font-mono font-bold text-amber-400 placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all text-center"
                     />
                   </div>
 
@@ -459,7 +456,7 @@ function SettingsContent() {
 
               {/* STAGE 3: Show New Password Form */}
               {pwStage === 'NEW_PW_FORM' && (
-                <form onSubmit={handleResetProfilePassword} className="p-5 rounded-xl bg-black/40 border border-emerald-500/20 space-y-4 max-w-md">
+                <form onSubmit={handleResetProfilePassword} className="p-5 rounded-xl bg-[#090A0F] border border-white/[0.08] space-y-4 max-w-md">
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>Identity verified. Enter your new account password below.</span>
@@ -476,7 +473,7 @@ function SettingsContent() {
                         placeholder="••••••••"
                         required
                         autoFocus
-                        className="w-full pl-10 pr-4 py-2 bg-[#090b13] border border-white/[0.08] focus:border-amber-500 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
+                        className="w-full pl-10 pr-4 py-2 bg-[#0D0F17] border border-white/[0.08] focus:border-white/20 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -491,7 +488,7 @@ function SettingsContent() {
                         onChange={(e) => setProfileConfirmPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="w-full pl-10 pr-4 py-2 bg-[#090b13] border border-white/[0.08] focus:border-amber-500 rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
+                        className="w-full pl-10 pr-4 py-2 bg-[#0D0F17] border border-white/[0.08] focus:border-white/20 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -527,7 +524,7 @@ function SettingsContent() {
             </div>
 
             {/* Danger Zone */}
-            <div className="bg-rose-950/15 border border-rose-500/20 rounded-2xl p-6 shadow-xl space-y-3">
+            <div className="bg-[#0D0F17] border border-rose-500/20 rounded-xl p-6 space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
                 <span>Danger Zone</span>
@@ -569,7 +566,7 @@ function SettingsContent() {
         {/* TAB 2: Studio & AI Preferences */}
         {activeTab === 'preferences' && (
           <div className="space-y-6">
-            <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-5">
+            <div className="bg-[#0D0F17] border border-white/[0.08] rounded-xl p-6 space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -583,7 +580,7 @@ function SettingsContent() {
               </div>
 
               {/* Bold Texts Option (Default TRUE) */}
-              <div className="flex items-start justify-between gap-4 p-5 rounded-xl bg-black/40 border border-white/[0.05]">
+              <div className="flex items-start justify-between gap-4 p-5 rounded-xl bg-[#090A0F] border border-white/[0.06]">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-white">
@@ -612,7 +609,7 @@ function SettingsContent() {
 
               {/* Formatting Feature Callouts */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                <div className="p-4 rounded-xl bg-[#090A0F] border border-white/[0.06]">
                   <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
                     <Check className="w-3.5 h-3.5 text-[#D49A6A]" />
                     <span>Single-Page Intelligent Spacing</span>
@@ -622,7 +619,7 @@ function SettingsContent() {
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                <div className="p-4 rounded-xl bg-[#090A0F] border border-white/[0.06]">
                   <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
                     <Check className="w-3.5 h-3.5 text-[#D49A6A]" />
                     <span>ATS Canonical Tags</span>
@@ -639,7 +636,7 @@ function SettingsContent() {
         {/* TAB 3: Plan & Quotas */}
         {activeTab === 'subscription' && (
           <div className="space-y-6">
-            <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-5">
+            <div className="bg-[#0D0F17] border border-white/[0.08] rounded-xl p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-white/[0.06]">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 font-bold">
@@ -659,7 +656,7 @@ function SettingsContent() {
                 </div>
                 <button
                   onClick={() => setPricingOpen(true)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-200 shadow-sm transition cursor-pointer active:scale-[0.98]"
                 >
                   {planStatus?.plan_type === 'pro_monthly' ? 'Manage Plan' : 'Upgrade Plan'}
                 </button>
@@ -673,14 +670,14 @@ function SettingsContent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {/* Resumes */}
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                  <div className="p-3.5 rounded-xl bg-[#090A0F] border border-white/[0.06]">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">Resume Workspaces</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.active_resumes || 0} / {planStatus?.limits?.resumes ?? 1}
                       </span>
                     </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                       <div
                         className="h-full bg-amber-500 rounded-full"
                         style={{
@@ -697,14 +694,14 @@ function SettingsContent() {
                   </div>
 
                   {/* Exports */}
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                  <div className="p-3.5 rounded-xl bg-[#090A0F] border border-white/[0.06]">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">Exports (Current Period)</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.exports_used || 0} / {planStatus?.limits?.exports ?? 1}
                       </span>
                     </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                       <div
                         className="h-full bg-emerald-500 rounded-full"
                         style={{
@@ -721,14 +718,14 @@ function SettingsContent() {
                   </div>
 
                   {/* Wiser Job Help */}
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                  <div className="p-3.5 rounded-xl bg-[#090A0F] border border-white/[0.06]">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">Wiser Job Help (JD Analyses)</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.wiser_job_help_used || 0} / {planStatus?.limits?.wiser_job_help ?? 1}
                       </span>
                     </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                       <div
                         className="h-full bg-indigo-500 rounded-full"
                         style={{
@@ -745,14 +742,14 @@ function SettingsContent() {
                   </div>
 
                   {/* Wiser ATS checks */}
-                  <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-white/[0.05]">
+                  <div className="p-3.5 rounded-xl bg-[#090A0F] border border-white/[0.06]">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">Wiser ATS Audits</span>
                       <span className="font-mono font-semibold text-white">
                         {planStatus?.usage?.wiser_ats_used || 0} / {planStatus?.limits?.wiser_ats ?? 1}
                       </span>
                     </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="mt-2 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                       <div
                         className="h-full bg-sky-500 rounded-full"
                         style={{
@@ -799,7 +796,7 @@ export default function SettingsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#090b13] flex items-center justify-center text-zinc-400">
+        <div className="min-h-screen bg-[#090A0F] flex items-center justify-center text-zinc-400">
           <Loader2 className="w-6 h-6 animate-spin text-[#D49A6A]" />
         </div>
       }

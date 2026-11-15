@@ -97,8 +97,8 @@ export default function SectionListItem({
         border transition-all select-none
         ${
           isActive
-            ? "bg-white/[0.08] border-accent/50"
-            : "bg-transparent border-transparent hover:bg-white/[0.04] hover:border-white/10"
+            ? "bg-[#C88A58]/15 border-l-2 border-l-[#C88A58] border-white/10 shadow-sm"
+            : "bg-transparent border-l-2 border-l-transparent border-transparent hover:bg-white/[0.04] hover:border-white/10"
         }
       `}
     >

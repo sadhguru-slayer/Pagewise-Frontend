@@ -4,171 +4,51 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { BRAND_CONFIG, BrandLockup } from '@/lib/brand';
-import PilotBanner from '@/components/ui/PilotBanner';
 import { RESUME_TEMPLATES as builtInTemplates } from '@/lib/resume/templates';
 import {
-  FileText,
   ArrowRight,
-  Menu,
-  X,
-  CheckCircle2,
-  Download,
-  FileCode,
-  Layout,
-  ShieldCheck,
-  Zap,
-  Sliders,
-  Check,
-  Target,
-  Split,
   ChevronDown,
   ArrowUpRight,
-  Eye,
-  FileDown,
-  Layers,
-  Sparkles,
-  Lock,
-  AlertTriangle,
-  ArrowDownToLine,
-  CheckCircle,
-  FileCheck,
-  Cpu,
-  Printer,
-  MousePointerClick,
+  Check,
 } from 'lucide-react';
 
-// ─── Curated FAQ Items ────────────────────────────────────────────────────────
 const FAQS = [
   {
-    q: 'Does PageWise charge a subscription fee when I click Download?',
-    a: 'No. Both print-calibrated A4 PDF export and native Microsoft Word (.docx) export are fully available in your workspace without surprise paywalls, watermark traps, or hidden checkout screens.',
+    q: 'Is export really free?',
+    a: 'Yes. You can download print-ready vector A4 PDFs and native Microsoft Word (.docx) files without payment gates, watermark traps, or surprise checkout screens.',
   },
   {
-    q: 'Will my exported PDF look exactly like the preview on my screen?',
-    a: 'Yes. PageWise renders exported PDFs using an isolated, print-calibrated A4 layout engine. Your typography, millimeter margins, rules, and line wraps match pixel-for-pixel between the visual editor and your downloaded document.',
+    q: 'Will the exported file match what I see on screen?',
+    a: 'Yes. The editor enforces exact A4 page geometry with millimeter margins. The preview reflects your actual print boundaries, so lines and pages don’t shift when downloaded.',
   },
   {
-    q: 'How does Wiser AI improve my resume without fabricating facts?',
-    a: 'Wiser operates under a strict factual reliability policy. It never manufactures unearned achievements, company names, or quantitative metrics. Instead, it strengthens active phrasing, clarifies engineering scope, and highlights missing industry competencies for you to verify.',
-  },
-  {
-    q: 'Can I maintain different resumes for different job applications?',
-    a: 'Yes. PageWise supports career asset branching. You maintain a single canonical Master Resume with your complete career history, and branch customized copies tailored to specific job listings without losing or overwriting your original accomplishments.',
-  },
-  {
-    q: 'Are my career documents and personal data kept private?',
-    a: 'Absolutely. We prioritize local-first state handling and client-side document processing. Your data is never sold to third-party recruiters or used to train public machine learning models.',
-  },
-];
-
-// ─── Comparison: PageWise vs Traditional Builders ───────────────────────────
-const COMPARISONS = [
-  {
-    feature: 'Page Geometry & Pagination',
-    pagewise: 'Real-time A4 sheet boundaries with millimeter margin control — zero surprise page breaks',
-    others: 'Distorted web previews; single orphan lines pushed onto an unwanted second page',
-  },
-  {
-    feature: 'AI Writing & Suggestions',
-    pagewise: 'Grounded, evidence-checked phrasing with explicit confirmation prompts for metrics',
-    others: 'Fabricated numbers, generic buzzwords ("spearheaded visionary synergy"), and robotic phrasing',
-  },
-  {
-    feature: 'Export Formats',
-    pagewise: 'True vector print-calibrated A4 PDF and native, editable Microsoft Word (.docx)',
-    others: 'Low-res raster screenshots, broken Word conversions, or paywalled download buttons',
-  },
-  {
-    feature: 'Version Management',
-    pagewise: 'Master career repository with 1-click job-targeted branches',
-    others: 'Overwrites existing resume; forces you to start over for each application',
-  },
-  {
-    feature: 'ATS Parsing Readiness',
-    pagewise: 'Calibrated standard typography, compliant UTF-8 bullet markers, and clean headings',
-    others: 'Complex CSS tables and non-standard layout containers that crash corporate parsers',
-  },
-];
-
-// ─── Precision Proof Metrics ─────────────────────────────────────────────────
-const METRICS = [
-  {
-    value: '0',
-    label: 'Surprise Paywalls',
-    detail: 'Full PDF & Word export available free in your workspace',
-    icon: ShieldCheck,
-  },
-  {
-    value: '14mm',
-    label: 'Calibrated A4 Margins',
-    detail: 'Print-exact page boundaries down to the millimeter',
-    icon: Layout,
-  },
-  {
-    value: '99.4%',
-    label: 'ATS Parse Rate',
-    detail: 'Engineered for human reviewers and automated parsers',
-    icon: FileCheck,
-  },
-  {
-    value: '2 Native',
-    label: 'Dual Export Formats',
-    detail: 'Print-ready Vector PDF & editable Word (.docx)',
-    icon: Download,
+    q: 'How does Wiser AI improve bullets without making things up?',
+    a: 'Wiser operates under a strict truthful policy: it never manufactures fake companies, revenue numbers, or unearned achievements. If a bullet is already well phrased and effective, it leaves it alone.',
   },
 ];
 
 export default function LandingPage() {
   const { isAuthenticated, user } = useAuth();
-  const [activePreviewTab, setActivePreviewTab] = useState('editor'); // 'editor' | 'ai' | 'export'
   const [openFaqIdx, setOpenFaqIdx] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#08090D] text-[#EDEDF2] flex flex-col font-sans selection:bg-[#C88A58]/30 selection:text-[#F3D5B5]">
-      {/* ─── Top Pilot Announcement ─── */}
-      <PilotBanner variant="topbar" />
-
-      {/* ─── Navigation Bar ─── */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#08090D]/85 border-b border-white/[0.08] transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Brand */}
-          <Link href="/" className="group flex items-center">
-            <BrandLockup size={26} showTagline={false} />
+    <div className="min-h-screen bg-[#090a0f] text-[#EDEDF2] flex flex-col font-sans selection:bg-[#C88A58]/30 selection:text-[#F3D5B5]">
+      {/* ─── Minimal Header ─── */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#090a0f]/90 border-b border-white/[0.06]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <BrandLockup size={24} showTagline={false} />
           </Link>
 
-          {/* Centered Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-zinc-400">
-            <a href="#studio" className="hover:text-white transition-colors">
-              Studio
-            </a>
-            <a href="#metrics" className="hover:text-white transition-colors">
-              Precision
-            </a>
-            <a href="#craft" className="hover:text-white transition-colors">
-              Craft &amp; Accuracy
-            </a>
-            <a href="#templates" className="hover:text-white transition-colors">
-              Typography
-            </a>
-            <a href="#comparison" className="hover:text-white transition-colors">
-              Why PageWise
-            </a>
-            <a href="#faq" className="hover:text-white transition-colors">
-              FAQ
-            </a>
-          </nav>
-
-          {/* Actions & Mobile Hamburger */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <div className="flex items-center gap-2.5">
-                <span className="hidden lg:inline-block text-xs font-medium text-zinc-400">
-                  Signed in as <span className="text-white font-semibold">{user?.name?.split(' ')[0] || 'Member'}</span>
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:inline-block text-xs text-zinc-400">
+                  {user?.name?.split(' ')[0] || 'Member'}
                 </span>
                 <Link
                   href="/dashboard"
-                  className="py-2 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
+                  className="py-2 px-3.5 rounded-lg text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-200 transition-all inline-flex items-center gap-1.5"
                 >
                   <span>Open Studio</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -178,751 +58,237 @@ export default function LandingPage() {
               <>
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex py-2 px-3 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all"
+                  className="text-xs text-zinc-400 hover:text-white transition-colors px-2 py-1"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="py-2 px-4 rounded-xl text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-100 transition-all inline-flex items-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
+                  className="py-1.5 px-3.5 rounded-lg text-xs font-semibold bg-white text-zinc-950 hover:bg-zinc-200 transition-all inline-flex items-center gap-1"
                 >
                   <span>Start Free</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3 h-3" />
                 </Link>
               </>
             )}
-
-            {/* Mobile Hamburger Toggle Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-zinc-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
-              aria-label="Toggle navigation menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
-
-        {/* Mobile Dropdown Nav Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/[0.08] bg-[#0c0d15] px-4 py-4 space-y-3 shadow-2xl">
-            <div className="grid grid-cols-2 gap-2 text-xs font-medium">
-              <a
-                href="#studio"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-              >
-                Studio Canvas
-              </a>
-              <a
-                href="#metrics"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-              >
-                Precision Standards
-              </a>
-              <a
-                href="#craft"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-              >
-                Craft &amp; Accuracy
-              </a>
-              <a
-                href="#templates"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-              >
-                Typography
-              </a>
-              <a
-                href="#comparison"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-              >
-                Why PageWise
-              </a>
-              <a
-                href="#faq"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg text-zinc-300 hover:text-white hover:bg-white/[0.05] transition-colors"
-              >
-                FAQ
-              </a>
-            </div>
-
-            <div className="pt-2 border-t border-white/[0.08] flex items-center gap-2">
-              {!isAuthenticated ? (
-                <>
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 py-2.5 text-center text-xs font-medium text-zinc-300 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded-xl transition"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/register"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition shadow-sm"
-                  >
-                    Get Started Free
-                  </Link>
-                </>
-              ) : (
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 text-center text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-100 rounded-xl transition shadow-sm"
-                >
-                  Go to Dashboard
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
       </header>
 
-      {/* ─── HERO SECTION ─── */}
-      <section className="relative pt-16 sm:pt-24 pb-16 overflow-hidden">
-        {/* Subtle Warm Amber Atmospheric Glow */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] blur-[170px] rounded-full pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle, rgba(200, 138, 88, 0.14) 0%, rgba(16, 185, 129, 0.03) 50%, transparent 100%)',
-          }}
-        />
+      {/* ─── Hero ─── */}
+      <section className="pt-20 pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
+        <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-[1.12]">
+          Write your resume.{' '}
+          <span className="text-zinc-400 font-normal block sm:inline">
+            Export clean PDF or Word.
+          </span>
+        </h1>
 
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          {/* Refined Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C88A58]/10 border border-[#C88A58]/25 text-xs text-[#F3D5B5] font-medium mb-6 backdrop-blur-md shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58] animate-pulse" />
-            <span>Designed for professionals who value typographic precision</span>
-          </div>
+        <p className="mt-5 text-sm sm:text-base text-zinc-400 max-w-xl mx-auto leading-relaxed">
+          Real A4 page layout, grounded bullet upgrades that don’t invent facts, and instant export without watermark traps or subscriptions.
+        </p>
 
-          {/* Headline */}
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.08] max-w-4xl mx-auto">
-            The resume studio{' '}
-            <span className="block mt-1 bg-gradient-to-r from-[#FFFFFF] via-[#F3D5B5] to-[#C88A58] bg-clip-text text-transparent">
-              engineered for craft.
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="mt-6 text-sm sm:text-base lg:text-lg text-[#8E94A5] max-w-2xl mx-auto leading-relaxed font-normal">
-            A distraction-free visual workspace with real-time A4 page geometry, grounded AI bullet refinements that never invent facts, and pixel-perfect PDF and Word export.
-          </p>
-
-          {/* Action CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-            <Link
-              href={isAuthenticated ? '/dashboard' : '/register'}
-              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-lg shadow-white/5 inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <span>{isAuthenticated ? 'Open Studio Workspace' : 'Start Drafting — It’s Free'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <a
-              href="#studio"
-              className="w-full sm:w-auto py-3.5 px-6 rounded-xl font-medium text-sm text-[#EDEDF2] hover:bg-white/[0.06] border border-white/[0.08] inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Eye className="w-4 h-4 text-[#C88A58]" />
-              <span>Explore Studio Preview</span>
-            </a>
-          </div>
-
-          {/* Calm trust strip */}
-          <p className="mt-5 text-xs text-[#6F768A] font-mono">
-            Zero surprise download paywalls • Print-calibrated A4 layout • Private local-first storage
-          </p>
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <Link
+            href={isAuthenticated ? '/dashboard' : '/register'}
+            className="py-3 px-6 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-200 shadow-md transition-all inline-flex items-center gap-2 active:scale-[0.98]"
+          >
+            <span>{isAuthenticated ? 'Open Studio Workspace' : 'Start Building Free'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            href="/builder"
+            className="py-3 px-5 rounded-xl font-medium text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-white/[0.08] transition-all"
+          >
+            Open Live Canvas
+          </Link>
         </div>
 
-        {/* ─── LIVE STUDIO INTERACTIVE SHOWCASE ─── */}
-        <div id="studio" className="mt-14 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
-          {/* Preview Navigation Tabs */}
-          <div className="flex items-center justify-center sm:justify-start gap-1 p-1 mb-3 rounded-2xl bg-[#0D0E14] border border-white/[0.07] max-w-fit mx-auto sm:mx-0 overflow-x-auto shadow-sm">
-            {[
-              { id: 'editor', label: '1. Visual A4 Canvas', icon: Layout },
-              { id: 'ai', label: '2. Grounded AI Writing', icon: Zap },
-              { id: 'export', label: '3. Dual PDF & Word Export', icon: Download },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activePreviewTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActivePreviewTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
-                    isActive
-                      ? 'bg-[#C88A58]/15 text-[#F3D5B5] border border-[#C88A58]/35 shadow-sm'
-                      : 'text-[#8E94A5] hover:text-white hover:bg-white/[0.03]'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+        <p className="mt-4 text-xs text-zinc-500 font-mono">
+          Free export • Calibrated A4 margins • Zero paywalls
+        </p>
+      </section>
 
-          {/* Studio Container Shell */}
-          <div className="rounded-2xl border shadow-2xl overflow-hidden backdrop-blur-xl bg-[#0F1117] border-white/[0.08]">
-            {/* Top Workspace Bar */}
-            <div className="px-4 py-3 bg-[#0B0C11] border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                </div>
-                <div className="h-4 w-px bg-white/[0.08] hidden sm:block" />
-                <span className="font-mono text-zinc-300 font-medium">
-                  Alexander Vance — Senior Systems Architect
-                </span>
+      {/* ─── Clean Product Preview ─── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-20">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#0d0f17] p-2 sm:p-4 shadow-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            {/* Left: Editor snippet */}
+            <div className="md:col-span-5 p-4 rounded-xl bg-[#111420] border border-white/[0.05] space-y-3 text-left">
+              <div className="flex items-center justify-between text-xs pb-2 border-b border-white/[0.06]">
+                <span className="font-semibold text-zinc-200">Experience Editor</span>
+                <span className="font-mono text-[10px] text-zinc-500">Georgia • 10pt</span>
               </div>
-
-              <div className="flex items-center gap-2 text-[11px] font-mono">
-                <span className="px-2 py-0.5 rounded bg-white/[0.04] text-[#8E94A5] border border-white/[0.06]">
-                  Sheet 1 of 1 (Calibrated A4)
+              <div className="p-3 rounded-lg bg-black/40 border border-white/[0.04] space-y-1.5 text-xs">
+                <div className="flex justify-between font-bold text-white text-[11px]">
+                  <span>Lead Systems Architect</span>
+                  <span className="text-[#C88A58] font-mono">Apex Labs</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  • Engineered event streaming pipeline in Go &amp; Kafka, processing 1.2B daily messages at &lt;18ms p99 latency.
+                </p>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  • Directed multi-region cloud disaster recovery protocol across AWS and GCP, maintaining 99.995% SLA.
+                </p>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono pt-1">
+                <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <Check className="w-3 h-3" /> Factual scope verified
                 </span>
-                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                  0 Overflow
-                </span>
-                <span className="px-2 py-0.5 rounded bg-[#C88A58]/10 text-[#F3D5B5] border border-[#C88A58]/25 font-medium">
-                  PDF &amp; DOCX Ready
-                </span>
+                <span>14mm Margins</span>
               </div>
             </div>
 
-            {/* View 1: Visual A4 Canvas */}
-            {activePreviewTab === 'editor' && (
-              <div className="grid grid-cols-1 md:grid-cols-12 min-h-[480px]">
-                {/* Left: Editor Panel */}
-                <div className="col-span-12 md:col-span-5 p-5 bg-[#0C0E14] border-r border-white/[0.06] flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] text-xs">
-                      <span className="font-semibold text-white flex items-center gap-1.5">
-                        <Sliders className="w-3.5 h-3.5 text-[#C88A58]" />
-                        <span>Experience Editor</span>
-                      </span>
-                      <span className="font-mono text-[10px] text-[#8E94A5]">
-                        Georgia • 10.5pt
-                      </span>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] text-xs space-y-2">
-                      <div className="flex justify-between font-bold text-white">
-                        <span>Lead Distributed Systems Architect</span>
-                        <span className="text-[#C88A58] font-mono text-[11px]">Apex Labs</span>
-                      </div>
-                      <p className="text-[11px] text-zinc-300 leading-relaxed">
-                        • Engineered high-throughput event streaming pipeline in Go &amp; Kafka, processing <strong className="text-white">1.2B daily messages</strong> at &lt;18ms p99 latency.
-                      </p>
-                      <p className="text-[11px] text-zinc-300 leading-relaxed">
-                        • Spearheaded multi-region cloud disaster recovery protocol across AWS and GCP, maintaining <strong className="text-white">99.995% SLA</strong>.
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-[11px] text-[#8E94A5] space-y-1">
-                      <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-[10px] uppercase font-mono">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Factual Accuracy Check</span>
-                      </div>
-                      <p>All metrics and technical claims match your candidate profile.</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-[#8E94A5] font-mono">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      14mm Margins Calibrated
-                    </span>
-                    <span className="text-emerald-400 font-medium">Page 1 Fits Perfectly</span>
-                  </div>
-                </div>
-
-                {/* Right: Rendered A4 Sheet Preview */}
-                <div className="col-span-12 md:col-span-7 p-6 bg-[#14161F] flex items-center justify-center overflow-hidden">
-                  <div className="w-full max-w-md bg-white text-zinc-900 p-6 rounded-lg shadow-2xl text-[10px] font-sans scale-[0.98] transition-transform border border-zinc-200">
-                    {/* Header */}
-                    <div className="text-center pb-2.5 mb-2.5 border-b border-zinc-300">
-                      <h2 className="text-base font-extrabold text-zinc-900 tracking-tight font-serif">ALEXANDER VANCE</h2>
-                      <p className="text-[9px] text-zinc-600 mt-0.5">
-                        San Francisco, CA • alex.vance@work.io • +1 (415) 890-1234 • github.com/avance
-                      </p>
-                    </div>
-
-                    {/* Summary */}
-                    <div className="mb-2.5">
-                      <h3 className="text-[10px] font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-300 pb-0.5 mb-1">
-                        Executive Summary
-                      </h3>
-                      <p className="text-[9px] text-zinc-700 leading-relaxed">
-                        Systems architect with 8+ years specializing in distributed consensus protocols, resilient cloud primitives, and cloud-native Kubernetes infrastructure.
-                      </p>
-                    </div>
-
-                    {/* Experience */}
-                    <div className="mb-2.5">
-                      <h3 className="text-[10px] font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-300 pb-0.5 mb-1">
-                        Work Experience
-                      </h3>
-                      <div className="flex justify-between font-bold text-zinc-800 text-[9px]">
-                        <span>Lead Distributed Systems Architect — Apex Labs</span>
-                        <span className="text-zinc-500 font-normal">2022 – Present</span>
-                      </div>
-                      <p className="text-[8.5px] text-zinc-600 mt-0.5">
-                        • Engineered high-throughput event streaming pipeline in Go &amp; Kafka, processing 1.2B daily messages at &lt;18ms p99 latency.
-                      </p>
-                      <p className="text-[8.5px] text-zinc-600">
-                        • Directed zero-downtime failover across multi-region clusters, achieving 99.995% SLA.
-                      </p>
-                    </div>
-
-                    {/* Skills */}
-                    <div>
-                      <h3 className="text-[10px] font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-300 pb-0.5 mb-1">
-                        Technical Competencies
-                      </h3>
-                      <p className="text-[8.5px] text-zinc-700">
-                        <strong className="text-zinc-900">Languages &amp; Runtimes:</strong> Go, Rust, TypeScript, Python, C++
-                      </p>
-                      <p className="text-[8.5px] text-zinc-700">
-                        <strong className="text-zinc-900">Platforms:</strong> Kubernetes, Kafka, gRPC, PostgreSQL, Redis, AWS
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* View 2: Grounded AI Writing */}
-            {activePreviewTab === 'ai' && (
-              <div className="p-6 sm:p-8 space-y-6 bg-[#0C0E14]">
-                <div className="max-w-2xl">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#C88A58] font-semibold">
-                    Evidence-Based AI Polish
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mt-1">
-                    Defensible Phrasing. Zero Hallucinations.
-                  </h3>
-                  <p className="text-xs text-[#8E94A5] mt-1 leading-relaxed">
-                    Wiser AI improves your bullet points using the actual scope of your work, rather than generating robotic corporate buzzwords or fabricating unverified metrics.
+            {/* Right: Rendered A4 Sheet preview */}
+            <div className="md:col-span-7 bg-[#161822] p-4 sm:p-6 rounded-xl flex justify-center">
+              <div className="w-full max-w-sm bg-white text-zinc-900 p-5 rounded shadow-lg text-[9px] font-sans border border-zinc-200 text-left">
+                <div className="text-center pb-2 mb-2 border-b border-zinc-300">
+                  <h2 className="text-sm font-bold text-zinc-900 tracking-tight font-serif">ALEXANDER VANCE</h2>
+                  <p className="text-[8px] text-zinc-600 mt-0.5">
+                    San Francisco, CA • alex.vance@work.io • +1 (415) 890-1234
                   </p>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
-                  {/* Unrefined bullet */}
-                  <div className="p-5 rounded-xl bg-black/40 border border-white/[0.06] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase text-zinc-500 font-semibold">
-                        Original Draft (Vague)
-                      </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
-                        Passive Voice
-                      </span>
-                    </div>
-                    <p className="text-zinc-400 italic leading-relaxed text-[11px] line-through">
-                      &quot;Responsible for database caching and helped improve query speed across the backend API.&quot;
-                    </p>
-                    <p className="text-[11px] text-[#6F768A]">
-                      Lacks technical specificity, individual ownership, and concrete engineering outcome.
-                    </p>
-                  </div>
-
-                  {/* Refined bullet */}
-                  <div className="p-5 rounded-xl bg-[#111420] border border-[#C88A58]/35 space-y-3 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase text-[#C88A58] font-semibold flex items-center gap-1.5">
-                        <Zap className="w-3 h-3 text-[#C88A58]" />
-                        <span>Wiser Recommended Upgrade</span>
-                      </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-                        ✓ Source Verified
-                      </span>
-                    </div>
-                    <p className="text-white leading-relaxed text-[11px]">
-                      &quot;Architected distributed query caching layer using Redis, reducing API p95 response time from 180ms to 42ms.&quot;
-                    </p>
-                    <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-                      <span className="text-[10px] text-[#8E94A5]">
-                        Clear technical action + measurable outcome
-                      </span>
-                      <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                        <ArrowDownToLine className="w-3 h-3" />
-                        <span>Apply at Cursor</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* View 3: Dual PDF & Word Export */}
-            {activePreviewTab === 'export' && (
-              <div className="p-6 sm:p-8 space-y-6 bg-[#0C0E14]">
-                <div className="max-w-2xl">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#C88A58] font-semibold">
-                    Dual Export Pipeline
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-bold text-white mt-1">
-                    Print-Calibrated Vector PDF &amp; Native Word DOCX
+                <div className="mb-2">
+                  <h3 className="text-[9px] font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-200 pb-0.5 mb-1 font-serif">
+                    Experience
                   </h3>
-                  <p className="text-xs text-[#8E94A5] mt-1 leading-relaxed">
-                    Export high-definition PDFs for direct application, or clean Microsoft Word documents for corporate recruiters who need editable files.
+                  <div className="flex justify-between font-bold text-zinc-800 text-[8.5px]">
+                    <span>Lead Systems Architect — Apex Labs</span>
+                    <span className="text-zinc-500 font-normal">2022 – Present</span>
+                  </div>
+                  <p className="text-[8px] text-zinc-600 mt-0.5">
+                    • Engineered event streaming pipeline in Go &amp; Kafka, processing 1.2B daily messages at &lt;18ms latency.
+                  </p>
+                  <p className="text-[8px] text-zinc-600">
+                    • Directed multi-region disaster recovery protocol across AWS and GCP, maintaining 99.995% SLA.
                   </p>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="p-5 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-4 hover:border-white/[0.12] transition-colors">
-                    <div className="w-10 h-10 rounded-xl bg-[#C88A58]/10 border border-[#C88A58]/20 text-[#C88A58] flex items-center justify-center shrink-0">
-                      <FileDown className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-white">Print-Calibrated A4 PDF</h4>
-                      <p className="text-xs text-[#8E94A5] mt-1 leading-relaxed">
-                        Rendered with exact typography rendering and vector borders. No browser print clipping or unintended page overflow.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-4 hover:border-white/[0.12] transition-colors">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                      <FileCode className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-white">Native Microsoft Word (.docx)</h4>
-                      <p className="text-xs text-[#8E94A5] mt-1 leading-relaxed">
-                        True document headings, clean bullet points, and tabbed dates. Fully editable for legacy corporate recruiter systems.
-                      </p>
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="text-[9px] font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-200 pb-0.5 mb-1 font-serif">
+                    Technical Stack
+                  </h3>
+                  <p className="text-[8px] text-zinc-700">
+                    Go, Rust, TypeScript, Python, Kubernetes, Kafka, PostgreSQL, Redis, AWS
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── NEW: PRECISION PROOF METRICS BAND ─── */}
-      <section id="metrics" className="py-12 border-y border-white/[0.06] bg-[#07080C] relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            {METRICS.map((metric) => {
-              const Icon = metric.icon;
-              return (
-                <div
-                  key={metric.label}
-                  className="p-5 rounded-2xl bg-white/[0.015] border border-white/[0.05] hover:border-[#C88A58]/25 transition-all group"
-                >
-                  <div className="flex items-center gap-2 mb-2 text-[#C88A58]">
-                    <Icon className="w-4 h-4 opacity-80 group-hover:opacity-100 transition-opacity" />
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-                      Standard
-                    </span>
-                  </div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                    {metric.value}
-                  </div>
-                  <div className="text-xs font-semibold text-zinc-200 mt-1">
-                    {metric.label}
-                  </div>
-                  <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">
-                    {metric.detail}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 4 PILLARS OF CRAFT ─── */}
-      <section id="craft" className="py-20 bg-[#090A0F]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[#C88A58] font-bold">
-              Engineering Craft
-            </span>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Built for people who care about details.
-            </h2>
-            <p className="mt-3 text-xs sm:text-sm text-[#8E94A5] leading-relaxed">
-              Most resume tools rely on distorted web previews and lock your downloads behind surprise subscriptions. PageWise is designed as a professional desktop-grade studio.
+      {/* ─── 3 Clear Essentials ─── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-14 border-t border-white/[0.06] w-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-white">Print-exact A4 layout</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              What you see in the editor matches your downloaded PDF. No surprise second-page overflows, awkward line wraps, or margin shifting.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Pillar 1 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-[#C88A58]/35 transition-all space-y-3 group">
-              <div className="w-10 h-10 rounded-xl bg-[#C88A58]/10 text-[#C88A58] flex items-center justify-center transition-transform group-hover:scale-105">
-                <Layout className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-sm text-white">Millimeter-Accurate A4</h3>
-              <p className="text-xs text-[#8E94A5] leading-relaxed">
-                See exact sheet boundaries while editing. Fine-tune margins, section spacing, and font sizes down to the half-point so your resume never spills over.
-              </p>
-            </div>
-
-            {/* Pillar 2 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-emerald-500/35 transition-all space-y-3 group">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center transition-transform group-hover:scale-105">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-sm text-white">Grounded Writing Policy</h3>
-              <p className="text-xs text-[#8E94A5] leading-relaxed">
-                Wiser AI never manufactures fake achievements or numbers. It polishes grammar, strengthens active phrasing, and prompts you to confirm your actual metrics.
-              </p>
-            </div>
-
-            {/* Pillar 3 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-sky-500/35 transition-all space-y-3 group">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center transition-transform group-hover:scale-105">
-                <Download className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-sm text-white">Dual Native Export</h3>
-              <p className="text-xs text-[#8E94A5] leading-relaxed">
-                Download print-ready vector PDFs and fully formatted Microsoft Word (.docx) documents. Free in your workspace without payment gates.
-              </p>
-            </div>
-
-            {/* Pillar 4 */}
-            <div className="p-6 rounded-2xl bg-[#0E1017] border border-white/[0.06] hover:border-purple-500/35 transition-all space-y-3 group">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center transition-transform group-hover:scale-105">
-                <Split className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-sm text-white">Master &amp; Targeted Branches</h3>
-              <p className="text-xs text-[#8E94A5] leading-relaxed">
-                Maintain a canonical master resume with your full history. Branch role-specific copies linked to job descriptions without overwriting your master achievements.
-              </p>
-            </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-white">Grounded AI upgrades</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Wiser AI clarifies your engineering outcomes without fabricating fake numbers, fake companies, or buzzwords. If a bullet is already good, it leaves it alone.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-white">Free PDF &amp; Word export</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Export high-resolution vector PDF and native Microsoft Word (.docx) files directly. No watermark traps or subscription walls.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ─── CURATED TYPOGRAPHY TEMPLATES ─── */}
-      <section id="templates" className="py-20 border-t border-white/[0.06] bg-[#08090D]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14">
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#C88A58] font-bold">
-                Typographic Formats
-              </span>
-              <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                Designed to pass the human eye and parser tests.
-              </h2>
-              <p className="mt-2 text-xs sm:text-sm text-[#8E94A5] max-w-xl">
-                Every format in PageWise is typeset with balanced font pairings, clear structural hierarchy, and readable line heights.
-              </p>
-            </div>
-
-            <Link
-              href={isAuthenticated ? '/dashboard' : '/register'}
-              className="text-xs text-[#C88A58] hover:text-[#F3D5B5] font-semibold inline-flex items-center gap-1 self-start md:self-auto cursor-pointer transition-colors"
-            >
-              <span>Explore all templates in Studio</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+      {/* ─── Curated Formats ─── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-14 border-t border-white/[0.06] w-full">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-lg font-bold text-white tracking-tight">Curated Typography Formats</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">Typeset with balanced font pairings and clear visual hierarchy.</p>
           </div>
+          <Link
+            href={isAuthenticated ? '/dashboard' : '/register'}
+            className="text-xs text-[#D49A6A] hover:underline font-medium inline-flex items-center gap-1"
+          >
+            <span>Browse all</span>
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {builtInTemplates.slice(0, 4).map((tpl) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {builtInTemplates.slice(0, 4).map((tpl) => (
+            <div
+              key={tpl.id}
+              className="p-4 rounded-xl border border-white/[0.06] bg-[#0d0f17] flex flex-col justify-between hover:border-white/[0.15] transition-all text-left"
+            >
+              <div className="space-y-2">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                  {tpl.tag || 'Standard'}
+                </span>
+                <h3 className="text-sm font-semibold text-white">{tpl.name}</h3>
+                <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                  {tpl.description}
+                </p>
+              </div>
+
+              <div className="pt-4 mt-3 border-t border-white/[0.04]">
+                <Link
+                  href={isAuthenticated ? '/dashboard' : '/register'}
+                  className="text-xs text-zinc-300 hover:text-white font-medium inline-flex items-center gap-1 transition-colors"
+                >
+                  <span>Use format</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── Minimal FAQ ─── */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-14 border-t border-white/[0.06] w-full">
+        <h2 className="text-lg font-bold text-white text-center mb-6">Frequently Asked Questions</h2>
+        <div className="space-y-2.5">
+          {FAQS.map((faq, idx) => {
+            const isOpen = openFaqIdx === idx;
+            return (
               <div
-                key={tpl.id}
-                className="rounded-2xl p-5 border border-white/[0.06] bg-[#0E1017] flex flex-col justify-between hover:border-[#C88A58]/35 transition-all group shadow-sm"
+                key={faq.q}
+                className="rounded-xl border border-white/[0.06] bg-[#0d0f17] overflow-hidden text-left"
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-[10px] font-mono">
-                    <span className="px-2 py-0.5 rounded bg-[#C88A58]/10 text-[#F3D5B5] border border-[#C88A58]/20 font-semibold uppercase">
-                      {tpl.tag || 'Standard'}
-                    </span>
-                    <span className="text-[#6F768A]">
-                      {tpl.settings?.bodyFont?.split(',')[0]}
-                    </span>
-                  </div>
-
-                  <h3 className="font-bold text-sm text-white group-hover:text-[#F3D5B5] transition-colors">
-                    {tpl.name}
-                  </h3>
-                  <p className="text-xs text-[#8E94A5] line-clamp-2 leading-relaxed">
-                    {tpl.description}
-                  </p>
-
-                  {/* Specimen strip */}
-                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.04] text-[10px] space-y-1 font-mono text-zinc-400">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500">Header:</span>
-                      <span className="text-zinc-300 capitalize">{tpl.header?.alignment || 'Left'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500">Target Role:</span>
-                      <span className="text-zinc-300 truncate max-w-[130px]">{tpl.category?.split(',')[0]}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-white/[0.05]">
-                  <Link
-                    href={isAuthenticated ? '/dashboard' : '/register'}
-                    className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white/[0.05] hover:bg-white text-zinc-300 hover:text-zinc-950 border border-white/[0.08] transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
-                  >
-                    <span>Use in Studio</span>
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── HONEST COMPARISON ─── */}
-      <section id="comparison" className="py-20 border-t border-white/[0.06] bg-[#090A0F]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[#C88A58] font-bold">
-              Transparent Craft
-            </span>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Why professionals switch to PageWise.
-            </h2>
-            <p className="mt-2 text-xs sm:text-sm text-[#8E94A5]">
-              No hidden paywalls when you click download. No hallucinated AI claims.
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto rounded-2xl border border-white/[0.06] overflow-hidden bg-[#0D0F15] shadow-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-white/[0.06] bg-[#08090D] text-[10px] font-mono uppercase tracking-wider text-[#8E94A5]">
-                  <tr>
-                    <th className="py-4 px-5">Standard</th>
-                    <th className="py-4 px-5 text-[#F3D5B5] bg-[#C88A58]/10 font-bold border-x border-[#C88A58]/20">
-                      PageWise Studio
-                    </th>
-                    <th className="py-4 px-5">Generic Resume Generators</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {COMPARISONS.map((row) => (
-                    <tr key={row.feature} className="hover:bg-white/[0.015] transition-colors">
-                      <td className="py-4 px-5 font-semibold text-white">{row.feature}</td>
-                      <td className="py-4 px-5 font-medium text-emerald-300 bg-[#C88A58]/5 border-x border-[#C88A58]/15">
-                        <div className="flex items-start gap-1.5">
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                          <span>{row.pagewise}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-5 text-[#8E94A5]">{row.others}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FAQ ─── */}
-      <section id="faq" className="py-20 border-t border-white/[0.06] bg-[#08090D]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-[#C88A58] font-bold">
-              Common Questions
-            </span>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Frequently Asked Questions
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            {FAQS.map((faq, idx) => {
-              const isOpen = openFaqIdx === idx;
-              return (
-                <div
-                  key={faq.q}
-                  className="rounded-xl border border-white/[0.06] bg-[#0D0F15] transition-all overflow-hidden"
+                <button
+                  onClick={() => setOpenFaqIdx(isOpen ? null : idx)}
+                  className="w-full py-3.5 px-4 flex items-center justify-between text-xs sm:text-sm font-medium text-white hover:text-[#F3D5B5] transition-colors cursor-pointer"
                 >
-                  <button
-                    onClick={() => setOpenFaqIdx(isOpen ? null : idx)}
-                    className="w-full py-4 px-5 flex items-center justify-between text-left text-xs sm:text-sm font-semibold text-white hover:text-[#F3D5B5] transition-colors cursor-pointer"
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-[#8E94A5] transition-transform duration-200 shrink-0 ml-3 ${
-                        isOpen ? 'rotate-180 text-[#C88A58]' : ''
-                      }`}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div className="px-5 pb-4 text-xs text-[#8E94A5] leading-relaxed border-t border-white/[0.04] pt-3">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  <span>{faq.q}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 shrink-0 ml-2 ${
+                      isOpen ? 'rotate-180 text-[#C88A58]' : ''
+                    }`}
+                  />
+                </button>
+                {isOpen && (
+                  <div className="px-4 pb-3.5 text-xs text-zinc-400 leading-relaxed border-t border-white/[0.04] pt-2.5">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* ─── BOTTOM CTA ─── */}
-      <section className="py-24 border-t border-white/[0.06] relative overflow-hidden text-center bg-[#090A0F]">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle at 50% 50%, rgba(200, 138, 88, 0.12) 0%, transparent 65%)',
-          }}
-        />
-
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-4">
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            Stop fighting rigid templates.
-            <span className="block mt-1 text-[#F3D5B5]">Start drafting with precision.</span>
-          </h2>
-
-          <p className="text-xs sm:text-sm text-[#8E94A5] max-w-lg mx-auto leading-relaxed">
-            Create clean, calibrated resumes that stand out to human reviewers and parse cleanly across applicant tracking systems.
-          </p>
-
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href={isAuthenticated ? '/dashboard' : '/register'}
-              className="w-full sm:w-auto py-3.5 px-8 rounded-xl font-semibold text-sm bg-white text-zinc-950 hover:bg-zinc-100 shadow-lg shadow-white/5 inline-flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <span>{isAuthenticated ? 'Open Studio Workspace' : 'Start Drafting Free'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <p className="text-[11px] text-[#6F768A] font-mono pt-2">
-            Free forever tier • Vector PDF &amp; Word DOCX included • No credit card required
-          </p>
-        </div>
-      </section>
-
-      {/* ─── FOOTER ─── */}
-      <footer className="border-t border-white/[0.06] py-10 bg-[#06070A] text-xs text-[#6F768A]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <BrandLockup size={22} showTagline={false} />
-            <span className="text-[#2A2E3D] hidden sm:inline">•</span>
-            <span className="text-[11px] text-[#8E94A5]">
-              Resume Craft with Precision
-            </span>
-          </div>
-
-          <div className="flex items-center gap-5 text-[11px] font-mono flex-wrap justify-center">
-            <a
-              href="mailto:pagewises@gmail.com?subject=PageWise%20Feedback"
-              className="text-[#C88A58] hover:text-[#F3D5B5] transition-colors hover:underline"
-            >
+      {/* ─── Footer ─── */}
+      <footer className="mt-auto border-t border-white/[0.06] py-8 text-xs text-zinc-500">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <BrandLockup size={20} showTagline={false} />
+          <div className="flex items-center gap-4 text-[11px] font-mono">
+            <a href="mailto:pagewises@gmail.com" className="hover:text-zinc-300 transition-colors">
               pagewises@gmail.com
             </a>
-            <span className="text-[#2A2E3D]">•</span>
-            <span>Studio Engine v2.5</span>
-            <span className="text-[#2A2E3D]">•</span>
+            <span>•</span>
             <p>© {new Date().getFullYear()} {BRAND_CONFIG.name}. All rights reserved.</p>
           </div>
         </div>

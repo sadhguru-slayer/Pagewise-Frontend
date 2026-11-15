@@ -41,26 +41,26 @@ export default function BillingHistoryCard({ user, onUpgradeClick }) {
   }, [loadHistory]);
 
   return (
-    <div className="bg-[#111420] border border-white/[0.07] rounded-2xl p-6 shadow-xl space-y-5">
+    <div className="bg-[#0D0F17] border border-white/[0.08] rounded-xl p-6 space-y-5">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.06]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
         <div>
-          <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 font-semibold">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#C88A58] font-semibold">
             Transaction Ledger
           </span>
           <h3 className="text-base font-bold text-white flex items-center gap-2 mt-0.5">
-            <Receipt className="w-4 h-4 text-amber-400" />
+            <Receipt className="w-4 h-4 text-[#C88A58]" />
             <span>Purchases, Bills &amp; Invoices</span>
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            View, download, and print official tax receipts for all your PageWise Studio purchases.
+            View, download, and print official tax receipts for all your Resumo Studio purchases.
           </p>
         </div>
 
         <button
           onClick={loadHistory}
           disabled={loading}
-          className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white border border-white/[0.06] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+          className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white border border-white/[0.08] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
@@ -70,12 +70,12 @@ export default function BillingHistoryCard({ user, onUpgradeClick }) {
       {/* Orders Table */}
       {loading ? (
         <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-500">
-          <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+          <Loader2 className="w-5 h-5 animate-spin text-[#C88A58]" />
           <span className="text-xs font-mono">Loading purchase history...</span>
         </div>
       ) : orders.length === 0 ? (
-        <div className="py-12 px-4 rounded-xl bg-black/30 border border-white/[0.05] text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400">
+        <div className="py-12 px-4 rounded-xl bg-[#090A0F] border border-white/[0.06] text-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-[#C88A58]">
             <CreditCard className="w-6 h-6" />
           </div>
           <div className="space-y-1">
@@ -87,17 +87,17 @@ export default function BillingHistoryCard({ user, onUpgradeClick }) {
           {onUpgradeClick && (
             <button
               onClick={onUpgradeClick}
-              className="mt-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg shadow-amber-600/20 cursor-pointer"
+              className="mt-2 px-4 py-2 rounded-xl text-xs font-semibold text-zinc-950 bg-white hover:bg-zinc-200 transition-all shadow-sm cursor-pointer active:scale-[0.98]"
             >
               Explore Upgrades
             </button>
           )}
         </div>
       ) : (
-        <div className="rounded-xl border border-white/[0.07] overflow-hidden bg-black/20">
+        <div className="rounded-xl border border-white/[0.08] overflow-hidden bg-[#090A0F]">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-white/[0.02] border-b border-white/[0.06] text-[10px] uppercase tracking-wider text-zinc-400 font-mono">
+              <thead className="bg-[#111420] border-b border-white/[0.08] text-[10px] uppercase tracking-wider text-zinc-400 font-mono">
                 <tr>
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Invoice #</th>
