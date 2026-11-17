@@ -13,7 +13,6 @@ import {
   ChevronDown,
   ArrowUpRight,
   Check,
-  Sparkles,
   Layers,
   Search,
   Download,
@@ -100,7 +99,7 @@ export default function LandingPage() {
       {/* ─── Hero Section ─── */}
       <section className="pt-20 pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C88A58]/10 border border-[#C88A58]/25 text-[#D49A6A] text-xs font-mono mb-6">
-          <Sparkles className="w-3.5 h-3.5" /> Early Pilot Program Active · ₹0 Full Access
+          <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58] inline-block animate-pulse" /> Early Pilot Program Active · ₹0 Full Access
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-[1.12]">
@@ -302,7 +301,7 @@ export default function LandingPage() {
 
           <div className="p-5 rounded-2xl border border-white/[0.06] bg-[#0d0f17] space-y-2.5">
             <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-amber-400">
-              <Sparkles className="w-4 h-4" />
+              <Zap className="w-4 h-4" />
             </div>
             <h3 className="text-sm font-semibold text-white">Grounded Wiser AI</h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
@@ -382,7 +381,7 @@ export default function LandingPage() {
       <section id="pricing" className="max-w-6xl mx-auto px-4 sm:px-6 py-20 border-t border-white/[0.06] w-full">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C88A58]/10 border border-[#C88A58]/20 text-[#D49A6A] text-[11px] font-mono mb-4">
-            <Sparkles className="w-3 h-3" /> Transparent, Fair Pricing
+            <Shield className="w-3.5 h-3.5" /> Transparent, Fair Pricing
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             Plans built for every stage of your search

@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Search,
   Tag,
-  Sparkles,
   Calendar,
 } from 'lucide-react';
 

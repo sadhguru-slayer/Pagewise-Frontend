@@ -2,7 +2,7 @@ import Link from 'next/link';
 import SiteHeader from '@/components/layout/SiteHeader';
 import SiteFooter from '@/components/layout/SiteFooter';
 import { DEFAULT_PLANS } from '@/lib/plans';
-import { Check, Sparkles, Shield, ArrowRight, HelpCircle } from 'lucide-react';
+import { Check, Shield, ArrowRight, HelpCircle, BadgeCheck } from 'lucide-react';
 
 export const metadata = {
   title: 'Transparent Pricing — Zero Hidden Paywalls, Free Forever Tier',
@@ -40,7 +40,7 @@ export default function PricingPage() {
       {/* Hero */}
       <section className="pt-20 pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C88A58]/10 border border-[#C88A58]/25 text-[#D49A6A] text-xs font-mono mb-4">
-          <Sparkles className="w-3.5 h-3.5" /> Fair &amp; Transparent
+          <BadgeCheck className="w-3.5 h-3.5" /> Fair &amp; Transparent
         </div>
         <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-[1.12]">
           Simple, honest pricing.{' '}

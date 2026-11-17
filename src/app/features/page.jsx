@@ -4,7 +4,6 @@ import SiteFooter from '@/components/layout/SiteFooter';
 import {
   FileText,
   Search,
-  Sparkles,
   Download,
   Layers,
   ShieldCheck,
@@ -50,7 +49,7 @@ export default function FeaturesPage() {
       ],
     },
     {
-      icon: Sparkles,
+      icon: Zap,
       tag: 'Truthful Intelligence',
       title: 'Wiser AI: Grounded Evidence-First Polisher',
       desc: 'Generic AI chatbots hallucinate fake metric gains (e.g. "boosted revenue by 400% on day one"). Wiser operates under a strict factual integrity rule: it sharpens action scope and eliminates passive fluff without inventing numbers.',

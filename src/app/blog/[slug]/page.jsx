@@ -8,7 +8,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
-  Sparkles,
+  Zap,
 } from 'lucide-react';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://pagewise.sadguruchenu.in';
@@ -187,7 +187,7 @@ export default async function BlogPostDetailPage({ params }) {
         {/* Embedded PageWise Action Card */}
         <div className="mt-16 p-8 rounded-2xl bg-gradient-to-b from-[#141624] to-[#0c0e15] border border-[#C88A58]/30 shadow-xl space-y-4">
           <div className="flex items-center gap-2 text-xs font-mono text-[#D49A6A]">
-            <Sparkles className="w-4 h-4" /> Try It In The Live Canvas
+            <Zap className="w-4 h-4" /> Try It In The Live Canvas
           </div>
           <h3 className="text-xl font-bold text-white tracking-tight">
             Apply these principles to your own resume in PageWise Studio

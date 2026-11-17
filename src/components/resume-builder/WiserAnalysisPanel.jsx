@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Target,
-  Sparkles,
+  Zap,
+  CheckCircle,
   CheckCircle2,
   AlertTriangle,
   Loader2,
@@ -13,7 +14,6 @@ import {
   ChevronDown,
   ChevronUp,
   FileSearch,
-  Zap,
   ArrowRight,
   Briefcase,
   Layers,
@@ -519,7 +519,7 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
             </>
           ) : (
             <>
-              <Sparkles className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5" />
               <span>{score !== null ? 'Re-Analyze with Wiser' : 'Analyze Resume'}</span>
             </>
           )}
@@ -807,7 +807,7 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
                                     </span>
                                   ) : (
                                     <span className="text-[10px] font-medium text-[#F3D5B5] flex items-center gap-1.5 bg-[#C88A58]/15 px-2 py-0.5 rounded-lg border border-[#C88A58]/30">
-                                      <Sparkles className="w-3 h-3 text-[#D49A6A]" />
+                                      <Zap className="w-3 h-3 text-[#D49A6A]" />
                                       <span>Upgrade Recommendation</span>
                                     </span>
                                   )}
@@ -850,7 +850,7 @@ export default function WiserAnalysisPanel({ onClose, isLocked = false }) {
                                 {/* Upgraded text block (clean emerald container) */}
                                 <div className="bg-emerald-500/[0.07] rounded-xl p-2.5 border border-emerald-500/25 space-y-1">
                                   <div className="text-[9px] font-mono text-emerald-400 uppercase tracking-wider font-semibold flex items-center gap-1">
-                                    <Sparkles className="w-2.5 h-2.5" />
+                                    <CheckCircle className="w-2.5 h-2.5" />
                                     <span>Suggested Upgrade</span>
                                   </div>
                                   <div

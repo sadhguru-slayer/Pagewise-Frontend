@@ -32,7 +32,6 @@ import {
   CreditCard,
   Check,
   Sliders,
-  Sparkles,
   Zap,
   ExternalLink,
   ChevronRight,

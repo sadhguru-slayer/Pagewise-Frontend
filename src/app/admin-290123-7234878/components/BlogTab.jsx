@@ -21,7 +21,6 @@ import {
   ArrowLeft,
   Calendar,
   Clock,
-  Sparkles,
   ExternalLink,
   Bold,
   Italic,

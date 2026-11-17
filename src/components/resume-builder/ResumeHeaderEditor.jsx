@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useResumeStore } from "@/lib/resume/store";
 import { FONT_OPTIONS } from "@/lib/resume/templates";
-import { Code, Eye, Sparkles } from "lucide-react";
+import { Code, Eye } from "lucide-react";
 
 const inputClass =
   "bg-[#1a1d28] border border-white/10 text-white rounded-lg px-2.5 py-1.5 text-xs w-full focus:outline-none focus:border-white/30 transition-colors";

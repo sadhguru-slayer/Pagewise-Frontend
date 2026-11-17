@@ -7,7 +7,6 @@ import {
   FileText,
   Sliders,
   CheckCircle2,
-  Sparkles,
   ShieldCheck,
   FileDown,
   Layers,
