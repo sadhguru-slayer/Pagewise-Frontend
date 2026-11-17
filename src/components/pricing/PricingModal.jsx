@@ -9,28 +9,6 @@ import { useAuth } from '@/lib/auth-context';
 
 export const PLANS = [
   {
-    id: 'pilot',
-    name: 'PageWise Pilot',
-    tagline: 'All premium capabilities unlocked during our early pilot program',
-    price: '₹0',
-    period: 'Pilot Access (Free)',
-    badge: 'Early Pilot Active',
-    badgeColor: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-    buttonText: 'Current Active Plan',
-    popular: true,
-    features: [
-      '20 resume workspaces',
-      'Unlimited manual editing',
-      '100 exports per month',
-      '50 Wiser Job Help analyses',
-      '50 Wiser ATS evaluations',
-      '30 custom templates',
-      'All premium layout architectures unlocked',
-      'AI improvement suggestions and instant application',
-      'Early Pilot Access (No payment required)'
-    ]
-  },
-  {
     id: 'free',
     name: 'Pagewise Free',
     tagline: 'Essential resume building forever',

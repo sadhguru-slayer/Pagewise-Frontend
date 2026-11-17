@@ -99,7 +99,7 @@ export default function LandingPage() {
       {/* ─── Hero Section ─── */}
       <section className="pt-20 pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C88A58]/10 border border-[#C88A58]/25 text-[#D49A6A] text-xs font-mono mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58] inline-block animate-pulse" /> Early Pilot Program Active · ₹0 Full Access
+          <span className="w-1.5 h-1.5 rounded-full bg-[#C88A58] inline-block animate-pulse" /> Free Vector PDF &amp; Word (.docx) Export · Zero Watermarks
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-[1.12]">
@@ -600,14 +600,14 @@ export default function LandingPage() {
             Ready to build an industrial-grade resume?
           </h2>
           <p className="mt-3 text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto">
-            Take full advantage of our early pilot program. Clean exports, deep ATS scoring, zero surprises.
+            Design pixel-calibrated resumes with millimeter margins. Clean vector exports, deep ATS scoring, zero surprises.
           </p>
           <div className="mt-6 flex justify-center">
             <Link
               href={isAuthenticated ? '/dashboard' : '/register'}
               className="py-3 px-6 rounded-xl font-semibold text-xs bg-white text-zinc-950 hover:bg-zinc-200 transition-all inline-flex items-center gap-2 shadow-lg"
             >
-              <span>{isAuthenticated ? 'Open Studio Workspace' : 'Claim Free Pilot Access'}</span>
+              <span>{isAuthenticated ? 'Open Studio Workspace' : 'Get Started Free'}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

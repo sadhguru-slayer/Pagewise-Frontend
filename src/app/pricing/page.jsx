@@ -1,31 +1,58 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SiteHeader from '@/components/layout/SiteHeader';
 import SiteFooter from '@/components/layout/SiteFooter';
 import { DEFAULT_PLANS } from '@/lib/plans';
+import { paymentsApi } from '@/lib/api';
 import { Check, Shield, ArrowRight, HelpCircle, BadgeCheck } from 'lucide-react';
 
-export const metadata = {
-  title: 'Transparent Pricing — Zero Hidden Paywalls, Free Forever Tier',
-  description:
-    'Honest, transparent pricing for PageWise Studio. Export vector PDFs and native Microsoft Word resumes without watermarks. Upgrade for deep Wiser AI evaluations and multiple resumes.',
-  alternates: {
-    canonical: '/pricing',
-  },
-};
-
 export default function PricingPage() {
+  const [plans, setPlans] = useState(DEFAULT_PLANS);
+
+  useEffect(() => {
+    paymentsApi
+      .getPublicPlans()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const formatted = data.map((t) => ({
+            id: t.tier_key,
+            name: t.name,
+            tagline: t.tagline || '',
+            price: t.discount_price_inr === 0 ? '₹0' : `₹${t.discount_price_inr}`,
+            period: t.billing_period_text || (t.duration_days ? `for ${t.duration_days} days` : 'forever'),
+            badge: t.badge || '',
+            badgeColor:
+              t.tier_key === 'pro_monthly'
+                ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                : t.tier_key === 'day_pass'
+                ? 'bg-[#C88A58]/10 text-[#D49A6A] border-[#C88A58]/25'
+                : 'bg-white/[0.04] text-[#8E94A5] border-white/[0.08]',
+            popular: t.tier_key === 'pro_monthly',
+            buttonText: t.tier_key === 'pro_monthly' ? 'Upgrade to Pro' : t.tier_key === 'day_pass' ? 'Get 24h Day Pass' : 'Current Free Tier',
+            features: t.features || [],
+          }));
+          setPlans(formatted);
+        }
+      })
+      .catch((err) => {
+        console.warn('Falling back to static plans:', err);
+      });
+  }, []);
+
   const faqs = [
     {
       q: 'Is vector PDF and Word (.docx) export really free?',
       a: 'Yes. You can draft your complete resume, format it with our calibrated templates, and export high-resolution vector A4 PDFs and Microsoft Word files without entering credit card details or encountering watermarks.',
     },
     {
-      q: 'What is the early PageWise Pilot program?',
-      a: 'During our current pilot phase, all registered accounts receive our top-tier capabilities (up to 20 workspaces, 100 exports/month, and 50 Wiser Job Help analyses) free of charge as we gather telemetry and feedback.',
-    },
-    {
       q: 'What is the Wiser Day Pass?',
       a: 'The Day Pass (₹49 for 24 hours) is designed for candidates with an immediate application deadline who need quick ATS evaluations and a few tailored exports without committing to an ongoing subscription.',
+    },
+    {
+      q: 'Can I cancel or change my plan anytime?',
+      a: 'Yes. All subscriptions can be managed from your account dashboard with instant effect. There are no lock-in contracts or cancellation penalties.',
     },
     {
       q: 'Will you ever hold my resume hostage?',
@@ -55,30 +82,24 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-20 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-          {DEFAULT_PLANS.map((plan) => {
-            const isPilot = plan.id === 'pilot';
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+          {plans.map((plan) => {
             const isPro = plan.id === 'pro_monthly';
-            const isDayPass = plan.id === 'day_pass';
 
             return (
               <div
                 key={plan.id}
                 className={`rounded-2xl p-6 flex flex-col justify-between transition-all relative ${
-                  isPilot
-                    ? 'bg-gradient-to-b from-[#181a24] to-[#0d0f17] border-2 border-amber-500/40 shadow-xl shadow-amber-500/5'
-                    : isPro
-                    ? 'bg-[#0f111a] border border-indigo-500/30 shadow-lg'
+                  isPro
+                    ? 'bg-[#0f111a] border-2 border-indigo-500/40 shadow-xl shadow-indigo-500/5'
                     : 'bg-[#0d0f17] border border-white/[0.06] hover:border-white/[0.12]'
                 }`}
               >
                 {/* Badge */}
                 {plan.badge && (
-                  <div className="mb-3">
+                  <div className="absolute -top-3 left-6">
                     <span
-                      className={`inline-block text-[10px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                        plan.badgeColor || 'bg-white/[0.04] text-zinc-400 border-white/[0.08]'
-                      }`}
+                      className={`text-[11px] font-mono font-medium px-2.5 py-0.5 rounded-full border ${plan.badgeColor}`}
                     >
                       {plan.badge}
                     </span>
@@ -86,48 +107,42 @@ export default function PricingPage() {
                 )}
 
                 <div>
-                  <h2 className="text-lg font-bold text-white tracking-tight">{plan.name}</h2>
-                  <p className="text-xs text-zinc-400 mt-1 min-h-[32px] leading-relaxed">
-                    {plan.tagline}
-                  </p>
-
-                  {/* Price */}
-                  <div className="mt-5 pb-5 border-b border-white/[0.06]">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                        {plan.price}
-                      </span>
-                      <span className="text-xs text-zinc-400 font-mono">
-                        {plan.period}
-                      </span>
-                    </div>
+                  <div className="mt-1">
+                    <h2 className="text-lg font-bold text-white tracking-tight">{plan.name}</h2>
+                    <p className="text-xs text-zinc-400 mt-1 min-h-[32px] leading-relaxed">
+                      {plan.tagline}
+                    </p>
                   </div>
 
-                  {/* Features */}
-                  <ul className="mt-5 space-y-2.5 text-xs text-zinc-300">
-                    {plan.features.map((feat, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-2">
-                        <Check className="w-3.5 h-3.5 text-[#C88A58] shrink-0 mt-0.5" />
-                        <span className="leading-snug">{feat}</span>
+                  <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-baseline gap-1.5">
+                    <span className="text-3xl font-extrabold text-white tracking-tight">
+                      {plan.price}
+                    </span>
+                    <span className="text-xs text-zinc-400 font-mono">
+                      {plan.period}
+                    </span>
+                  </div>
+
+                  <ul className="mt-6 space-y-2.5 text-xs text-zinc-300">
+                    {plan.features.map((feat, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#C88A58] shrink-0 mt-0.5" />
+                        <span className="leading-relaxed">{feat}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-white/[0.04]">
+                <div className="mt-8 pt-6 border-t border-white/[0.06]">
                   <Link
                     href="/register"
-                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${
-                      isPilot
-                        ? 'bg-amber-400 text-zinc-950 hover:bg-amber-300 font-bold shadow-md'
-                        : isPro
-                        ? 'bg-white text-zinc-950 hover:bg-zinc-200 shadow'
-                        : isDayPass
-                        ? 'bg-[#C88A58] text-white hover:bg-[#B87A47]'
-                        : 'bg-white/[0.06] text-white hover:bg-white/[0.12] border border-white/[0.08]'
+                    className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                      isPro
+                        ? 'bg-gradient-to-r from-[#D49A6A] to-[#C88A58] text-[#090A0F] hover:brightness-110 shadow-lg shadow-[#C88A58]/20'
+                        : 'bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/[0.08]'
                     }`}
                   >
-                    <span>{plan.buttonText || 'Get Started'}</span>
+                    <span>{plan.buttonText}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -155,7 +170,7 @@ export default function PricingPage() {
             href="/register"
             className="text-xs text-[#D49A6A] hover:underline font-mono shrink-0"
           >
-            Claim Free Pilot →
+            Start Free Forever →
           </Link>
         </div>
       </section>
