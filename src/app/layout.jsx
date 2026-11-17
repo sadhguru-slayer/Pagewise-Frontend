@@ -20,7 +20,7 @@ const newsreader = Newsreader({
   variable: '--font-newsreader',
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://resumo.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://pagewise.sadguruchenu.in';
 
 export const metadata = {
   metadataBase: new URL(APP_URL),

@@ -1,10 +1,20 @@
 export default function robots() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://resumo.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pagewise.sadguruchenu.in';
   return {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
+        allow: [
+          '/',
+          '/features',
+          '/pricing',
+          '/blog',
+          '/blog/*',
+          '/about',
+          '/contact',
+          '/login',
+          '/register',
+        ],
         disallow: [
           '/api/',
           '/builder/',
@@ -15,7 +25,17 @@ export default function robots() {
       },
       {
         userAgent: 'Googlebot',
-        allow: '/',
+        allow: [
+          '/',
+          '/features',
+          '/pricing',
+          '/blog',
+          '/blog/*',
+          '/about',
+          '/contact',
+          '/login',
+          '/register',
+        ],
         disallow: [
           '/api/',
           '/builder/',

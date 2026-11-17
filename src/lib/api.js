@@ -532,6 +532,10 @@ export const paymentsApi = {
     return fetchApi('/payments/config');
   },
 
+  async getPublicPlans() {
+    return fetchApi('/payments/public-plans');
+  },
+
   async getPlans() {
     return fetchApi('/payments/plans');
   },
@@ -826,4 +830,66 @@ export const feedbackApi = {
     return fetchApi('/feedback/my');
   },
 };
+
+// ─── Blog API (Public & Admin) ──────────────────────────────────────────────
+export const blogsApi = {
+  // Public
+  async list({ page = 1, limit = 9, tag = null, q = null } = {}) {
+    const params = new URLSearchParams();
+    if (page) params.set('page', page);
+    if (limit) params.set('limit', limit);
+    if (tag) params.set('tag', tag);
+    if (q) params.set('q', q);
+    return fetchApi(`/blogs?${params.toString()}`);
+  },
+
+  async getBySlug(slug) {
+    return fetchApi(`/blogs/${slug}`);
+  },
+
+  async getPopularTags() {
+    return fetchApi('/blogs/tags/popular');
+  },
+
+  // Admin
+  async adminList({ page = 1, limit = 20, q = null, status_filter = null } = {}) {
+    const params = new URLSearchParams();
+    if (page) params.set('page', page);
+    if (limit) params.set('limit', limit);
+    if (q) params.set('q', q);
+    if (status_filter) params.set('status_filter', status_filter);
+    return fetchAdminApi(`/blogs/admin/all?${params.toString()}`);
+  },
+
+  async adminGet(id) {
+    return fetchAdminApi(`/blogs/admin/${id}`);
+  },
+
+  async adminCreate(payload) {
+    return fetchAdminApi('/blogs/admin', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async adminUpdate(id, payload) {
+    return fetchAdminApi(`/blogs/admin/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async adminTogglePublish(id) {
+    return fetchAdminApi(`/blogs/admin/${id}/toggle-publish`, {
+      method: 'POST',
+    });
+  },
+
+  async adminDelete(id) {
+    return fetchAdminApi(`/blogs/admin/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 

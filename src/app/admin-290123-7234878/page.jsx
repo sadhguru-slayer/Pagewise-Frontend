@@ -52,6 +52,7 @@ import SubscriptionsTab from './components/SubscriptionsTab';
 import TemplatesTab from './components/TemplatesTab';
 import AIUsageTab from './components/AIUsageTab';
 import SectionMakerTab from './components/SectionMakerTab';
+import BlogTab from './components/BlogTab';
 
 export default function AdminPage() {
   const [adminUser, setAdminUser] = useState(null);
@@ -1105,6 +1106,19 @@ export default function AdminPage() {
               </button>
 
               <button
+                onClick={() => setActiveTab('blogs')}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
+                  activeTab === 'blogs'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                }`}
+                title="Editorial & Blog Articles"
+              >
+                <FileText className="w-4 h-4 shrink-0 text-amber-400" />
+                {!sidebarCollapsed && <span>Editorial &amp; Blogs</span>}
+              </button>
+
+              <button
                 onClick={() => setActiveTab('feedbacks')}
                 className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer text-left ${
                   activeTab === 'feedbacks'
@@ -1231,6 +1245,7 @@ export default function AdminPage() {
               {activeTab === 'templates' && 'Layout Architectures & Visual Styles'}
               {activeTab === 'ai_usage' && 'AI Token Telemetry & Feature Quotas'}
               {activeTab === 'tiers' && 'Pricing Tiers Config'}
+              {activeTab === 'blogs' && 'Articles & Guides (Tiptap Rich Text)'}
               {activeTab === 'feedbacks' && 'User Feedbacks & Pilot Reports'}
             </span>
           </div>
@@ -2359,6 +2374,11 @@ export default function AdminPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ─── TAB: EDITORIAL & BLOGS (Tiptap) ──────────────────────────────── */}
+        {activeTab === 'blogs' && (
+          <BlogTab />
         )}
 
         {/* ─── TAB: USER FEEDBACKS & PILOT REPORTS ──────────────────────────── */}
