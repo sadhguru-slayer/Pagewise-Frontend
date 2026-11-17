@@ -391,7 +391,18 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+        {/* Adaptive Dynamic Grid for 1, 2, 3, or 4 plans */}
+        <div
+          className={`mx-auto grid gap-6 items-stretch justify-center ${
+            plans.length === 1
+              ? 'max-w-md grid-cols-1'
+              : plans.length === 2
+              ? 'max-w-3xl grid-cols-1 md:grid-cols-2'
+              : plans.length === 3
+              ? 'max-w-5xl grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+              : 'max-w-6xl grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+          }`}
+        >
           {plans.map((plan) => {
             const isPilot = plan.id === 'pilot';
             const isPro = plan.id === 'pro_monthly';
